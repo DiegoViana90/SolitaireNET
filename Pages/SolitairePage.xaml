@@ -1,0 +1,38 @@
+<ContentPage x:Class="SolitaireNET.SolitairePage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             BackgroundColor="#0B6B3A"
+             Title="Paciência">
+
+    <Grid>
+        <GraphicsView x:Name="Mesa"
+                      BackgroundColor="#0B6B3A"
+                      StartInteraction="Mesa_StartInteraction"
+                      DragInteraction="Mesa_DragInteraction"
+                      EndInteraction="Mesa_EndInteraction" />
+
+<Border HorizontalOptions="End"
+        VerticalOptions="End"
+        Margin="8"
+        Padding="6"
+        BackgroundColor="#AA000000"
+        StrokeShape="RoundRectangle 8">
+
+    <HorizontalStackLayout Spacing="6">
+        <Button Text="Novo"
+                FontSize="12"
+                Padding="8,4"
+                HeightRequest="34"
+                Clicked="NovoJogo_Clicked" />
+
+        <Button x:Name="BtnSemSaida"
+                Text="Nova"
+                FontSize="12"
+                Padding="8,4"
+                HeightRequest="34"
+                IsVisible="False"
+                Clicked="NovoJogo_Clicked" />
+    </HorizontalStackLayout>
+</Border>
+    </Grid>
+</ContentPage>

@@ -1,0 +1,35 @@
+﻿<ContentPage x:Class="SolitaireNET.MainPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             BackgroundColor="#0B6B3A"
+             Title="Jogos">
+
+    <Grid>
+        <Border WidthRequest="360"
+                Padding="28"
+                BackgroundColor="#CC000000"
+                StrokeShape="RoundRectangle 18"
+                HorizontalOptions="Center"
+                VerticalOptions="Center">
+
+            <VerticalStackLayout Spacing="12">
+                <Label Text="Jogos MAUI"
+                       TextColor="White"
+                       FontSize="36"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center"
+                       Margin="0,0,0,12" />
+
+                <Button Text="Paciência"
+                        FontSize="20"
+                        Padding="16"
+                        Clicked="Paciencia_Clicked" />
+
+                <Button Text="Sair"
+                        FontSize="18"
+                        Padding="14"
+                        Clicked="Sair_Clicked" />
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+</ContentPage>
