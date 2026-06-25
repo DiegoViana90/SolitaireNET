@@ -1,0 +1,16 @@
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.tmp
+*.log
+
+# Android
+*.apk
+*.aab
+
+# Windows build
+AppPackages/
+BundleArtifacts/
