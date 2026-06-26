@@ -24,6 +24,11 @@
                         FontSize="20"
                         Padding="16"
                         Clicked="Paciencia_Clicked" />
+                        
+                <Button Text="Dominó"
+                        FontSize="20"
+                        Padding="16"
+                        Clicked="Domino_Clicked" />
 
                 <Button Text="Sair"
                         FontSize="18"

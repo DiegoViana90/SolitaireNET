@@ -41,6 +41,11 @@ public partial class MainPage : ContentPage
         await Navigation.PushAsync(new SolitairePage());
     }
 
+    async void Domino_Clicked(object sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new DominoPage());
+    }
+
     void Sair_Clicked(object sender, EventArgs e)
     {
         Application.Current?.Quit();
