@@ -1,0 +1,329 @@
+﻿<ContentPage x:Class="SolitaireNET.BlackjackPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:SolitaireNET"
+             BackgroundColor="Black"
+             Title="Blackjack">
+
+    <Grid x:Name="RootGrid"
+          RowDefinitions="Auto,*,Auto">
+
+        <!-- CABEÇALHO -->
+
+        <Grid Grid.Row="0"
+              Padding="12,7"
+              ColumnDefinitions="*,Auto"
+              BackgroundColor="#EE061D12"
+              ZIndex="20">
+
+            <HorizontalStackLayout Spacing="8"
+                                   VerticalOptions="Center">
+
+                <Label Text="♠"
+                       TextColor="#D6B64C"
+                       FontSize="24" />
+
+                <Label Text="Blackjack"
+                       TextColor="White"
+                       FontSize="25"
+                       FontAttributes="Bold" />
+
+            </HorizontalStackLayout>
+
+            <Border Grid.Column="1"
+                    Padding="13,4"
+                    BackgroundColor="#EE020403"
+                    Stroke="#9A7B2D"
+                    StrokeThickness="1.5"
+                    StrokeShape="RoundRectangle 11">
+
+                <VerticalStackLayout Spacing="0">
+
+                    <Label Text="FICHAS"
+                           TextColor="#D6B64C"
+                           FontSize="8"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center" />
+
+                    <Label x:Name="ChipsLabel"
+                           Text="1.000"
+                           TextColor="White"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center" />
+
+                </VerticalStackLayout>
+
+            </Border>
+
+        </Grid>
+
+        <!-- FUNDO DA MESA -->
+
+        <Grid x:Name="TableGrid"
+              Grid.Row="1"
+>
+
+            <Image Source="blackjack_table.png"
+                   Aspect="AspectFill"
+                   HorizontalOptions="Fill"
+                   VerticalOptions="Fill"
+                   ZIndex="0" />
+
+            <!-- Só um escurecimento bem leve -->
+            <BoxView BackgroundColor="#08000000"
+                     InputTransparent="True"
+                     ZIndex="1" />
+
+            <!-- DEALER -->
+
+            <VerticalStackLayout VerticalOptions="Start"
+                                 HorizontalOptions="Center"
+                                 Margin="0,10,0,0"
+                                 Spacing="3"
+                                 ZIndex="10">
+
+                <Label Text="DEALER"
+                       TextColor="#FFD54F"
+                       FontSize="14"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center" />
+
+                <HorizontalStackLayout x:Name="DealerCardsPanel"
+                                       MinimumHeightRequest="84"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"
+                                       Spacing="5" />
+
+                <Border Padding="9,2"
+                        BackgroundColor="#D9000000"
+                        Stroke="#9A7B2D"
+                        StrokeShape="RoundRectangle 7">
+
+                    <Label x:Name="DealerScoreLabel"
+                           Text="Pontuação: 0"
+                           TextColor="White"
+                           FontSize="11"
+                           FontAttributes="Bold" />
+
+                </Border>
+
+            </VerticalStackLayout>
+
+            <!-- SAPATO -->
+
+            <VerticalStackLayout VerticalOptions="Center"
+                                 HorizontalOptions="Center"
+                                 Spacing="2"
+                                 ZIndex="10">
+
+                <Border Padding="18,4"
+                        BackgroundColor="#DD082519"
+                        Stroke="#9A7B2D"
+                        StrokeShape="RoundRectangle 7">
+
+                    <Label x:Name="RoundPhaseLabel"
+                           Text="AGUARDANDO APOSTA"
+                           TextColor="#FFD54F"
+                           FontSize="14"
+                           FontAttributes="Bold" />
+
+                </Border>
+
+                <local:BlackjackShoeView x:Name="ShoeView" />
+
+            </VerticalStackLayout>
+
+            <!-- JOGADOR -->
+
+            <VerticalStackLayout VerticalOptions="End"
+                                 HorizontalOptions="Center"
+                                 Margin="0,0,0,65"
+                                 Spacing="3"
+                                 ZIndex="10">
+
+                <Label Text="VOCÊ"
+                       TextColor="#FFD54F"
+                       FontSize="14"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center" />
+
+                <HorizontalStackLayout x:Name="PlayerCardsPanel"
+                                       MinimumHeightRequest="84"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"
+                                       Spacing="5" />
+
+                <Border Padding="9,2"
+                        BackgroundColor="#D9000000"
+                        Stroke="#9A7B2D"
+                        StrokeShape="RoundRectangle 7">
+
+                    <Label x:Name="PlayerScoreLabel"
+                           Text="Pontuação: 0"
+                           TextColor="White"
+                           FontSize="11"
+                           FontAttributes="Bold" />
+
+                </Border>
+
+            </VerticalStackLayout>
+
+            <!-- AÇÕES -->
+
+            <Grid VerticalOptions="End"
+                  Margin="14,0,14,9"
+                  ColumnDefinitions="*,*"
+                  ColumnSpacing="9"
+                  ZIndex="20">
+
+                <Button x:Name="HitButton"
+                        Grid.Column="0"
+                        Text="Pedir carta"
+                        FontSize="13"
+                        FontAttributes="Bold"
+                        Padding="9"
+                        BackgroundColor="#454A47"
+                        TextColor="#AAAAAA"
+                        CornerRadius="10"
+                        Clicked="Hit_Clicked" />
+
+                <Button x:Name="StandButton"
+                        Grid.Column="1"
+                        Text="Parar"
+                        FontSize="13"
+                        FontAttributes="Bold"
+                        Padding="9"
+                        BackgroundColor="#454A47"
+                        TextColor="#AAAAAA"
+                        CornerRadius="10"
+                        Clicked="Stand_Clicked" />
+
+            </Grid>
+
+        </Grid>
+
+        <!-- APOSTAS -->
+
+        <Border Grid.Row="2"
+                Margin="7"
+                Padding="8"
+                BackgroundColor="#F205120D"
+                Stroke="#9A7B2D"
+                StrokeThickness="2"
+                StrokeShape="RoundRectangle 13">
+
+            <Grid RowDefinitions="Auto,Auto"
+                  RowSpacing="6">
+
+                <Grid Grid.Row="0"
+                      ColumnDefinitions="Auto,*,Auto">
+
+                    <Button x:Name="ResetButton"
+                            Grid.Column="0"
+                            Text="Reiniciar"
+                            FontSize="9"
+                            Padding="7,4"
+                            BackgroundColor="#252A27"
+                            TextColor="#DDDDDD"
+                            CornerRadius="7"
+                            Clicked="Reset_Clicked" />
+
+                    <VerticalStackLayout Grid.Column="1"
+                                         Spacing="0"
+                                         HorizontalOptions="Center">
+
+                        <Label Text="APOSTA"
+                               TextColor="#D6B64C"
+                               FontSize="8"
+                               FontAttributes="Bold"
+                               HorizontalOptions="Center" />
+
+                        <Label x:Name="BetLabel"
+                               Text="25"
+                               TextColor="White"
+                               FontSize="21"
+                               FontAttributes="Bold"
+                               HorizontalOptions="Center" />
+
+                    </VerticalStackLayout>
+
+                    <Button x:Name="StartButton"
+                            Grid.Column="2"
+                            Text="Iniciar rodada"
+                            FontSize="10"
+                            Padding="9,5"
+                            BackgroundColor="#252A27"
+                            TextColor="White"
+                            CornerRadius="8"
+                            Clicked="StartRound_Clicked" />
+
+                </Grid>
+
+                <Grid Grid.Row="1"
+                      ColumnDefinitions="*,*,*,*"
+                      ColumnSpacing="6">
+
+                    <Button x:Name="BetMinus25Button"
+                            Grid.Column="0"
+                            Text="-25"
+                            FontSize="12"
+                            FontAttributes="Bold"
+                            Padding="7"
+                            BackgroundColor="#9C3129"
+                            TextColor="White"
+                            Clicked="BetMinus25_Clicked" />
+
+                    <Button x:Name="BetMinus5Button"
+                            Grid.Column="1"
+                            Text="-5"
+                            FontSize="12"
+                            FontAttributes="Bold"
+                            Padding="7"
+                            BackgroundColor="#C26D15"
+                            TextColor="White"
+                            Clicked="BetMinus5_Clicked" />
+
+                    <Button x:Name="BetPlus5Button"
+                            Grid.Column="2"
+                            Text="+5"
+                            FontSize="12"
+                            FontAttributes="Bold"
+                            Padding="7"
+                            BackgroundColor="#24884B"
+                            TextColor="White"
+                            Clicked="BetPlus5_Clicked" />
+
+                    <Button x:Name="BetPlus25Button"
+                            Grid.Column="3"
+                            Text="+25"
+                            FontSize="12"
+                            FontAttributes="Bold"
+                            Padding="7"
+                            BackgroundColor="#2473A8"
+                            TextColor="White"
+                            Clicked="BetPlus25_Clicked" />
+
+                </Grid>
+
+            </Grid>
+
+        </Border>
+
+        <Label x:Name="StatusLabel"
+               IsVisible="False" />
+
+        <local:BlackjackCardView x:Name="FlyingCard"
+                                 Grid.Row="0"
+                                 Grid.RowSpan="3"
+                                 HorizontalOptions="Start"
+                                 VerticalOptions="Start"
+                                 IsVisible="False"
+                                 InputTransparent="True"
+                                 ZIndex="100" />
+
+    </Grid>
+
+</ContentPage>
+
+

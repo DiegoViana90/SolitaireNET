@@ -1,0 +1,452 @@
+﻿<ContentPage x:Class="SolitaireNET.PokerPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:SolitaireNET"
+             BackgroundColor="#075C32"
+             Title="Texas Hold'em">
+
+    <Grid Padding="12"
+          RowDefinitions="Auto,*,Auto"
+          RowSpacing="8">
+
+        <!-- CABEÇALHO -->
+
+        <Grid Grid.Row="0"
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="8">
+
+            <VerticalStackLayout Spacing="1">
+
+                <Label Text="Texas Hold'em"
+                       TextColor="White"
+                       FontSize="24"
+                       FontAttributes="Bold" />
+
+                <Label Text="Blinds: 2 / 5"
+                       TextColor="#FFD54F"
+                       FontSize="14" />
+
+                <Label x:Name="StatusLabel"
+                       TextColor="White"
+                       FontSize="12"
+                       LineBreakMode="TailTruncation" />
+
+            </VerticalStackLayout>
+
+            <Border Grid.Column="1"
+                    WidthRequest="86"
+                    HeightRequest="68"
+                    Padding="8"
+                    BackgroundColor="#DD000000"
+                    StrokeShape="RoundRectangle 10">
+
+                <Label x:Name="PotLabel"
+                       Text="Pote: 0"
+                       TextColor="White"
+                       FontSize="14"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center"
+                       VerticalTextAlignment="Center" />
+
+            </Border>
+
+        </Grid>
+
+        <!-- ÁREA PRINCIPAL -->
+
+        <Grid Grid.Row="1"
+              RowDefinitions="Auto,*,Auto"
+              ColumnDefinitions="*,*,*"
+              RowSpacing="8"
+              ColumnSpacing="7">
+
+            <!-- IA 1 -->
+
+            <Border x:Name="Ai1Border"
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Padding="7"
+                    BackgroundColor="#DD000000"
+                    Stroke="#22000000"
+                    StrokeThickness="3"
+                    StrokeShape="RoundRectangle 12">
+
+                <VerticalStackLayout Spacing="1">
+
+                    <Label x:Name="Ai1Position"
+                           TextColor="#FFD54F"
+                           FontSize="10"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center" />
+
+                    <Label Text="IA 1"
+                           TextColor="White"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center" />
+
+                    <Label x:Name="Ai1Cards"
+                           TextColor="White"
+                           FontSize="23"
+                           HorizontalOptions="Center" />
+
+                    <Label x:Name="Ai1Chips"
+                           TextColor="#DDDDDD"
+                           FontSize="10"
+                           HorizontalTextAlignment="Center"
+                           HorizontalOptions="Center" />
+
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- IA 2 -->
+
+            <Border x:Name="Ai2Border"
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Padding="7"
+                    BackgroundColor="#DD000000"
+                    Stroke="#22000000"
+                    StrokeThickness="3"
+                    StrokeShape="RoundRectangle 12">
+
+                <VerticalStackLayout Spacing="1">
+
+                    <Label x:Name="Ai2Position"
+                           TextColor="#FFD54F"
+                           FontSize="10"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center" />
+
+                    <Label Text="IA 2"
+                           TextColor="White"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center" />
+
+                    <Label x:Name="Ai2Cards"
+                           TextColor="White"
+                           FontSize="23"
+                           HorizontalOptions="Center" />
+
+                    <Label x:Name="Ai2Chips"
+                           TextColor="#DDDDDD"
+                           FontSize="10"
+                           HorizontalTextAlignment="Center"
+                           HorizontalOptions="Center" />
+
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- IA 3 -->
+
+            <Border x:Name="Ai3Border"
+                    Grid.Row="0"
+                    Grid.Column="2"
+                    Padding="7"
+                    BackgroundColor="#DD000000"
+                    Stroke="#22000000"
+                    StrokeThickness="3"
+                    StrokeShape="RoundRectangle 12">
+
+                <VerticalStackLayout Spacing="1">
+
+                    <Label x:Name="Ai3Position"
+                           TextColor="#FFD54F"
+                           FontSize="10"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center" />
+
+                    <Label Text="IA 3"
+                           TextColor="White"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center" />
+
+                    <Label x:Name="Ai3Cards"
+                           TextColor="White"
+                           FontSize="23"
+                           HorizontalOptions="Center" />
+
+                    <Label x:Name="Ai3Chips"
+                           TextColor="#DDDDDD"
+                           FontSize="10"
+                           HorizontalTextAlignment="Center"
+                           HorizontalOptions="Center" />
+
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- MESA CENTRAL -->
+
+            <Border Grid.Row="1"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    Margin="7,8"
+                    Padding="10"
+                    BackgroundColor="#22000000"
+                    Stroke="#88FFFFFF"
+                    StrokeThickness="2"
+                    StrokeShape="RoundRectangle 60">
+
+                <Grid RowDefinitions="Auto,Auto,Auto"
+                      RowSpacing="9"
+                      VerticalOptions="Center">
+
+                    <Label x:Name="StreetLabel"
+                           Grid.Row="0"
+                           Text="AGUARDANDO"
+                           TextColor="#DDFFFFFF"
+                           FontSize="15"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center" />
+
+                    <!-- CARTAS COMUNITÁRIAS -->
+
+                    <HorizontalStackLayout Grid.Row="1"
+                                           HorizontalOptions="Center"
+                                           Spacing="4">
+
+                        <local:PokerCardView x:Name="CommunityCard1" />
+                        <local:PokerCardView x:Name="CommunityCard2" />
+                        <local:PokerCardView x:Name="CommunityCard3" />
+                        <local:PokerCardView x:Name="CommunityCard4" />
+                        <local:PokerCardView x:Name="CommunityCard5" />
+
+                    </HorizontalStackLayout>
+
+                    <!-- AÇÕES DO JOGADOR -->
+
+                    <Border x:Name="ActionsContainer"
+                            Grid.Row="2"
+                            Padding="7"
+                            Margin="3,0"
+                            BackgroundColor="#DD050505"
+                            Stroke="#88FFFFFF"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 12"
+                            IsVisible="False">
+
+                        <VerticalStackLayout Spacing="6">
+
+                            <Label x:Name="CallInfoLabel"
+                                   Text="Sua vez"
+                                   TextColor="#FFD54F"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   HorizontalOptions="Center" />
+
+                            <Grid ColumnDefinitions="*,*,*"
+                                  ColumnSpacing="5">
+
+                                <Button x:Name="FoldButton"
+                                        Grid.Column="0"
+                                        Text="Desistir"
+                                        FontSize="11"
+                                        Padding="4,7"
+                                        BackgroundColor="#C62828"
+                                        TextColor="White"
+                                        Clicked="Fold_Clicked" />
+
+                                <Button x:Name="CheckCallButton"
+                                        Grid.Column="1"
+                                        Text="Mesa"
+                                        FontSize="11"
+                                        Padding="4,7"
+                                        Clicked="CheckCall_Clicked" />
+
+                                <Button x:Name="RaiseButton"
+                                        Grid.Column="2"
+                                        Text="Aumentar +10"
+                                        FontSize="11"
+                                        Padding="3,7"
+                                        Clicked="Raise_Clicked" />
+
+                            </Grid>
+
+                        </VerticalStackLayout>
+
+                    </Border>
+
+                </Grid>
+
+            </Border>
+
+            <!-- IA 4 -->
+
+            <Border x:Name="Ai4Border"
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    Padding="7"
+                    BackgroundColor="#DD000000"
+                    Stroke="#22000000"
+                    StrokeThickness="3"
+                    StrokeShape="RoundRectangle 12">
+
+                <VerticalStackLayout Spacing="1">
+
+                    <Label x:Name="Ai4Position"
+                           TextColor="#FFD54F"
+                           FontSize="10"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center" />
+
+                    <Label Text="IA 4"
+                           TextColor="White"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center" />
+
+                    <Label x:Name="Ai4Cards"
+                           TextColor="White"
+                           FontSize="23"
+                           HorizontalOptions="Center" />
+
+                    <Label x:Name="Ai4Chips"
+                           TextColor="#DDDDDD"
+                           FontSize="10"
+                           HorizontalTextAlignment="Center"
+                           HorizontalOptions="Center" />
+
+                </VerticalStackLayout>
+
+            </Border>
+
+            <!-- VOCÊ -->
+
+            <Border x:Name="HumanBorder"
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    Grid.ColumnSpan="2"
+                    Padding="9"
+                    BackgroundColor="#DD000000"
+                    Stroke="#FFD54F"
+                    StrokeThickness="3"
+                    StrokeShape="RoundRectangle 12">
+
+                <Grid ColumnDefinitions="*,Auto"
+                      RowDefinitions="Auto,Auto"
+                      ColumnSpacing="8"
+                      RowSpacing="5">
+
+                    <VerticalStackLayout Grid.Row="0"
+                                         Grid.Column="0"
+                                         Spacing="1">
+
+                        <Label x:Name="HumanPosition"
+                               TextColor="#FFD54F"
+                               FontSize="10"
+                               FontAttributes="Bold" />
+
+                        <Label Text="VOCÊ"
+                               TextColor="#FFD54F"
+                               FontSize="15"
+                               FontAttributes="Bold" />
+
+                        <Label x:Name="HumanCards"
+                               TextColor="White"
+                               FontSize="28" />
+
+                        <Label x:Name="HumanChips"
+                               TextColor="#DDDDDD"
+                               FontSize="11" />
+
+                    </VerticalStackLayout>
+
+                    <Button x:Name="StartButton"
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Text="Iniciar mão"
+                            FontSize="12"
+                            Padding="10,7"
+                            Clicked="StartHand_Clicked" />
+
+                    <!-- MELHOR MÃO ATUAL -->
+
+                    <Border Grid.Row="1"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="2"
+                            Padding="7,5"
+                            BackgroundColor="#440B6B3A"
+                            Stroke="#5577FF99"
+                            StrokeShape="RoundRectangle 8">
+
+                        <VerticalStackLayout Spacing="1">
+
+                            <Label Text="SUA MELHOR MÃO"
+                                   TextColor="#FFD54F"
+                                   FontSize="9"
+                                   FontAttributes="Bold" />
+
+                            <Label x:Name="HandStrengthLabel"
+                                   Text="Aguardando cartas"
+                                   TextColor="White"
+                                   FontSize="13"
+                                   FontAttributes="Bold" />
+
+                        </VerticalStackLayout>
+
+                    </Border>
+
+                </Grid>
+
+            </Border>
+
+        </Grid>
+
+        <Label Grid.Row="2"
+               Text="Texas Hold'em — você contra quatro IAs"
+               TextColor="#CCFFFFFF"
+               FontSize="10"
+               HorizontalOptions="Center" />
+
+        <!-- ESCURECIMENTO DO POPUP -->
+
+        <BoxView x:Name="PopupOverlay"
+                 Grid.Row="0"
+                 Grid.RowSpan="3"
+                 BackgroundColor="#55000000"
+                 IsVisible="False"
+                 InputTransparent="True" />
+
+        <!-- POPUP DE AÇÃO -->
+
+        <Border x:Name="ActionPopup"
+                Grid.Row="0"
+                Grid.RowSpan="3"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                WidthRequest="290"
+                Padding="18"
+                BackgroundColor="#EE101010"
+                Stroke="#FFD54F"
+                StrokeThickness="3"
+                StrokeShape="RoundRectangle 18"
+                IsVisible="False"
+                InputTransparent="True">
+
+            <VerticalStackLayout Spacing="6">
+
+                <Label x:Name="ActionPopupPlayer"
+                       TextColor="#FFD54F"
+                       FontSize="17"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center" />
+
+                <Label x:Name="ActionPopupText"
+                       TextColor="White"
+                       FontSize="22"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center"
+                       LineBreakMode="WordWrap" />
+
+            </VerticalStackLayout>
+
+        </Border>
+
+    </Grid>
+
+</ContentPage>

@@ -9,44 +9,75 @@ public partial class MainPage : ContentPage
         InitializeComponent();
     }
 
-    async void Paciencia_Clicked(object sender, EventArgs e)
+    async void Paciencia_Clicked(
+        object sender,
+        EventArgs e)
     {
-        string salvo = Preferences.Get(SaveKey, "");
+        string salvo =
+            Preferences.Get(SaveKey, "");
 
         if (!string.IsNullOrWhiteSpace(salvo))
         {
-            string escolha = await DisplayActionSheet(
-                "Paciência",
-                "Cancelar",
-                null,
-                "Continuar jogo anterior",
-                "Novo jogo");
+            string escolha =
+                await DisplayActionSheet(
+                    "Paciência",
+                    "Cancelar",
+                    null,
+                    "Continuar jogo anterior",
+                    "Novo jogo");
 
             if (escolha == "Continuar jogo anterior")
             {
-                await Navigation.PushAsync(new SolitairePage(salvo));
+                await Navigation.PushAsync(
+                    new SolitairePage(salvo));
+
                 return;
             }
 
             if (escolha == "Novo jogo")
             {
                 Preferences.Remove(SaveKey);
-                await Navigation.PushAsync(new SolitairePage());
+
+                await Navigation.PushAsync(
+                    new SolitairePage());
+
                 return;
             }
 
             return;
         }
 
-        await Navigation.PushAsync(new SolitairePage());
+        await Navigation.PushAsync(
+            new SolitairePage());
     }
 
-    async void Domino_Clicked(object sender, EventArgs e)
+    async void Domino_Clicked(
+        object sender,
+        EventArgs e)
     {
-        await Navigation.PushAsync(new DominoPage());
+        await Navigation.PushAsync(
+            new DominoPage());
     }
 
-    void Sair_Clicked(object sender, EventArgs e)
+    async void Poker_Clicked(
+        object sender,
+        EventArgs e)
+    {
+        await Navigation.PushAsync(
+            new PokerPage());
+    }
+
+    async void Blackjack_Clicked(
+        object sender,
+        EventArgs e)
+    {
+        await Navigation.PushAsync(
+            new BlackjackPage());
+    }
+
+    void Sair_Clicked(
+        object sender,
+        EventArgs e)
     {
         Application.Current?.Quit();
     }

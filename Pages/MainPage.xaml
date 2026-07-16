@@ -13,6 +13,7 @@
                 VerticalOptions="Center">
 
             <VerticalStackLayout Spacing="12">
+
                 <Label Text="Jogos MAUI"
                        TextColor="White"
                        FontSize="36"
@@ -24,17 +25,29 @@
                         FontSize="20"
                         Padding="16"
                         Clicked="Paciencia_Clicked" />
-                        
+
                 <Button Text="Dominó"
                         FontSize="20"
                         Padding="16"
                         Clicked="Domino_Clicked" />
 
+                <Button Text="Poker"
+                        FontSize="20"
+                        Padding="16"
+                        Clicked="Poker_Clicked" />
+
+                <Button Text="Blackjack (21)"
+                        FontSize="20"
+                        Padding="16"
+                        Clicked="Blackjack_Clicked" />
+
                 <Button Text="Sair"
                         FontSize="18"
                         Padding="14"
                         Clicked="Sair_Clicked" />
+
             </VerticalStackLayout>
         </Border>
     </Grid>
+
 </ContentPage>
