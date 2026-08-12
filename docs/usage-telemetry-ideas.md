@@ -67,6 +67,35 @@ Como seria em memoria:
 
 Para ranking real, considerar SQLite ou outro banco simples depois.
 
+## Ranking do Paciencia
+
+Primeira versao possivel, sem complicar demais:
+
+- registrar apenas vitorias concluidas;
+- salvar apelido/nome exibido no ranking;
+- salvar tempo da partida;
+- salvar quantidade de movimentos;
+- salvar data/hora da vitoria;
+- salvar um identificador da partida;
+- criar ranking semanal, mensal e geral depois.
+
+Ordenacoes possiveis:
+
+- menor tempo;
+- menos movimentos;
+- total de vitorias;
+- melhor combinacao entre tempo e movimentos.
+
+Para evitar trapaça basica:
+
+- manter o estado oficial da partida no servidor;
+- aceitar somente jogadas validadas pela API;
+- contar vitoria apenas quando o servidor confirmar que todas as cartas chegaram nas bases;
+- nao confiar no `localStorage` para pontuacao ou vitoria;
+- nao deixar o front enviar "ganhei", e sim deixar o servidor calcular isso.
+
+Esse modelo nao impede ataques sofisticados, mas ja evita ranking baseado apenas em dados manipulaveis pelo navegador.
+
 ## Futuro
 
 Possiveis proximos passos:
