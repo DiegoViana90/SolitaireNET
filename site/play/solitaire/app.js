@@ -722,78 +722,45 @@ function startDealAnimation() {
   if (!state.game)
     return;
 
-  const layer = document.createElement("div");
-  layer.className = "deal-layer";
-  layer.setAttribute("aria-hidden", "true");
-  document.body.append(layer);
-
   const stockRect = stockEl.getBoundingClientRect();
-  const animations = [];
-  const timers = [];
-  const duration = 420;
-  const gapDelay = 46;
-  const cardH = getCardHeight();
+  const elements = [];
+  const duration = 330;
+  const gapDelay = 38;
   let index = 0;
 
   state.game.tableau.forEach((pile, col) => {
     const column = board.querySelector(`[data-column="${col}"]`);
 
     pile.forEach((card, row) => {
-      const target = column?.children[row]?.getBoundingClientRect();
-      if (!target)
+      const node = column?.children[row];
+      if (!node)
         return;
 
-      const startX = stockRect.left;
-      const startY = stockRect.top;
-      const endX = target.left;
-      const endY = target.top;
-      const midX = startX + (endX - startX) * 0.48;
-      const arcY = Math.max(8, Math.min(startY, endY) - cardH * 0.45 - row * 5);
+      const target = node.getBoundingClientRect();
       const delay = index * gapDelay;
-      const rotate = (col % 2 === 0 ? 1 : -1) * (10 + row * 3);
-
-      const node = visualCard({ ...card, faceUp: false });
-      node.classList.add("deal-card");
+      const startX = stockRect.left - target.left;
+      const startY = stockRect.top - target.top;
+      node.style.setProperty("--deal-x", `${startX}px`);
+      node.style.setProperty("--deal-y", `${startY}px`);
+      node.style.setProperty("--deal-near-x", `${startX * 0.08}px`);
+      node.style.setProperty("--deal-near-y", `${startY * 0.08}px`);
+      node.style.setProperty("--deal-delay", `${delay}ms`);
+      node.style.setProperty("--deal-duration", `${duration}ms`);
       node.style.zIndex = String(200 + index);
-      node.style.transform = `translate3d(${startX}px, ${startY}px, 0) rotate(0deg)`;
-      layer.append(node);
+      node.classList.add("deal-tableau-card");
 
       if (card.faceUp) {
-        timers.push(window.setTimeout(() => {
-          paintVisualCard(node, card);
-          node.classList.add("deal-card");
-          node.classList.add("deal-face-up");
-        }, delay + duration * 0.62));
+        node.classList.add("deal-reveal-card");
       }
 
-      const animation = node.animate([
-        {
-          transform: `translate3d(${startX}px, ${startY}px, 0) rotate(0deg)`,
-          offset: 0
-        },
-        {
-          transform: `translate3d(${midX}px, ${arcY}px, 0) rotate(${rotate * 0.45}deg)`,
-          offset: 0.48
-        },
-        {
-          transform: `translate3d(${endX}px, ${endY}px, 0) rotate(0deg)`,
-          offset: 1
-        }
-      ], {
-        duration,
-        delay,
-        easing: "cubic-bezier(.2,.72,.22,1)",
-        fill: "forwards"
-      });
-
-      animations.push(animation);
+      elements.push(node);
       index += 1;
     });
   });
 
-  const totalMs = index * gapDelay + duration + 120;
+  const totalMs = Math.max(0, index - 1) * gapDelay + duration + 120;
   const timer = window.setTimeout(() => {
-    if (state.dealAnimation?.layer === layer) {
+    if (state.dealAnimation?.timer === timer) {
       stopDealAnimation();
       state.dealing = false;
       render();
@@ -801,9 +768,8 @@ function startDealAnimation() {
   }, totalMs);
 
   state.dealAnimation = {
-    layer,
-    animations,
-    timers: [...timers, timer]
+    elements,
+    timer
   };
 }
 
@@ -811,15 +777,25 @@ function stopDealAnimation(options = {}) {
   if (!state.dealAnimation)
     return;
 
-  state.dealAnimation.timers.forEach((timer) => window.clearTimeout(timer));
-  state.dealAnimation.animations.forEach((animation) => animation.cancel());
-  state.dealAnimation.layer.remove();
+  window.clearTimeout(state.dealAnimation.timer);
+  state.dealAnimation.elements.forEach(clearDealElement);
   state.dealAnimation = null;
 
   if (!options.keepDealing) {
     state.dealing = false;
     gameBoardEl.classList.remove("dealing");
   }
+}
+
+function clearDealElement(node) {
+  node.classList.remove("deal-tableau-card", "deal-reveal-card");
+  node.style.removeProperty("--deal-x");
+  node.style.removeProperty("--deal-y");
+  node.style.removeProperty("--deal-near-x");
+  node.style.removeProperty("--deal-near-y");
+  node.style.removeProperty("--deal-delay");
+  node.style.removeProperty("--deal-duration");
+  node.style.removeProperty("z-index");
 }
 
 function startVictoryAnimation(options = {}) {
@@ -923,6 +899,7 @@ function startVictoryAnimation(options = {}) {
     timers,
     timer: window.setTimeout(() => {
       if (state.victoryAnimation?.layer === layer) {
+        clearFoundationSlots();
         stopVictoryAnimation();
       }
     }, 12800)
@@ -937,6 +914,16 @@ function stopVictoryAnimation() {
   state.victoryAnimation.animations.forEach((animation) => animation.cancel());
   state.victoryAnimation.layer.remove();
   state.victoryAnimation = null;
+
+  if (state.game?.won) {
+    clearFoundationSlots();
+  }
+}
+
+function clearFoundationSlots() {
+  foundationEls.forEach((slot) => {
+    slot.innerHTML = "";
+  });
 }
 
 function getCardWidth() {

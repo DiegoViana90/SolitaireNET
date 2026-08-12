@@ -5,11 +5,11 @@ dotnet clean -f net9.0-windows10.0.19041.0
 dotnet build -f net9.0-windows10.0.19041.0
 dotnet run -f net9.0-windows10.0.19041.0
 
-## Publish downloads
+## Publish web site
 
-The static download page lives in `site/`.
+The static web site lives in `site/`.
 
-To upload the page, Android APK, and Windows ZIP to the server:
+To upload the site to the server:
 
 ```powershell
 .\scripts\Publish-Downloads.ps1 -Server REDACTED_SSH_TARGET
@@ -24,17 +24,17 @@ To publish the server-authoritative Solitaire API:
 Public URL:
 
 ```text
-http://REDACTED_HOST/solitairenet/
+https://paciencia.net.br/
 ```
 
 Web game:
 
 ```text
-http://REDACTED_HOST/solitairenet/play/
+https://paciencia.net.br/play/
 ```
 
 Solitaire web route:
 
 ```text
-http://REDACTED_HOST/solitairenet/play/solitaire/
+https://paciencia.net.br/play/solitaire/
 ```

@@ -319,27 +319,58 @@ button {
 }
 
 .board.dealing .tableau .card {
+  pointer-events: none;
+}
+
+.board.dealing .tableau .card:not(.deal-tableau-card) {
   opacity: 0;
 }
 
-.deal-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 24;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.deal-card {
-  position: fixed;
-  left: 0;
-  top: 0;
+.deal-tableau-card {
+  animation: deal-to-place var(--deal-duration) var(--deal-delay) cubic-bezier(.22, .76, .24, 1) both;
+  transform-origin: center center;
   will-change: transform;
-  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.28));
+  pointer-events: none;
 }
 
-.deal-face-up {
-  box-shadow: 0 0 0 2px rgba(217, 185, 85, 0.24);
+.deal-reveal-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, transparent 43%, rgba(173, 216, 230, 0.8) 44% 46%, transparent 47%),
+    linear-gradient(45deg, transparent 43%, rgba(173, 216, 230, 0.8) 44% 46%, transparent 47%),
+    #00008b;
+  animation: deal-face-reveal var(--deal-duration) var(--deal-delay) linear both;
+}
+
+@keyframes deal-to-place {
+  0% {
+    opacity: 0.98;
+    transform: translate3d(var(--deal-x), var(--deal-y), 0) scale(0.96);
+  }
+
+  72% {
+    opacity: 1;
+    transform: translate3d(var(--deal-near-x), var(--deal-near-y), 0) scale(1.01);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes deal-face-reveal {
+  0%,
+  62% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
 }
 
 .victory-layer {

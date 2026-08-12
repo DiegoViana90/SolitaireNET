@@ -111,6 +111,17 @@
       background: rgba(33, 48, 39, 0.94);
     }
 
+    .download.unavailable {
+      opacity: 0.72;
+      cursor: default;
+    }
+
+    .download.unavailable:hover {
+      transform: none;
+      border-color: var(--line);
+      background: rgba(25, 36, 29, 0.86);
+    }
+
     .download strong {
       display: block;
       font-size: 1.35rem;
@@ -168,28 +179,28 @@
       <img class="logo" src="appicon.svg" alt="">
       <div>
         <h1>SolitaireNET</h1>
-        <p class="tagline">Colecao de jogos em .NET MAUI para baixar e jogar no Android ou Windows.</p>
+        <p class="tagline">Colecao de jogos em .NET MAUI com versao web para jogar direto no navegador.</p>
       </div>
     </section>
 
     <a class="primary" href="play/">Jogar online</a>
 
-    <section class="downloads" aria-label="Downloads">
-      <a class="download" href="SolitaireNET.apk">
+    <section class="downloads" aria-label="Disponibilidade">
+      <div class="download unavailable">
         <div>
           <strong>Android APK</strong>
-          <span>Instalador para celulares e tablets Android.</span>
+          <span>Download temporariamente indisponivel.</span>
         </div>
-        <div class="action">Baixar APK</div>
-      </a>
+        <div class="action">Em breve</div>
+      </div>
 
-      <a class="download" href="SolitaireNET-Windows.zip">
+      <div class="download unavailable">
         <div>
           <strong>Windows ZIP</strong>
-          <span>Pacote desktop para extrair e executar no Windows.</span>
+          <span>Download temporariamente indisponivel.</span>
         </div>
-        <div class="action">Baixar ZIP</div>
-      </a>
+        <div class="action">Em breve</div>
+      </div>
     </section>
 
     <div class="status" aria-label="Plataformas">
