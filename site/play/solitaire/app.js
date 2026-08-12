@@ -31,7 +31,6 @@ const wasteEl = document.querySelector("#waste");
 const statusEl = document.querySelector("#status");
 const menuButtonEl = document.querySelector("#menu-button");
 const newGameEl = document.querySelector("#new-game");
-const simulateWinEl = document.querySelector("#simulate-win");
 const confirmModalEl = document.querySelector("#confirm-modal");
 const confirmTitleEl = document.querySelector("#confirm-title");
 const confirmMessageEl = document.querySelector("#confirm-message");
@@ -1010,12 +1009,6 @@ menuButtonEl.addEventListener("click", async () => {
     window.location.href = "../";
   }
 });
-simulateWinEl.addEventListener("click", async () => {
-  if (state.dealing) return;
-
-  const ok = await sendAction({ type: "debugWin" });
-  if (ok) render();
-});
 wasteEl.addEventListener("click", () => {
   const card = state.game?.wasteTop;
   if (!card) return;
@@ -1055,12 +1048,6 @@ window.solitaireDebug = {
   },
   get lastRenderMs() {
     return state.lastRenderMs;
-  },
-  win: async () => {
-    if (state.dealing) return;
-
-    const ok = await sendAction({ type: "debugWin" });
-    if (ok) render();
   },
   state: () => state.game
 };

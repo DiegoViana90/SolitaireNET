@@ -102,7 +102,6 @@ sealed class GameSession
                 "resetStock" => ResetStock(),
                 "flipTableau" => FlipTableau(action.Source?.Index ?? -1),
                 "move" => Move(action.Source, action.Target),
-                "debugWin" => CompleteForDebug(),
                 _ => MoveResult.Fail("Unknown action")
             };
         }
@@ -304,32 +303,6 @@ sealed class GameSession
                card.Rank == top.Rank - 1;
     }
 
-    MoveResult CompleteForDebug()
-    {
-        stock.Clear();
-        waste.Clear();
-
-        foreach (List<Card> pile in tableau)
-            pile.Clear();
-
-        foreach (List<Card> pile in foundations)
-            pile.Clear();
-
-        string[] suits = { "S", "H", "D", "C" };
-
-        for (int i = 0; i < foundations.Length; i++)
-        {
-            for (int rank = 1; rank <= 13; rank++)
-            {
-                foundations[i].Add(new Card(rank, suits[i])
-                {
-                    FaceUp = true
-                });
-            }
-        }
-
-        return MoveResult.Success();
-    }
 }
 
 sealed record MoveSelection(PileRef Source, List<Card> Cards);

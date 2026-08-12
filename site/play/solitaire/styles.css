@@ -233,11 +233,6 @@ button {
   cursor: pointer;
 }
 
-#simulate-win {
-  background: var(--gold);
-  color: #111111;
-}
-
 .confirm-modal {
   position: fixed;
   inset: 0;
