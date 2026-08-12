@@ -1,0 +1,394 @@
+:root {
+  color-scheme: dark;
+  --felt: #0b6b3a;
+  --card: #ffffff;
+  --ink: #000000;
+  --red: #b22222;
+  --gold: #d9b955;
+  --line: rgba(255, 255, 255, 0.28);
+  --viewport-w: 100vw;
+  --pad: clamp(8px, 2vw, 30px);
+  --gap: clamp(5px, 1.15vw, 18px);
+  --cw: min(82px, calc((var(--viewport-w) - (2 * var(--pad)) - (6 * var(--gap))) / 7));
+  --ch: calc(var(--cw) * 1.42);
+  --down: clamp(24px, 3vw, 34px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: Segoe UI, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--felt);
+  color: #f8f1df;
+  overflow: hidden;
+  touch-action: none;
+}
+
+body.dragging {
+  cursor: grabbing;
+}
+
+button {
+  font: inherit;
+}
+
+.game-shell {
+  min-height: 100vh;
+  position: relative;
+}
+
+.board {
+  width: var(--viewport-w);
+  max-width: var(--viewport-w);
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: none;
+  touch-action: none;
+  padding: var(--pad);
+  background: var(--felt);
+}
+
+.top-row,
+.tableau {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(7, var(--cw));
+  gap: var(--gap);
+  width: calc(var(--cw) * 7 + var(--gap) * 6);
+  margin-inline: auto;
+}
+
+.top-row {
+  margin-bottom: clamp(34px, 6vh, 52px);
+}
+
+.spacer {
+  grid-column: span 1;
+}
+
+.slot,
+.column {
+  width: var(--cw);
+  min-height: var(--ch);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 9px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.slot {
+  position: relative;
+  padding: 0;
+  cursor: pointer;
+}
+
+.slot::before {
+  content: attr(aria-label);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: clamp(0.52rem, 1.5vw, 0.74rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.stock.has-cards {
+  border-style: solid;
+  background:
+    linear-gradient(135deg, transparent 43%, rgba(173, 216, 230, 0.8) 44% 46%, transparent 47%),
+    linear-gradient(45deg, transparent 43%, rgba(173, 216, 230, 0.8) 44% 46%, transparent 47%),
+    #00008b;
+}
+
+.stock.has-cards::before {
+  content: "";
+}
+
+.slot.has-card::before {
+  content: "";
+}
+
+.slot > .card {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.column {
+  position: relative;
+  border-color: transparent;
+}
+
+.card {
+  position: relative;
+  width: var(--cw);
+  height: var(--ch);
+  border: 1px solid rgba(0, 0, 0, 0.58);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: none;
+  cursor: pointer;
+  padding: max(5px, calc(var(--cw) * 0.08));
+  user-select: none;
+  touch-action: none;
+}
+
+.card.drag-source {
+  opacity: 0.35;
+}
+
+.card.red {
+  color: var(--red);
+}
+
+.card.back {
+  background:
+    linear-gradient(135deg, transparent 43%, rgba(173, 216, 230, 0.8) 44% 46%, transparent 47%),
+    linear-gradient(45deg, transparent 43%, rgba(173, 216, 230, 0.8) 44% 46%, transparent 47%),
+    #00008b;
+  cursor: pointer;
+}
+
+.card.pending-flip {
+  opacity: 0.72;
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.card.selected {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.corner {
+  position: absolute;
+  left: max(5px, calc(var(--cw) * 0.08));
+  top: max(5px, calc(var(--cw) * 0.08));
+  font-size: clamp(0.68rem, 2vw, 1rem);
+  line-height: 1;
+  font-weight: 900;
+}
+
+.pip {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(1.35rem, 5vw, 2.5rem);
+  line-height: 1;
+}
+
+.corner.bottom {
+  left: auto;
+  top: auto;
+  right: max(5px, calc(var(--cw) * 0.08));
+  bottom: max(5px, calc(var(--cw) * 0.08));
+}
+
+.column .card {
+  position: absolute;
+  left: 0;
+}
+
+.controls {
+  position: fixed;
+  right: 8px;
+  bottom: 8px;
+  z-index: 10;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.67);
+}
+
+.control-button {
+  min-height: 34px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: #f2f2f2;
+  color: #111111;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+#simulate-win {
+  background: var(--gold);
+  color: #111111;
+}
+
+.confirm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.54);
+}
+
+.confirm-modal[hidden] {
+  display: none;
+}
+
+.confirm-box {
+  width: min(340px, 100%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  background: #17241d;
+  color: #f8f1df;
+  padding: 18px;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.44);
+}
+
+.confirm-box h2 {
+  margin: 0 0 8px;
+  font-size: 1.08rem;
+  line-height: 1.2;
+}
+
+.confirm-box p {
+  margin: 0;
+  color: rgba(248, 241, 223, 0.78);
+  line-height: 1.35;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.confirm-actions button {
+  min-width: 76px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.confirm-secondary {
+  background: #f2f2f2;
+  color: #111111;
+}
+
+.confirm-primary {
+  background: var(--gold);
+  color: #111111;
+}
+
+.confirm-primary:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 20;
+  pointer-events: none;
+  width: var(--cw);
+  height: var(--ch);
+  filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.38));
+}
+
+.drag-ghost .card {
+  position: absolute;
+  left: 0;
+  cursor: grabbing;
+}
+
+.board.dealing .tableau .card {
+  opacity: 0;
+}
+
+.deal-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 24;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.deal-card {
+  position: fixed;
+  left: 0;
+  top: 0;
+  will-change: transform;
+  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.28));
+}
+
+.deal-face-up {
+  box-shadow: 0 0 0 2px rgba(217, 185, 85, 0.24);
+}
+
+.victory-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.victory-card {
+  position: fixed;
+  left: 0;
+  top: 0;
+  will-change: transform;
+  filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.34));
+}
+
+.status {
+  position: fixed;
+  left: 8px;
+  bottom: 8px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+@media (max-width: 620px) {
+  :root {
+    --viewport-w: 100dvw;
+    --pad: 6px;
+    --gap: 4px;
+    --down: clamp(24px, 5.6vw, 32px);
+  }
+}
+
+@media (max-width: 420px) {
+  :root {
+    --pad: 5px;
+    --gap: 3px;
+    --cw: calc((100dvw - (2 * var(--pad)) - (6 * var(--gap))) / 7);
+    --down: clamp(22px, 5.8vw, 30px);
+  }
+}

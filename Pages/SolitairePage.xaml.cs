@@ -2,10 +2,12 @@ namespace SolitaireNET;
 
 public partial class SolitairePage : ContentPage
 {
-    const string SaveKey = "solitaire_save";
+    const string SaveKey = "solitaire_server_game_id";
 
-    readonly SolitaireGame game = new();
+    readonly SolitaireApiClient api = new();
+    readonly RemoteSolitaireGame game = new();
     readonly string? saveToLoad;
+    bool loaded;
 
     public SolitairePage(string? save = null)
     {
@@ -16,15 +18,13 @@ public partial class SolitairePage : ContentPage
         Mesa.Drawable = game;
         game.StatusChanged += AtualizarStatus;
 
-        Loaded += (_, _) =>
+        Loaded += async (_, _) =>
         {
-            if (!string.IsNullOrWhiteSpace(saveToLoad))
-                game.ImportState(saveToLoad);
-            else
-                game.NovoJogo();
+            if (loaded)
+                return;
 
-            AtualizarStatus();
-            Mesa.Invalidate();
+            loaded = true;
+            await CarregarJogoAsync();
         };
 
         SizeChanged += (_, _) =>
@@ -45,20 +45,18 @@ public partial class SolitairePage : ContentPage
         if (!confirmar)
             return;
 
-        game.NovoJogo();
-        SalvarJogo();
-        AtualizarStatus();
-        Mesa.Invalidate();
+        await CriarNovoJogoAsync();
     }
 
-    void Mesa_StartInteraction(object sender, TouchEventArgs e)
+    async void Mesa_StartInteraction(object sender, TouchEventArgs e)
     {
         if (e.Touches.Length == 0) return;
 
-        game.TouchStart(e.Touches[0]);
-        SalvarJogo();
-        AtualizarStatus();
+        RemoteGameAction? action = game.TouchStart(e.Touches[0]);
         Mesa.Invalidate();
+
+        if (action != null)
+            await EnviarAcaoAsync(action);
     }
 
     void Mesa_DragInteraction(object sender, TouchEventArgs e)
@@ -69,24 +67,129 @@ public partial class SolitairePage : ContentPage
         Mesa.Invalidate();
     }
 
-    void Mesa_EndInteraction(object sender, TouchEventArgs e)
+    async void Mesa_EndInteraction(object sender, TouchEventArgs e)
     {
         if (e.Touches.Length == 0) return;
 
-        game.TouchEnd(e.Touches[0]);
-        SalvarJogo();
-        AtualizarStatus();
+        RemoteGameAction? action = game.TouchEnd(e.Touches[0]);
         Mesa.Invalidate();
+
+        if (action != null)
+            await EnviarAcaoAsync(action);
     }
 
     void AtualizarStatus()
     {
-        BtnSemSaida.IsVisible = game.SemSaida;
+        BtnSemSaida.IsVisible = false;
     }
 
-    void SalvarJogo()
+    async Task CarregarJogoAsync()
     {
-        Preferences.Set(SaveKey, game.ExportState());
+        game.SetBusy(true);
+        Mesa.Invalidate();
+
+        try
+        {
+            string gameId = IsGameId(saveToLoad)
+                ? saveToLoad!
+                : Preferences.Get(SaveKey, "");
+
+            RemoteSolitaireState? state =
+                IsGameId(gameId)
+                    ? await api.TryGetGameAsync(gameId)
+                    : null;
+
+            if (state == null)
+                state = await api.CreateGameAsync();
+
+            Preferences.Set(SaveKey, state.Id);
+            game.SetState(state);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(
+                "Servidor indisponivel",
+                $"Nao consegui carregar o jogo agora.\n\n{ex.Message}",
+                "OK");
+        }
+        finally
+        {
+            game.SetBusy(false);
+            Mesa.Invalidate();
+        }
+    }
+
+    async Task CriarNovoJogoAsync()
+    {
+        game.SetBusy(true);
+        Mesa.Invalidate();
+
+        try
+        {
+            RemoteSolitaireState state = await api.CreateGameAsync();
+            Preferences.Set(SaveKey, state.Id);
+            game.SetState(state);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(
+                "Servidor indisponivel",
+                $"Nao consegui criar um jogo novo agora.\n\n{ex.Message}",
+                "OK");
+        }
+        finally
+        {
+            game.SetBusy(false);
+            Mesa.Invalidate();
+        }
+    }
+
+    async Task EnviarAcaoAsync(RemoteGameAction action)
+    {
+        if (game.IsBusy)
+            return;
+
+        string gameId = Preferences.Get(SaveKey, "");
+
+        if (!IsGameId(gameId))
+            return;
+
+        game.SetBusy(true);
+        Mesa.Invalidate();
+
+        try
+        {
+            RemoteSolitaireState state = await api.SendActionAsync(gameId, action);
+            Preferences.Set(SaveKey, state.Id);
+            game.SetState(state);
+        }
+        catch
+        {
+            try
+            {
+                RemoteSolitaireState? state = await api.TryGetGameAsync(gameId);
+                if (state == null)
+                    state = await api.CreateGameAsync();
+
+                Preferences.Set(SaveKey, state.Id);
+                game.SetState(state);
+            }
+            catch
+            {
+                // The next user action will try to sync again.
+            }
+        }
+        finally
+        {
+            game.SetBusy(false);
+            Mesa.Invalidate();
+        }
+    }
+
+    static bool IsGameId(string? value)
+    {
+        return value?.Length == 32 &&
+               value.All(Uri.IsHexDigit) == true;
     }
 
     protected override bool OnBackButtonPressed()
@@ -101,7 +204,6 @@ public partial class SolitairePage : ContentPage
 
             if (confirmar)
             {
-                SalvarJogo();
                 await Navigation.PopAsync();
             }
         });

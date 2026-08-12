@@ -1,0 +1,254 @@
+:root {
+  color-scheme: dark;
+  --felt: #116236;
+  --felt-dark: #092b1b;
+  --rail: #172018;
+  --card: #fffaf0;
+  --ink: #171717;
+  --red: #b22234;
+  --gold: #d9b955;
+  --line: rgba(255, 255, 255, 0.28);
+  --cw: clamp(54px, 9.4vw, 92px);
+  --ch: calc(var(--cw) * 1.42);
+  --gap: clamp(6px, 1.5vw, 16px);
+  --down: clamp(22px, 5.2vw, 36px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: Segoe UI, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(217, 185, 85, 0.18), transparent 28rem),
+    linear-gradient(135deg, var(--felt-dark), var(--felt) 58%, #20211c);
+  color: #f8f1df;
+}
+
+body.dragging {
+  cursor: grabbing;
+}
+
+button {
+  font: inherit;
+}
+
+.game-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+  padding: clamp(10px, 2vw, 18px);
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: clamp(1.25rem, 3vw, 2.15rem);
+  letter-spacing: 0;
+}
+
+.icon-button,
+.topbar button {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(23, 32, 24, 0.74);
+  color: #f8f1df;
+  text-decoration: none;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.icon-button {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.topbar button {
+  padding: 0 14px;
+  font-weight: 700;
+}
+
+.board {
+  overflow: auto;
+  padding: clamp(8px, 2vw, 18px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    rgba(8, 83, 45, 0.76);
+  background-size: 32px 32px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.top-row,
+.tableau {
+  min-width: calc(var(--cw) * 7 + var(--gap) * 6);
+  display: grid;
+  grid-template-columns: repeat(7, var(--cw));
+  gap: var(--gap);
+}
+
+.top-row {
+  margin-bottom: clamp(20px, 4vw, 38px);
+}
+
+.spacer {
+  grid-column: span 1;
+}
+
+.slot,
+.column {
+  width: var(--cw);
+  min-height: var(--ch);
+  border: 2px dashed rgba(255, 255, 255, 0.38);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.15);
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.slot {
+  position: relative;
+  padding: 0;
+  cursor: pointer;
+}
+
+.slot::before {
+  content: attr(aria-label);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: clamp(0.52rem, 1.5vw, 0.74rem);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.stock.has-cards {
+  border-style: solid;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.13) 0 4px, transparent 4px 10px),
+    radial-gradient(circle at center, rgba(217, 185, 85, 0.38), transparent 38%),
+    #173f67;
+  box-shadow: 0 7px 16px rgba(0, 0, 0, 0.26);
+}
+
+.stock.has-cards::before {
+  content: "";
+}
+
+.column {
+  position: relative;
+  border-style: dashed;
+}
+
+.card {
+  width: var(--cw);
+  height: var(--ch);
+  border: 1px solid rgba(0, 0, 0, 0.58);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86), transparent 34%),
+    var(--card);
+  color: var(--ink);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: max(5px, calc(var(--cw) * 0.08));
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.card.drag-source {
+  opacity: 0.35;
+}
+
+.card.red {
+  color: var(--red);
+}
+
+.card.back {
+  background:
+    linear-gradient(135deg, transparent 44%, rgba(255, 255, 255, 0.56) 45% 47%, transparent 48%),
+    linear-gradient(45deg, transparent 44%, rgba(255, 255, 255, 0.56) 45% 47%, transparent 48%),
+    radial-gradient(circle at center, rgba(217, 185, 85, 0.28), transparent 42%),
+    #173f67;
+  cursor: pointer;
+}
+
+.card.selected {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.corner {
+  font-size: clamp(0.68rem, 2vw, 1rem);
+  line-height: 1;
+  font-weight: 900;
+}
+
+.pip {
+  place-self: center;
+  font-size: clamp(1.35rem, 5vw, 2.5rem);
+  line-height: 1;
+}
+
+.corner.bottom {
+  justify-self: end;
+}
+
+.column .card {
+  position: absolute;
+  left: 0;
+}
+
+.drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 20;
+  pointer-events: none;
+  width: var(--cw);
+  height: var(--ch);
+  filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.38));
+}
+
+.drag-ghost .card {
+  position: absolute;
+  left: 0;
+  cursor: grabbing;
+}
+
+.status {
+  min-height: 26px;
+  color: rgba(248, 241, 223, 0.82);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding-left: 2px;
+}
+
+@media (max-width: 620px) {
+  .board {
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    margin-inline: calc(clamp(10px, 2vw, 20px) * -1);
+  }
+}

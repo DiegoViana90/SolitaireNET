@@ -432,6 +432,7 @@ public class SolitaireGame : IDrawable
         if (dragging == null) return;
 
         RemoveDragging();
+        FlipExposedTableauTop();
 
         foreach (var c in draggingStack)
             target.Add(c);
@@ -456,6 +457,16 @@ public class SolitaireGame : IDrawable
                     tableau[dragFromIndex].Remove(c);
                 break;
         }
+    }
+
+    void FlipExposedTableauTop()
+    {
+        if (dragFromKind != PileKind.Tableau) return;
+
+        var pile = tableau[dragFromIndex];
+
+        if (pile.Count > 0 && !pile[^1].FaceUp)
+            pile[^1].FaceUp = true;
     }
 
     bool TryAutoMoveToFoundation(Card card, PileKind kind, int index)

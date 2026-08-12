@@ -2,7 +2,7 @@
 
 public partial class MainPage : ContentPage
 {
-    const string SaveKey = "solitaire_save";
+    const string SaveKey = "solitaire_server_game_id";
 
     public MainPage()
     {

@@ -14,3 +14,4 @@ obj/
 # Windows build
 AppPackages/
 BundleArtifacts/
+artifacts/

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SolitaireNET Web</title>
+  <link rel="icon" href="../../appicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=27">
+</head>
+<body>
+  <main class="game-shell" aria-label="Paciencia">
+    <section class="board" aria-label="Mesa de paciencia">
+      <div class="top-row">
+        <button class="slot stock" id="stock" type="button" aria-label="Monte"></button>
+        <div class="slot waste" id="waste" role="button" tabindex="0" aria-label="Lixo"></div>
+        <div class="spacer"></div>
+        <div class="slot foundation" data-foundation="0" role="button" tabindex="0" aria-label="Base 1"></div>
+        <div class="slot foundation" data-foundation="1" role="button" tabindex="0" aria-label="Base 2"></div>
+        <div class="slot foundation" data-foundation="2" role="button" tabindex="0" aria-label="Base 3"></div>
+        <div class="slot foundation" data-foundation="3" role="button" tabindex="0" aria-label="Base 4"></div>
+      </div>
+
+      <div class="tableau" id="tableau" aria-label="Colunas"></div>
+    </section>
+
+    <div class="controls">
+      <button class="control-button" id="menu-button" type="button">Menu</button>
+      <button class="control-button" id="simulate-win" type="button">Simular</button>
+      <button class="control-button" id="new-game" type="button">Novo</button>
+    </div>
+
+    <footer class="status" id="status"></footer>
+
+    <div class="confirm-modal" id="confirm-modal" hidden>
+      <div class="confirm-box" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+        <h2 id="confirm-title"></h2>
+        <p id="confirm-message"></p>
+        <div class="confirm-actions">
+          <button class="confirm-secondary" id="confirm-no" type="button">Nao</button>
+          <button class="confirm-primary" id="confirm-yes" type="button">Sim</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="app.js?v=27"></script>
+</body>
+</html>
