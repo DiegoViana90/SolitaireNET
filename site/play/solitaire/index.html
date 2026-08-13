@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SolitaireNET Web</title>
   <link rel="icon" href="../../appicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=29">
+  <link rel="stylesheet" href="styles.css?v=30">
 </head>
 <body>
   <main class="game-shell" aria-label="Paciencia">
@@ -41,9 +41,20 @@
         </div>
       </div>
     </div>
+
+    <div class="victory-menu" id="victory-menu" hidden>
+      <div class="victory-box" role="dialog" aria-modal="true" aria-labelledby="victory-title">
+        <h2 id="victory-title">Vitoria!</h2>
+        <p>Boa. Quer jogar outra ou voltar para o menu?</p>
+        <div class="victory-actions">
+          <button class="confirm-secondary" id="victory-menu-button" type="button">Menu</button>
+          <button class="confirm-primary" id="victory-new-game" type="button">Novo jogo</button>
+        </div>
+      </div>
+    </div>
   </main>
 
   <script src="../../build-info.js"></script>
-  <script type="module" src="app.js?v=29"></script>
+  <script type="module" src="app.js?v=30"></script>
 </body>
 </html>

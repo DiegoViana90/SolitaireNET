@@ -38,6 +38,9 @@ const confirmTitleEl = document.querySelector("#confirm-title");
 const confirmMessageEl = document.querySelector("#confirm-message");
 const confirmNoEl = document.querySelector("#confirm-no");
 const confirmYesEl = document.querySelector("#confirm-yes");
+const victoryMenuEl = document.querySelector("#victory-menu");
+const victoryNewGameEl = document.querySelector("#victory-new-game");
+const victoryMenuButtonEl = document.querySelector("#victory-menu-button");
 const foundationEls = [...document.querySelectorAll("[data-foundation]")];
 
 async function request(path, options = {}) {
@@ -77,6 +80,7 @@ async function sendPresence() {
 }
 
 async function startNewGame() {
+  hideVictoryMenu();
   stopVictoryAnimation();
   stopDealAnimation();
   state.celebratedGameId = null;
@@ -85,9 +89,7 @@ async function startNewGame() {
   localStorage.setItem(saveKey, state.game.id);
 
   if (previousGameId && previousGameId !== state.game.id) {
-    request(`/games/${previousGameId}`, { method: "DELETE" }).catch(() => {
-      // Expiration cleanup will remove it later if this best-effort request fails.
-    });
+    deleteSavedGame(previousGameId);
   }
 
   clearSelection();
@@ -109,6 +111,14 @@ async function loadGame() {
   if (id) {
     try {
       state.game = await request(`/games/${id}`);
+      if (state.game.won) {
+        deleteSavedGame(state.game.id);
+        localStorage.removeItem(saveKey);
+        state.game = null;
+        await startNewGame();
+        return;
+      }
+
       render();
       return;
     } catch {
@@ -117,6 +127,12 @@ async function loadGame() {
   }
 
   await startNewGame();
+}
+
+function deleteSavedGame(gameId) {
+  request(`/games/${gameId}`, { method: "DELETE" }).catch(() => {
+    // Expiration cleanup will remove it later if this best-effort request fails.
+  });
 }
 
 async function sendAction(action, options = {}) {
@@ -190,6 +206,10 @@ function render() {
   showStatus(state.game.won
     ? "Vitoria."
     : `Monte: ${state.game.stockCount} | Lixo: ${state.game.wasteCount}${selected}`);
+
+  if (state.game.won) {
+    localStorage.removeItem(saveKey);
+  }
 
   if (state.game.won && state.celebratedGameId !== state.game.id) {
     state.celebratedGameId = state.game.id;
@@ -940,6 +960,7 @@ function startVictoryAnimation(options = {}) {
       if (state.victoryAnimation?.layer === layer) {
         clearFoundationSlots();
         stopVictoryAnimation();
+        showVictoryMenu();
       }
     }, 12800)
   };
@@ -963,6 +984,31 @@ function clearFoundationSlots() {
   foundationEls.forEach((slot) => {
     slot.innerHTML = "";
   });
+}
+
+function showVictoryMenu() {
+  if (!state.game?.won) return;
+
+  deleteSavedGame(state.game.id);
+  localStorage.removeItem(saveKey);
+  clearSelection();
+  victoryMenuEl.hidden = false;
+}
+
+function hideVictoryMenu() {
+  victoryMenuEl.hidden = true;
+}
+
+function goToMenu() {
+  if (state.game?.won) {
+    deleteSavedGame(state.game.id);
+    localStorage.removeItem(saveKey);
+  }
+
+  hideVictoryMenu();
+  stopVictoryAnimation();
+  stopDealAnimation();
+  window.location.href = "../";
 }
 
 function getCardWidth() {
@@ -1024,6 +1070,11 @@ function confirmDelayed({ title, message, yesText = "Sim", noText = "Nao" }) {
 
 stockEl.addEventListener("click", onStock);
 menuButtonEl.addEventListener("click", async () => {
+  if (state.game?.won) {
+    goToMenu();
+    return;
+  }
+
   const ok = await confirmDelayed({
     title: "Retornar ao menu",
     message: "Deseja retornar ao menu?",
@@ -1032,7 +1083,7 @@ menuButtonEl.addEventListener("click", async () => {
   });
 
   if (ok) {
-    window.location.href = "../";
+    goToMenu();
   }
 });
 wasteEl.addEventListener("click", () => {
@@ -1051,6 +1102,11 @@ foundationEls.forEach((slot, index) => {
   });
 });
 newGameEl.addEventListener("click", async () => {
+  if (state.game?.won) {
+    await startNewGame();
+    return;
+  }
+
   const ok = await confirmDelayed({
     title: "Reiniciar partida",
     message: "Deseja reiniciar a partida?",
@@ -1062,6 +1118,8 @@ newGameEl.addEventListener("click", async () => {
     await startNewGame();
   }
 });
+victoryNewGameEl.addEventListener("click", startNewGame);
+victoryMenuButtonEl.addEventListener("click", goToMenu);
 document.addEventListener("touchmove", (event) => {
   if (state.pointer?.dragging) {
     event.preventDefault();
