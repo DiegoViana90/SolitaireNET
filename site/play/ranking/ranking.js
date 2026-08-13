@@ -59,13 +59,15 @@ function renderRanking(data) {
 
   rankingListEl.innerHTML = data.players.map((player, index) => `
     <div class="ranking-row">
-      <strong>${index + 1}</strong>
+      <strong class="position">${index + 1}</strong>
       <div class="player">
         <div class="name">${escapeHtml(player.displayName || "Jogador")}</div>
       </div>
-      <div class="number">${player.gamesStarted ?? 0}</div>
-      <div class="number">${player.wins ?? 0}</div>
-      <div class="rate">${displayWinRate(player)}</div>
+      <div class="stats">
+        <div class="number stat" data-label="Partidas">${player.gamesStarted ?? 0}</div>
+        <div class="number stat" data-label="Vitorias">${player.wins ?? 0}</div>
+        <div class="rate stat" data-label="Aproveitamento">${displayWinRate(player)}</div>
+      </div>
     </div>
   `).join("");
 }

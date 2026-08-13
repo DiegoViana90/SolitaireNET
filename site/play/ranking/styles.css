@@ -172,6 +172,10 @@ p {
   font-weight: 850;
 }
 
+.stats {
+  display: contents;
+}
+
 .loading,
 .empty,
 .error {
@@ -181,31 +185,138 @@ p {
 
 @media (max-width: 720px) {
   main {
+    width: min(100% - 24px, 420px);
     align-content: start;
+    gap: 14px;
+    padding: 28px 0;
   }
 
   .topbar {
-    grid-template-columns: 42px 1fr;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .back {
+    width: 38px;
+    height: 38px;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 11vw, 2.7rem);
+  }
+
+  p {
+    font-size: 0.92rem;
   }
 
   .auth-link {
-    grid-column: 1 / -1;
-    width: fit-content;
-    justify-self: end;
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 0.82rem;
   }
 
   .ranking-head {
     display: none;
   }
 
+  .ranking-panel {
+    background: transparent;
+    border: 0;
+  }
+
+  .ranking-list {
+    display: grid;
+    gap: 10px;
+  }
+
   .ranking-row {
-    grid-template-columns: 36px 1fr;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 8px 12px;
+    align-items: center;
+    min-height: 0;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(23, 36, 29, 0.86);
+  }
+
+  .ranking-row:last-child {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .position {
+    grid-row: 1 / span 2;
+    align-self: start;
+    padding-top: 1px;
+    color: var(--text);
+  }
+
+  .player {
+    grid-column: 2;
+  }
+
+  .name {
+    white-space: normal;
+  }
+
+  .stat {
+    display: inline-grid;
+    gap: 2px;
+    min-width: 0;
+    color: var(--text);
+    font-size: 0.98rem;
+  }
+
+  .stat::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .ranking-row .stat {
+    min-width: 0;
+  }
+
+  .stats {
+    grid-column: 2;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
     align-items: start;
   }
 
-  .ranking-row .number,
-  .ranking-row .rate {
-    grid-column: 2;
-    color: var(--muted);
+  .stats .stat:last-child {
+    text-align: right;
+  }
+}
+
+@media (max-width: 380px) {
+  main {
+    width: calc(100% - 20px);
+  }
+
+  .topbar {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .auth-link {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+
+  .ranking-row {
+    grid-template-columns: 26px minmax(0, 1fr);
+    padding: 12px;
+  }
+
+  .stat {
+    font-size: 0.92rem;
+  }
+
+  .stat::before {
+    font-size: 0.66rem;
   }
 }
