@@ -1,6 +1,7 @@
 (() => {
   const buildLabel = "__BUILD_LABEL__";
-  const text = buildLabel === "__BUILD_LABEL__"
+  const localPlaceholder = ["__BUILD", "_LABEL__"].join("");
+  const text = buildLabel === localPlaceholder
     ? "Versão: desenvolvimento local"
     : buildLabel;
 
