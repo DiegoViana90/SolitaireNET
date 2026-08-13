@@ -162,6 +162,14 @@
       cursor: default;
     }
 
+    .build-version {
+      margin: -10px 0 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-align: right;
+      opacity: 0.78;
+    }
+
     .choice-modal {
       position: fixed;
       inset: 0;
@@ -289,6 +297,8 @@
         <div class="badge">Em breve</div>
       </div>
     </section>
+
+    <p class="build-version" data-build-version>Versão: desenvolvimento local</p>
   </main>
 
   <div class="choice-modal" id="choice-modal" hidden>
@@ -327,5 +337,6 @@
       window.location.href = "solitaire/";
     });
   </script>
+  <script src="../build-info.js"></script>
 </body>
 </html>

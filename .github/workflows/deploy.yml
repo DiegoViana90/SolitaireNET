@@ -43,6 +43,9 @@ jobs:
 
       - name: Package deployment files
         run: |
+          BUILD_DATE="$(TZ=America/Sao_Paulo date '+%d/%m/%Y - %H:%M:%S')"
+          BUILD_LABEL="Versão: build $GITHUB_RUN_NUMBER - $BUILD_DATE"
+          sed -i "s|__BUILD_LABEL__|$BUILD_LABEL|g" site/build-info.js
           tar -C artifacts/api -czf artifacts/api.tar.gz \
             SolitaireNET.WebApi \
             SolitaireNET.WebApi.staticwebassets.endpoints.json
