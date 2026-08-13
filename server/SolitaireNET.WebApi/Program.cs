@@ -1,8 +1,10 @@
 using System.Collections.Concurrent;
+using System.Data.Common;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Data.Sqlite;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 string? firebaseProjectId = builder.Configuration["Firebase:ProjectId"];
@@ -278,11 +280,15 @@ sealed class RankingStore
 {
     static readonly TimeSpan SnapshotLifetime = TimeSpan.FromMinutes(5);
     readonly object gate = new();
+    readonly string? connectionString;
     readonly string databasePath;
+    readonly bool usePostgres;
     RankingSnapshot? cachedSnapshot;
 
     public RankingStore(IConfiguration configuration)
     {
+        connectionString = configuration["Ranking:ConnectionString"];
+        usePostgres = !string.IsNullOrWhiteSpace(connectionString);
         databasePath = configuration["Ranking:DatabasePath"] ??
             Path.Combine(AppContext.BaseDirectory, "data", "ranking.db");
         EnsureDatabase();
@@ -296,23 +302,28 @@ sealed class RankingStore
             if (cachedSnapshot != null && cachedSnapshot.ExpiresAt > now)
                 return cachedSnapshot;
 
-            using SqliteConnection connection = OpenConnection();
-            using SqliteCommand command = connection.CreateCommand();
-            command.CommandText = """
+            using DbConnection connection = OpenConnection();
+            using DbCommand command = connection.CreateCommand();
+            string nameOrder = usePostgres
+                ? "LOWER(display_name) ASC"
+                : "display_name COLLATE NOCASE ASC";
+            command.CommandText = $$"""
                 SELECT display_name, games_started, wins, updated_at
                 FROM ranking_players
                 ORDER BY
                     wins DESC,
                     CASE WHEN games_started >= 3 THEN CAST(wins AS REAL) / games_started ELSE -1 END DESC,
                     games_started DESC,
-                    display_name COLLATE NOCASE ASC
+                    {{nameOrder}}
                 LIMIT 50;
                 """;
 
             List<RankingEntry> entries = new();
-            using SqliteDataReader reader = command.ExecuteReader();
-            while (reader.Read())
-                entries.Add(ReadEntry(reader));
+            using (DbDataReader reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                    entries.Add(ReadEntry(reader));
+            }
 
             RankingSummary summary = Summary(connection);
 
@@ -330,7 +341,7 @@ sealed class RankingStore
     {
         lock (gate)
         {
-            using SqliteConnection connection = OpenConnection();
+            using DbConnection connection = OpenConnection();
             return Summary(connection);
         }
     }
@@ -339,16 +350,16 @@ sealed class RankingStore
     {
         lock (gate)
         {
-            using SqliteConnection connection = OpenConnection();
-            using SqliteCommand command = connection.CreateCommand();
+            using DbConnection connection = OpenConnection();
+            using DbCommand command = connection.CreateCommand();
             command.CommandText = """
                 SELECT display_name, games_started, wins, updated_at
                 FROM ranking_players
-                WHERE uid = $uid;
+                WHERE uid = @uid;
                 """;
-            command.Parameters.AddWithValue("$uid", uid);
+            AddParameter(command, "@uid", uid);
 
-            using SqliteDataReader reader = command.ExecuteReader();
+            using DbDataReader reader = command.ExecuteReader();
             return reader.Read() ? ReadEntry(reader) : null;
         }
     }
@@ -357,13 +368,13 @@ sealed class RankingStore
     {
         lock (gate)
         {
-            using SqliteConnection connection = OpenConnection();
-            using SqliteCommand command = connection.CreateCommand();
+            using DbConnection connection = OpenConnection();
+            using DbCommand command = connection.CreateCommand();
             command.CommandText = """
                 INSERT INTO ranking_players
                     (uid, display_name, games_started, wins, created_at, updated_at)
                 VALUES
-                    ($uid, $displayName, 1, 0, $now, $now)
+                    (@uid, @displayName, 1, 0, @now, @now)
                 ON CONFLICT(uid) DO UPDATE SET
                     display_name = CASE
                         WHEN excluded.display_name <> '' THEN excluded.display_name
@@ -381,16 +392,16 @@ sealed class RankingStore
     {
         lock (gate)
         {
-            using SqliteConnection connection = OpenConnection();
-            using SqliteCommand command = connection.CreateCommand();
+            using DbConnection connection = OpenConnection();
+            using DbCommand command = connection.CreateCommand();
             command.CommandText = """
                 UPDATE ranking_players
                 SET wins = wins + 1,
-                    updated_at = $now
-                WHERE uid = $uid;
+                    updated_at = @now
+                WHERE uid = @uid;
                 """;
-            command.Parameters.AddWithValue("$uid", uid);
-            command.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
+            AddParameter(command, "@uid", uid);
+            AddParameter(command, "@now", DateTimeOffset.UtcNow.ToString("O"));
             command.ExecuteNonQuery();
         }
     }
@@ -399,13 +410,28 @@ sealed class RankingStore
     {
         lock (gate)
         {
-            string? directory = Path.GetDirectoryName(databasePath);
-            if (!string.IsNullOrWhiteSpace(directory))
+            string? directory = usePostgres ? null : Path.GetDirectoryName(databasePath);
+            if (directory != null && !string.IsNullOrWhiteSpace(directory))
                 Directory.CreateDirectory(directory);
 
-            using SqliteConnection connection = OpenConnection();
-            using SqliteCommand command = connection.CreateCommand();
-            command.CommandText = """
+            using DbConnection connection = OpenConnection();
+            using DbCommand command = connection.CreateCommand();
+            command.CommandText = usePostgres
+                ? """
+                CREATE TABLE IF NOT EXISTS ranking_players (
+                    uid TEXT PRIMARY KEY,
+                    display_name TEXT NOT NULL,
+                    picture TEXT NULL,
+                    games_started BIGINT NOT NULL DEFAULT 0,
+                    wins BIGINT NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_ranking_players_order
+                ON ranking_players (wins DESC, games_started DESC, display_name ASC);
+                """
+                : """
                 CREATE TABLE IF NOT EXISTS ranking_players (
                     uid TEXT PRIMARY KEY,
                     display_name TEXT NOT NULL,
@@ -423,21 +449,29 @@ sealed class RankingStore
         }
     }
 
-    SqliteConnection OpenConnection()
+    DbConnection OpenConnection()
     {
-        SqliteConnectionStringBuilder builder = new()
+        DbConnection connection;
+        if (usePostgres)
         {
-            DataSource = databasePath
-        };
+            connection = new NpgsqlConnection(connectionString);
+        }
+        else
+        {
+            SqliteConnectionStringBuilder builder = new()
+            {
+                DataSource = databasePath
+            };
+            connection = new SqliteConnection(builder.ToString());
+        }
 
-        SqliteConnection connection = new(builder.ToString());
         connection.Open();
         return connection;
     }
 
-    static RankingSummary Summary(SqliteConnection connection)
+    static RankingSummary Summary(DbConnection connection)
     {
-        using SqliteCommand command = connection.CreateCommand();
+        using DbCommand command = connection.CreateCommand();
         command.CommandText = """
             SELECT
                 COUNT(*),
@@ -446,20 +480,20 @@ sealed class RankingStore
             FROM ranking_players;
             """;
 
-        using SqliteDataReader reader = command.ExecuteReader();
+        using DbDataReader reader = command.ExecuteReader();
         if (!reader.Read())
             return new RankingSummary(0, 0, 0);
 
         return new RankingSummary(
-            reader.GetInt32(0),
-            reader.GetInt64(1),
-            reader.GetInt64(2));
+            Convert.ToInt32(reader.GetValue(0)),
+            Convert.ToInt64(reader.GetValue(1)),
+            Convert.ToInt64(reader.GetValue(2)));
     }
 
-    static RankingEntry ReadEntry(SqliteDataReader reader)
+    static RankingEntry ReadEntry(DbDataReader reader)
     {
-        long gamesStarted = reader.GetInt64(1);
-        long wins = reader.GetInt64(2);
+        long gamesStarted = Convert.ToInt64(reader.GetValue(1));
+        long wins = Convert.ToInt64(reader.GetValue(2));
 
         return new RankingEntry(
             reader.GetString(0),
@@ -469,11 +503,19 @@ sealed class RankingStore
             DateTimeOffset.Parse(reader.GetString(3)));
     }
 
-    static void AddPlayerParameters(SqliteCommand command, FirebaseUser user, DateTimeOffset now)
+    static void AddPlayerParameters(DbCommand command, FirebaseUser user, DateTimeOffset now)
     {
-        command.Parameters.AddWithValue("$uid", user.Uid);
-        command.Parameters.AddWithValue("$displayName", CleanName(user.Name) ?? "");
-        command.Parameters.AddWithValue("$now", now.ToString("O"));
+        AddParameter(command, "@uid", user.Uid);
+        AddParameter(command, "@displayName", CleanName(user.Name) ?? "");
+        AddParameter(command, "@now", now.ToString("O"));
+    }
+
+    static void AddParameter(DbCommand command, string name, object value)
+    {
+        DbParameter parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.Value = value;
+        command.Parameters.Add(parameter);
     }
 
     static string? CleanName(string? value)
