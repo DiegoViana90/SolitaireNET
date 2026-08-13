@@ -167,6 +167,10 @@ p {
   font-weight: 850;
 }
 
+.mobile-meta {
+  display: none;
+}
+
 .number,
 .rate {
   font-weight: 850;
@@ -215,6 +219,25 @@ p {
     font-size: 0.82rem;
   }
 
+  .my-stats {
+    gap: 6px;
+    padding: 12px;
+  }
+
+  .my-stats span {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+  }
+
+  .my-stats strong {
+    font-size: 0.95rem;
+    line-height: 1.38;
+  }
+
+  .refresh-status {
+    padding-left: 2px;
+  }
+
   .ranking-head {
     display: none;
   }
@@ -230,11 +253,11 @@ p {
   }
 
   .ranking-row {
-    grid-template-columns: 30px minmax(0, 1fr);
-    gap: 8px 12px;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    gap: 10px;
     align-items: center;
     min-height: 0;
-    padding: 14px;
+    padding: 12px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: rgba(23, 36, 29, 0.86);
@@ -245,51 +268,66 @@ p {
   }
 
   .position {
-    grid-row: 1 / span 2;
-    align-self: start;
-    padding-top: 1px;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255, 246, 229, 0.12);
+    border-radius: 999px;
+    background: rgba(16, 23, 19, 0.58);
     color: var(--text);
+    font-size: 0.9rem;
   }
 
   .player {
     grid-column: 2;
+    display: grid;
+    gap: 2px;
   }
 
   .name {
-    white-space: normal;
+    white-space: nowrap;
+  }
+
+  .mobile-meta {
+    display: block;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .stat {
-    display: inline-grid;
-    gap: 2px;
-    min-width: 0;
-    color: var(--text);
-    font-size: 0.98rem;
+    display: block;
   }
 
   .stat::before {
-    content: attr(data-label);
-    color: var(--muted);
-    font-size: 0.72rem;
-    font-weight: 800;
-    text-transform: uppercase;
-  }
-
-  .ranking-row .stat {
-    min-width: 0;
+    content: none;
   }
 
   .stats {
-    grid-column: 2;
-    grid-row: 2;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    align-items: start;
+    grid-column: 3;
+    display: block;
   }
 
-  .stats .stat:last-child {
-    text-align: right;
+  .games,
+  .wins {
+    display: none;
+  }
+
+  .win-rate {
+    min-width: 48px;
+    min-height: 32px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(217, 185, 85, 0.42);
+    border-radius: 999px;
+    background: rgba(217, 185, 85, 0.08);
+    color: var(--gold);
+    font-size: 0.86rem;
+    font-weight: 900;
   }
 }
 
@@ -308,15 +346,23 @@ p {
   }
 
   .ranking-row {
-    grid-template-columns: 26px minmax(0, 1fr);
+    grid-template-columns: 30px minmax(0, 1fr) auto;
     padding: 12px;
   }
 
-  .stat {
-    font-size: 0.92rem;
+  .position {
+    width: 28px;
+    height: 28px;
+    font-size: 0.82rem;
   }
 
-  .stat::before {
-    font-size: 0.66rem;
+  .mobile-meta {
+    font-size: 0.76rem;
+  }
+
+  .win-rate {
+    min-width: 44px;
+    min-height: 30px;
+    font-size: 0.82rem;
   }
 }

@@ -57,19 +57,26 @@ function renderRanking(data) {
     return;
   }
 
-  rankingListEl.innerHTML = data.players.map((player, index) => `
-    <div class="ranking-row">
-      <strong class="position">${index + 1}</strong>
-      <div class="player">
-        <div class="name">${escapeHtml(player.displayName || "Jogador")}</div>
+  rankingListEl.innerHTML = data.players.map((player, index) => {
+    const games = Number(player.gamesStarted ?? 0);
+    const wins = Number(player.wins ?? 0);
+    const winRate = displayWinRate(player);
+
+    return `
+      <div class="ranking-row">
+        <strong class="position">${index + 1}</strong>
+        <div class="player">
+          <div class="name">${escapeHtml(player.displayName || "Jogador")}</div>
+          <div class="mobile-meta">${pluralize(games, "partida", "partidas")} • ${pluralize(wins, "vitoria", "vitorias")}</div>
+        </div>
+        <div class="stats">
+          <div class="number stat games" data-label="Partidas">${games}</div>
+          <div class="number stat wins" data-label="Vitorias">${wins}</div>
+          <div class="rate stat win-rate" data-label="Aproveitamento">${winRate}</div>
+        </div>
       </div>
-      <div class="stats">
-        <div class="number stat" data-label="Partidas">${player.gamesStarted ?? 0}</div>
-        <div class="number stat" data-label="Vitorias">${player.wins ?? 0}</div>
-        <div class="rate stat" data-label="Aproveitamento">${displayWinRate(player)}</div>
-      </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 }
 
 function updateCacheClock() {
