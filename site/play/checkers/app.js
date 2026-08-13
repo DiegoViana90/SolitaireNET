@@ -24,6 +24,7 @@ const roomCodeEl = document.querySelector("#room-code");
 const joinCodeEl = document.querySelector("#join-code");
 const boardEl = document.querySelector("#board");
 const statusEl = document.querySelector("#status");
+const scorebarEl = document.querySelector("#scorebar");
 const lightScoreEl = document.querySelector("#light-score");
 const darkScoreEl = document.querySelector("#dark-score");
 const newGameEl = document.querySelector("#new-game");
@@ -171,6 +172,7 @@ function render() {
   const inRoom = Boolean(state.game);
   lobbyEl.hidden = inRoom;
   roomInfoEl.hidden = !inRoom;
+  scorebarEl.hidden = !inRoom;
   boardEl.hidden = !inRoom;
   newGameEl.textContent = inRoom ? "Sair" : "Novo";
 
