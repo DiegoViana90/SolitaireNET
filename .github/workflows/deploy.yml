@@ -82,6 +82,7 @@ jobs:
           trap 'systemctl start solitairenet-api' EXIT
           tar -xzf /tmp/api.tar.gz -C /opt/solitairenet-api
           chmod +x /opt/solitairenet-api/SolitaireNET.WebApi
+          find /var/www/solitairenet -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
           tar -xzf /tmp/site.tar.gz -C /var/www/solitairenet
           rm -f /tmp/api.tar.gz /tmp/site.tar.gz
           systemctl start solitairenet-api
