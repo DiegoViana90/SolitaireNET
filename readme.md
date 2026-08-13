@@ -38,3 +38,23 @@ Solitaire web route:
 ```text
 https://paciencia.net.br/play/solitaire/
 ```
+
+## Automatic production deployment
+
+The workflow `.github/workflows/deploy.yml` publishes the API and static site
+whenever a commit reaches the `main` branch. It can also be started manually
+from the GitHub Actions page.
+
+Create a GitHub environment named `production` and add these environment
+secrets:
+
+- `SSH_HOST`: server hostname or IP address, for example `REDACTED_HOST`.
+- `SSH_USER`: SSH user allowed to update the application and restart the
+  service (currently `root`).
+- `SSH_PRIVATE_KEY`: private key used only for deployment.
+- `SSH_KNOWN_HOSTS`: trusted host-key line produced locally with
+  `ssh-keyscan -H REDACTED_HOST` after verifying the fingerprint.
+
+The matching public key must be present in the deployment user's
+`~/.ssh/authorized_keys` on the server. Never commit a private key to this
+repository.

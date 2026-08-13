@@ -1,0 +1,99 @@
+name: Deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: solitairenet-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Build API
+        run: dotnet build server/SolitaireNET.WebApi/SolitaireNET.WebApi.csproj --configuration Release
+
+      - name: Publish API
+        run: >-
+          dotnet publish server/SolitaireNET.WebApi/SolitaireNET.WebApi.csproj
+          --configuration Release
+          --runtime linux-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          --output artifacts/api
+
+      - name: Package deployment files
+        run: |
+          tar -C artifacts/api -czf artifacts/api.tar.gz \
+            SolitaireNET.WebApi \
+            SolitaireNET.WebApi.staticwebassets.endpoints.json
+          tar -C site -czf artifacts/site.tar.gz .
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload deployment files
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          scp -i ~/.ssh/deploy_key artifacts/api.tar.gz artifacts/site.tar.gz \
+            "$SSH_USER@$SSH_HOST:/tmp/"
+
+      - name: Deploy and restart API
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          install -d /opt/solitairenet-api /var/www/solitairenet
+          systemctl stop solitairenet-api
+          trap 'systemctl start solitairenet-api' EXIT
+          tar -xzf /tmp/api.tar.gz -C /opt/solitairenet-api
+          chmod +x /opt/solitairenet-api/SolitaireNET.WebApi
+          tar -xzf /tmp/site.tar.gz -C /var/www/solitairenet
+          rm -f /tmp/api.tar.gz /tmp/site.tar.gz
+          systemctl start solitairenet-api
+          trap - EXIT
+          systemctl is-active --quiet solitairenet-api
+          REMOTE
+
+      - name: Verify public API
+        run: |
+          for attempt in {1..10}; do
+            if curl --fail --silent --show-error \
+              https://paciencia.net.br/api/health | grep -q '"ok":true'; then
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Production health check failed" >&2
+          exit 1

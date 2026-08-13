@@ -3,42 +3,93 @@ using System.Collections.Concurrent;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<GameStore>();
+builder.Services.AddSingleton<UsageMetrics>();
+builder.Services.AddSingleton<PlayerPresenceStore>();
+builder.Services.AddHostedService<CleanupService>();
 
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next(context);
+    }
+    catch
+    {
+        context.RequestServices.GetRequiredService<UsageMetrics>().RecordApiError();
+        throw;
+    }
+});
+
 app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
 
-app.MapPost("/api/games", (GameStore store) =>
+app.MapPost("/api/games", (HttpContext context, GameStore store, UsageMetrics metrics, PlayerPresenceStore players) =>
 {
+    players.Record(context);
     GameSession game = store.Create();
+    metrics.RecordGameCreated();
     return Results.Ok(game.ToPublicState());
 });
 
-app.MapGet("/api/games/{id}", (string id, GameStore store) =>
+app.MapGet("/api/games/{id}", (string id, HttpContext context, GameStore store, PlayerPresenceStore players) =>
 {
+    players.Record(context);
     GameSession? game = store.Get(id);
     return game == null
         ? Results.NotFound(new { error = "Game not found" })
         : Results.Ok(game.ToPublicState());
 });
 
-app.MapPost("/api/games/{id}/actions", (string id, GameAction action, GameStore store) =>
+app.MapDelete("/api/games/{id}", (string id, HttpContext context, GameStore store, PlayerPresenceStore players) =>
 {
+    players.Record(context);
+    store.Remove(id);
+    return Results.NoContent();
+});
+
+app.MapPost("/api/games/{id}/actions", (string id, GameAction action, HttpContext context, GameStore store, UsageMetrics metrics, PlayerPresenceStore players) =>
+{
+    players.Record(context);
+    metrics.RecordActionAttempted();
+
     GameSession? game = store.Get(id);
     if (game == null)
         return Results.NotFound(new { error = "Game not found" });
 
     MoveResult result = game.Apply(action);
-    return result.Ok
-        ? Results.Ok(game.ToPublicState())
-        : Results.BadRequest(new { error = result.Error });
+    if (!result.Ok)
+    {
+        metrics.RecordInvalidAction();
+        return Results.BadRequest(new { error = result.Error });
+    }
+
+    metrics.RecordActionAccepted();
+    if (result.WonNow)
+        metrics.RecordWin();
+
+    return Results.Ok(game.ToPublicState());
 });
+
+app.MapPost("/api/presence", (HttpContext context, PlayerPresenceStore players) =>
+{
+    return players.Record(context)
+        ? Results.NoContent()
+        : Results.BadRequest(new { error = $"Missing or invalid {PlayerPresenceStore.HeaderName} header" });
+});
+
+app.MapGet("/api/usage", (GameStore games, UsageMetrics metrics, PlayerPresenceStore players) =>
+    Results.Ok(metrics.Snapshot(games.Count, players.ActiveCount)));
 
 app.Run();
 
 sealed class GameStore
 {
+    static readonly TimeSpan InactiveGameLifetime = TimeSpan.FromHours(12);
+    static readonly TimeSpan CompletedGameLifetime = TimeSpan.FromHours(1);
     readonly ConcurrentDictionary<string, GameSession> games = new();
+
+    public int Count => games.Count;
 
     public GameSession Create()
     {
@@ -49,9 +100,107 @@ sealed class GameStore
 
     public GameSession? Get(string id)
     {
-        return games.TryGetValue(id, out GameSession? game)
-            ? game
-            : null;
+        if (!games.TryGetValue(id, out GameSession? game))
+            return null;
+
+        game.Touch();
+        return game;
+    }
+
+    public bool Remove(string id) => games.TryRemove(id, out _);
+
+    public void RemoveExpired(DateTimeOffset now)
+    {
+        foreach ((string id, GameSession game) in games)
+        {
+            TimeSpan lifetime = game.IsCompleted ? CompletedGameLifetime : InactiveGameLifetime;
+            if (now - game.LastActivityAt > lifetime)
+                games.TryRemove(new KeyValuePair<string, GameSession>(id, game));
+        }
+    }
+}
+
+sealed class UsageMetrics
+{
+    readonly DateTimeOffset startedAt = DateTimeOffset.UtcNow;
+    long gamesCreated;
+    long actionsAttempted;
+    long actionsAccepted;
+    long invalidActions;
+    long apiErrors;
+    long wins;
+
+    public void RecordGameCreated() => Interlocked.Increment(ref gamesCreated);
+    public void RecordActionAttempted() => Interlocked.Increment(ref actionsAttempted);
+    public void RecordActionAccepted() => Interlocked.Increment(ref actionsAccepted);
+    public void RecordInvalidAction() => Interlocked.Increment(ref invalidActions);
+    public void RecordApiError() => Interlocked.Increment(ref apiErrors);
+    public void RecordWin() => Interlocked.Increment(ref wins);
+
+    public UsageSnapshot Snapshot(int gamesInMemory, int activePlayers) => new(
+        startedAt,
+        activePlayers,
+        gamesInMemory,
+        Interlocked.Read(ref gamesCreated),
+        Interlocked.Read(ref actionsAttempted),
+        Interlocked.Read(ref actionsAccepted),
+        Interlocked.Read(ref invalidActions),
+        Interlocked.Read(ref apiErrors),
+        Interlocked.Read(ref wins));
+}
+
+sealed record UsageSnapshot(
+    DateTimeOffset StartedAt,
+    int ActivePlayers,
+    int GamesInMemory,
+    long GamesCreated,
+    long ActionsAttempted,
+    long ActionsAccepted,
+    long InvalidActions,
+    long ApiErrors,
+    long Wins);
+
+sealed class PlayerPresenceStore
+{
+    public const string HeaderName = "X-Solitaire-Player";
+    static readonly TimeSpan ActiveLifetime = TimeSpan.FromMinutes(5);
+    readonly ConcurrentDictionary<string, DateTimeOffset> players = new();
+
+    public int ActiveCount => players.Count;
+
+    public bool Record(HttpContext context)
+    {
+        string? playerId = context.Request.Headers[HeaderName].FirstOrDefault();
+        if (!Guid.TryParse(playerId, out Guid parsed) || parsed == Guid.Empty)
+            return false;
+
+        players[parsed.ToString("N")] = DateTimeOffset.UtcNow;
+        return true;
+    }
+
+    public void RemoveExpired(DateTimeOffset now)
+    {
+        foreach ((string id, DateTimeOffset lastSeenAt) in players)
+        {
+            if (now - lastSeenAt > ActiveLifetime)
+                players.TryRemove(new KeyValuePair<string, DateTimeOffset>(id, lastSeenAt));
+        }
+    }
+}
+
+sealed class CleanupService(GameStore games, PlayerPresenceStore players) : BackgroundService
+{
+    static readonly TimeSpan Interval = TimeSpan.FromMinutes(5);
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(Interval);
+        while (await timer.WaitForNextTickAsync(stoppingToken))
+        {
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            games.RemoveExpired(now);
+            players.RemoveExpired(now);
+        }
     }
 }
 
@@ -66,9 +215,21 @@ sealed class GameSession
     GameSession(string id)
     {
         Id = id;
+        CreatedAt = DateTimeOffset.UtcNow;
+        LastActivityAt = CreatedAt;
     }
 
     public string Id { get; }
+    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset LastActivityAt { get; private set; }
+    public DateTimeOffset? CompletedAt { get; private set; }
+    public bool IsCompleted => CompletedAt.HasValue;
+
+    public void Touch()
+    {
+        lock (gate)
+            LastActivityAt = DateTimeOffset.UtcNow;
+    }
 
     public static GameSession New()
     {
@@ -96,7 +257,8 @@ sealed class GameSession
     {
         lock (gate)
         {
-            return action.Type switch
+            bool wasWon = IsWon();
+            MoveResult result = action.Type switch
             {
                 "drawStock" => DrawStock(),
                 "resetStock" => ResetStock(),
@@ -104,8 +266,20 @@ sealed class GameSession
                 "move" => Move(action.Source, action.Target),
                 _ => MoveResult.Fail("Unknown action")
             };
+
+            if (!result.Ok)
+                return result;
+
+            LastActivityAt = DateTimeOffset.UtcNow;
+            bool wonNow = !wasWon && IsWon();
+            if (wonNow)
+                CompletedAt = LastActivityAt;
+
+            return result with { WonNow = wonNow };
         }
     }
+
+    bool IsWon() => foundations.Sum(pile => pile.Count) == 52;
 
     void Deal()
     {
@@ -335,7 +509,7 @@ sealed record PublicCard(string? Id, int? Rank, string? Suit, bool FaceUp)
     }
 }
 
-sealed record MoveResult(bool Ok, string? Error)
+sealed record MoveResult(bool Ok, string? Error, bool WonNow = false)
 {
     public static MoveResult Success() => new(true, null);
     public static MoveResult Fail(string error) => new(false, error);

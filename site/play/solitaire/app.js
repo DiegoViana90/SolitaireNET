@@ -8,6 +8,8 @@ const rankText = {
 
 const apiBase = new URL("../../api", window.location.href).pathname.replace(/\/$/, "");
 const saveKey = "solitairenet-server-game-id";
+const playerKey = "solitairenet-anonymous-player-id";
+const playerId = getOrCreatePlayerId();
 
 const state = {
   game: null,
@@ -40,7 +42,10 @@ const foundationEls = [...document.querySelectorAll("[data-foundation]")];
 
 async function request(path, options = {}) {
   const response = await fetch(`${apiBase}${path}`, {
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      "X-Solitaire-Player": playerId
+    },
     ...options
   });
 
@@ -52,12 +57,39 @@ async function request(path, options = {}) {
   return response.json();
 }
 
+function getOrCreatePlayerId() {
+  const saved = localStorage.getItem(playerKey);
+  if (saved) return saved;
+
+  const id = crypto.randomUUID();
+  localStorage.setItem(playerKey, id);
+  return id;
+}
+
+async function sendPresence() {
+  if (document.visibilityState !== "visible") return;
+
+  try {
+    await request("/presence", { method: "POST" });
+  } catch {
+    // Presence is best-effort and must never interrupt the game.
+  }
+}
+
 async function startNewGame() {
   stopVictoryAnimation();
   stopDealAnimation();
   state.celebratedGameId = null;
+  const previousGameId = state.game?.id || localStorage.getItem(saveKey);
   state.game = await request("/games", { method: "POST" });
   localStorage.setItem(saveKey, state.game.id);
+
+  if (previousGameId && previousGameId !== state.game.id) {
+    request(`/games/${previousGameId}`, { method: "DELETE" }).catch(() => {
+      // Expiration cleanup will remove it later if this best-effort request fails.
+    });
+  }
+
   clearSelection();
   state.dealing = true;
   render();
@@ -1028,6 +1060,12 @@ document.addEventListener("touchmove", (event) => {
     event.preventDefault();
   }
 }, { passive: false });
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") sendPresence();
+});
+window.setInterval(sendPresence, 60_000);
+sendPresence();
 
 window.solitaireDebug = {
   get gameId() {
