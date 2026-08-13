@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Data.Common;
 using System.Security.Claims;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Data.Sqlite;
 using Microsoft.IdentityModel.Tokens;
@@ -546,7 +547,7 @@ sealed record RankingEntry(
     long GamesStarted,
     long Wins,
     double WinRate,
-    DateTimeOffset UpdatedAt);
+    [property: JsonIgnore] DateTimeOffset UpdatedAt);
 
 sealed record FirebaseUser(
     string Uid,
