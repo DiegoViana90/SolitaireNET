@@ -22,7 +22,12 @@ app.Use(async (context, next) =>
     }
 });
 
-app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
+app.MapGet("/api/health", (GameStore games, UsageMetrics metrics, PlayerPresenceStore players) =>
+    Results.Ok(new
+    {
+        ok = true,
+        usage = metrics.Snapshot(games.Count, players.ActiveCount)
+    }));
 
 app.MapPost("/api/games", (HttpContext context, GameStore store, UsageMetrics metrics, PlayerPresenceStore players) =>
 {
