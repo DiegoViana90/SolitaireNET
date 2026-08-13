@@ -13,7 +13,7 @@
   --piece-dark: #26262b;
   --danger: #b83d4b;
   --line: rgba(255, 246, 229, 0.16);
-  --board-size: min(92vw, 78dvh, 640px);
+  --board-size: min(92vw, 68dvh, 640px);
 }
 
 * {
@@ -44,8 +44,8 @@ button {
   width: min(760px, 100%);
   margin-inline: auto;
   display: grid;
-  grid-template-rows: auto auto 1fr;
-  gap: 14px;
+  align-content: center;
+  gap: 10px;
   padding: clamp(10px, 2.2vw, 22px);
 }
 
@@ -176,15 +176,16 @@ button {
 }
 
 .room-info {
-  min-height: 34px;
+  min-height: 28px;
   margin: 0;
   border: 1px solid rgba(217, 185, 85, 0.36);
-  border-radius: 8px;
+  border-radius: 6px;
   background: rgba(23, 36, 29, 0.72);
   color: var(--gold);
   display: grid;
   align-items: center;
-  padding: 8px 12px;
+  padding: 5px 9px;
+  font-size: 0.8rem;
   font-weight: 800;
 }
 
@@ -193,9 +194,11 @@ button {
 }
 
 .scorebar {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  width: min(var(--board-size), 100%);
+  margin-inline: auto;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
 }
 
 .scorebar[hidden] {
@@ -203,30 +206,32 @@ button {
 }
 
 .scorebar div {
-  min-height: 58px;
+  min-height: 28px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 999px;
   background: rgba(23, 36, 29, 0.8);
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 3px 8px;
 }
 
 .scorebar span {
   color: var(--muted);
+  font-size: 0.72rem;
   font-weight: 700;
 }
 
 .scorebar strong {
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
+  min-width: 24px;
+  height: 22px;
+  border-radius: 999px;
   display: grid;
   place-items: center;
   background: var(--gold);
   color: #20160b;
+  font-size: 0.76rem;
+  padding: 0 6px;
 }
 
 .board-wrap {
@@ -344,7 +349,8 @@ button {
 
 @media (max-width: 520px) {
   .game-shell {
-    gap: 10px;
+    align-content: start;
+    gap: 8px;
   }
 
   .topbar {
@@ -360,9 +366,18 @@ button {
     padding: 0 10px;
   }
 
-  .scorebar div {
-    min-height: 50px;
-    padding: 8px 10px;
+  .topbar h1 {
+    font-size: 1.2rem;
+  }
+
+  .topbar p {
+    font-size: 0.78rem;
+  }
+
+  .room-info {
+    min-height: 26px;
+    font-size: 0.74rem;
+    padding: 4px 7px;
   }
 
   .lobby {

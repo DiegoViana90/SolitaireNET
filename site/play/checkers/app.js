@@ -13,7 +13,8 @@ const state = {
   selected: null,
   busy: false,
   pollTimer: null,
-  message: ""
+  message: "",
+  noticeUntil: null
 };
 
 const lobbyEl = document.querySelector("#lobby");
@@ -48,7 +49,7 @@ async function createRoom() {
 }
 
 async function findRandomRoom() {
-  state.message = "Procurando sala aleatoria...";
+  setMessage("Procurando sala aleatoria...");
   render();
   await joinFromResult(request("/checkers/matchmaking", { method: "POST" }));
 }
@@ -56,7 +57,7 @@ async function findRandomRoom() {
 async function joinRoomByCode() {
   const code = roomCodeEl.value.trim().toUpperCase();
   if (!code) {
-    state.message = "Informe o codigo da sala.";
+    setMessage("Informe o codigo da sala.");
     render();
     return;
   }
@@ -73,7 +74,7 @@ async function joinFromResult(promise) {
     const result = await promise;
     applyJoinResult(result);
   } catch (error) {
-    state.message = error.message;
+    setMessage(error.message);
     render();
   } finally {
     state.busy = false;
@@ -87,9 +88,12 @@ function applyJoinResult(result) {
   state.playerSide = result.playerSide;
   state.game = result.state;
   state.selected = null;
-  state.message = result.waiting
-    ? "Aguardando outro jogador entrar."
-    : "";
+
+  if (result.waiting) {
+    setMessage("Aguardando outro jogador entrar.");
+  } else {
+    setMessage("Voce entrou na sala.", 4200);
+  }
 
   localStorage.setItem(sessionKey, JSON.stringify({
     roomCode: state.roomCode,
@@ -139,15 +143,20 @@ async function refreshRoom() {
   if (!state.roomCode || !state.playerId || state.busy) return;
 
   try {
+    const wasWaiting = state.game && !state.game.ready;
     const result = await request(`/checkers/rooms/${encodeURIComponent(state.roomCode)}?playerId=${encodeURIComponent(state.playerId)}`);
     state.game = result.state;
     state.playerSide = result.playerSide;
-    if (state.game?.ready && state.message === "Aguardando outro jogador entrar.") {
-      state.message = "";
+
+    if (wasWaiting && state.game?.ready) {
+      setMessage("Jogador entrou na sala.", 4200);
+    } else if (state.game?.ready && state.message === "Aguardando outro jogador entrar.") {
+      setMessage("");
     }
+
     render();
   } catch (error) {
-    state.message = error.message;
+    setMessage(error.message);
     render();
   }
 }
@@ -165,7 +174,7 @@ function clearSession() {
   state.playerSide = null;
   state.game = null;
   state.selected = null;
-  state.message = "";
+  setMessage("");
 }
 
 function render() {
@@ -179,7 +188,7 @@ function render() {
   if (!inRoom) {
     lightScoreEl.textContent = "0";
     darkScoreEl.textContent = "0";
-    statusEl.textContent = state.message || "Crie uma sala ou procure uma partida aleatoria.";
+    statusEl.textContent = currentMessage() || "Crie uma sala ou procure uma partida aleatoria.";
     return;
   }
 
@@ -294,10 +303,10 @@ async function sendMove(move) {
     });
     state.game = result.state;
     state.selected = null;
-    state.message = "";
+    setMessage("");
     render();
   } catch (error) {
-    state.message = error.message;
+    setMessage(error.message);
     render();
   } finally {
     state.busy = false;
@@ -385,15 +394,16 @@ function getCaptureDirections(piece) {
 
 function getStatus(counts, movesByPiece) {
   if (!state.game.ready) {
-    return `${state.message} Codigo: ${state.roomCode}`;
+    return `${currentMessage() || "Aguardando outro jogador entrar."} Codigo: ${state.roomCode}`;
   }
 
   if (state.game.winner) {
     return state.game.winner === state.playerSide ? "Voce venceu." : "Voce perdeu.";
   }
 
-  if (state.message) {
-    return state.message;
+  const message = currentMessage();
+  if (message) {
+    return message;
   }
 
   const captureAvailable = [...movesByPiece.values()].some((moves) => moves.some((move) => move.captured));
@@ -443,6 +453,20 @@ function isDarkSquare(row, col) {
 
 function key(row, col) {
   return `${row}:${col}`;
+}
+
+function setMessage(message, ttlMs = null) {
+  state.message = message;
+  state.noticeUntil = ttlMs ? Date.now() + ttlMs : null;
+}
+
+function currentMessage() {
+  if (state.noticeUntil && Date.now() > state.noticeUntil) {
+    state.message = "";
+    state.noticeUntil = null;
+  }
+
+  return state.message;
 }
 
 function boardPositionFromView(row, col) {
