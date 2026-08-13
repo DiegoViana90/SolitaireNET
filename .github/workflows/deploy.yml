@@ -42,10 +42,21 @@ jobs:
           --output artifacts/api
 
       - name: Package deployment files
+        env:
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
         run: |
           BUILD_DATE="$(TZ=America/Sao_Paulo date '+%d/%m/%Y - %H:%M:%S')"
           BUILD_LABEL="Versão: build $GITHUB_RUN_NUMBER - $BUILD_DATE"
           sed -i "s|__BUILD_LABEL__|$BUILD_LABEL|g" site/build-info.js
+          if [ -n "$FIREBASE_WEB_API_KEY" ] && [ -n "$FIREBASE_AUTH_DOMAIN" ] && [ -n "$FIREBASE_PROJECT_ID" ] && [ -n "$FIREBASE_APP_ID" ]; then
+            sed -i "s|COLE_AQUI_A_API_KEY|$FIREBASE_WEB_API_KEY|g" site/firebase-config.js
+            sed -i "s|SEU_PROJETO.firebaseapp.com|$FIREBASE_AUTH_DOMAIN|g" site/firebase-config.js
+            sed -i "s|SEU_PROJETO|$FIREBASE_PROJECT_ID|g" site/firebase-config.js
+            sed -i "s|COLE_AQUI_O_APP_ID|$FIREBASE_APP_ID|g" site/firebase-config.js
+          fi
           tar -C artifacts/api -czf artifacts/api.tar.gz \
             SolitaireNET.WebApi \
             SolitaireNET.WebApi.staticwebassets.endpoints.json
@@ -74,10 +85,18 @@ jobs:
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
         run: |
-          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" 'bash -se' <<'REMOTE'
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" "FIREBASE_PROJECT_ID='$FIREBASE_PROJECT_ID' bash -se" <<'REMOTE'
           set -euo pipefail
           install -d /opt/solitairenet-api /var/www/solitairenet
+          install -d /etc/systemd/system/solitairenet-api.service.d
+          if [ -n "${FIREBASE_PROJECT_ID:-}" ]; then
+            printf '[Service]\nEnvironment=Firebase__ProjectId=%s\n' "$FIREBASE_PROJECT_ID" > /etc/systemd/system/solitairenet-api.service.d/firebase.conf
+          else
+            rm -f /etc/systemd/system/solitairenet-api.service.d/firebase.conf
+          fi
+          systemctl daemon-reload
           systemctl stop solitairenet-api
           trap 'systemctl start solitairenet-api' EXIT
           tar -xzf /tmp/api.tar.gz -C /opt/solitairenet-api

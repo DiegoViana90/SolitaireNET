@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ranking - SolitaireNET</title>
+  <link rel="icon" href="/appicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/play/ranking/styles.css">
+</head>
+<body>
+  <main>
+    <section class="topbar" aria-label="Topo">
+      <a class="back" href="/play/" aria-label="Voltar">&lt;</a>
+      <div>
+        <h1>Ranking</h1>
+        <p>Partidas ranqueadas do Paciencia.</p>
+      </div>
+      <a class="auth-link" data-auth-link href="#login">Conta</a>
+    </section>
+
+    <section class="my-stats" data-my-stats hidden aria-label="Minhas estatisticas"></section>
+
+    <section class="refresh-status" aria-label="Atualizacao do ranking">
+      <strong data-cache-next>Atualizando...</strong>
+    </section>
+
+    <section class="ranking-panel" aria-label="Tabela do ranking">
+      <div class="ranking-head">
+        <span>#</span>
+        <span>Jogador</span>
+        <span>Partidas</span>
+        <span>Vitorias</span>
+        <span>Aproveitamento</span>
+      </div>
+      <div class="ranking-list" data-ranking-list>
+        <div class="loading">Carregando ranking...</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/build-info.js"></script>
+  <script type="module" src="/auth-widget.js"></script>
+  <script type="module" src="/play/ranking/ranking.js"></script>
+</body>
+</html>

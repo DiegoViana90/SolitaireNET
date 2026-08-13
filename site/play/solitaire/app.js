@@ -1,3 +1,5 @@
+import { getCurrentUserToken } from "../../auth.js";
+
 const suitText = { S: "\u2660", H: "\u2665", D: "\u2666", C: "\u2663" };
 const rankText = {
   1: "A",
@@ -44,12 +46,20 @@ const victoryMenuButtonEl = document.querySelector("#victory-menu-button");
 const foundationEls = [...document.querySelectorAll("[data-foundation]")];
 
 async function request(path, options = {}) {
+  const authToken = await getCurrentUserToken();
+  const headers = {
+    "content-type": "application/json",
+    "X-Solitaire-Player": playerId,
+    ...(options.headers || {})
+  };
+
+  if (authToken) {
+    headers.authorization = `Bearer ${authToken}`;
+  }
+
   const response = await fetch(`${apiBase}${path}`, {
-    headers: {
-      "content-type": "application/json",
-      "X-Solitaire-Player": playerId
-    },
-    ...options
+    ...options,
+    headers
   });
 
   if (!response.ok) {
@@ -165,6 +175,7 @@ function render() {
   if (!state.game) return;
 
   const startedAt = performance.now();
+  const ranking = state.game.ranked ? "" : " | Sem ranking";
   gameBoardEl.classList.toggle("dealing", state.dealing);
   stockEl.classList.toggle("has-cards", state.game.stockCount > 0);
   wasteEl.classList.toggle("has-card", Boolean(state.game.wasteTop));
@@ -204,8 +215,8 @@ function render() {
     ? ` | Selecionada: ${state.selected.cards.length}`
     : "";
   showStatus(state.game.won
-    ? "Vitoria."
-    : `Monte: ${state.game.stockCount} | Lixo: ${state.game.wasteCount}${selected}`);
+    ? `Vitoria.${ranking}`
+    : `Monte: ${state.game.stockCount} | Lixo: ${state.game.wasteCount}${selected}${ranking}`);
 
   if (state.game.won) {
     localStorage.removeItem(saveKey);

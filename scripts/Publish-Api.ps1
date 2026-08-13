@@ -7,7 +7,9 @@ param(
 
     [string] $ServiceName = "solitairenet-api",
 
-    [string] $Url = "http://127.0.0.1:5010"
+    [string] $Url = "http://127.0.0.1:5010",
+
+    [string] $FirebaseProjectId = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -40,6 +42,7 @@ ExecStart=$RemotePath/SolitaireNET.WebApi --urls $Url
 Restart=always
 RestartSec=3
 Environment=ASPNETCORE_ENVIRONMENT=Production
+$(if ($FirebaseProjectId) { "Environment=Firebase__ProjectId=$FirebaseProjectId" } else { "" })
 
 [Install]
 WantedBy=multi-user.target

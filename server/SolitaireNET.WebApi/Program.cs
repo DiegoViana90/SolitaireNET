@@ -1,10 +1,34 @@
 using System.Collections.Concurrent;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Data.Sqlite;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+string? firebaseProjectId = builder.Configuration["Firebase:ProjectId"];
+bool firebaseAuthEnabled = !string.IsNullOrWhiteSpace(firebaseProjectId);
+
+if (firebaseAuthEnabled)
+{
+    builder.Services
+        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.Authority = $"https://securetoken.google.com/{firebaseProjectId}";
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidAudience = firebaseProjectId,
+                ValidIssuer = $"https://securetoken.google.com/{firebaseProjectId}"
+            };
+        });
+
+    builder.Services.AddAuthorization();
+}
 
 builder.Services.AddSingleton<GameStore>();
 builder.Services.AddSingleton<UsageMetrics>();
 builder.Services.AddSingleton<PlayerPresenceStore>();
+builder.Services.AddSingleton<RankingStore>();
 builder.Services.AddHostedService<CleanupService>();
 
 var app = builder.Build();
@@ -22,18 +46,62 @@ app.Use(async (context, next) =>
     }
 });
 
-app.MapGet("/api/health", (GameStore games, UsageMetrics metrics, PlayerPresenceStore players) =>
+if (firebaseAuthEnabled)
+{
+    app.UseAuthentication();
+    app.Use(async (context, next) =>
+    {
+        string? authorization = context.Request.Headers.Authorization.FirstOrDefault();
+        bool hasBearerToken = authorization?.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) == true;
+
+        if (hasBearerToken && context.User.Identity?.IsAuthenticated != true)
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsJsonAsync(new { error = "Token de login invalido ou expirado." });
+            return;
+        }
+
+        await next(context);
+    });
+    app.UseAuthorization();
+}
+
+app.MapGet("/api/health", (GameStore games, UsageMetrics metrics, PlayerPresenceStore players, RankingStore ranking) =>
     Results.Ok(new
     {
         ok = true,
-        usage = metrics.Snapshot(games.Count, players.ActiveCount)
+        firebaseAuth = new
+        {
+            enabled = firebaseAuthEnabled
+        },
+        usage = metrics.Snapshot(games.Count, players.ActiveCount),
+        ranking = ranking.Summary()
     }));
 
-app.MapPost("/api/games", (HttpContext context, GameStore store, UsageMetrics metrics, PlayerPresenceStore players) =>
+if (firebaseAuthEnabled)
+{
+    app.MapGet("/api/auth/me", (ClaimsPrincipal user) =>
+        Results.Ok(FirebaseUser.FromClaims(user)))
+        .RequireAuthorization();
+}
+else
+{
+    app.MapGet("/api/auth/me", () =>
+        Results.Problem(
+            "Firebase authentication is not configured.",
+            statusCode: StatusCodes.Status501NotImplemented));
+}
+
+app.MapPost("/api/games", (HttpContext context, GameStore store, UsageMetrics metrics, PlayerPresenceStore players, RankingStore ranking) =>
 {
     players.Record(context);
-    GameSession game = store.Create();
+    FirebaseUser? user = FirebaseUser.TryFromClaims(context.User);
+    GameSession game = store.Create(user?.Uid);
     metrics.RecordGameCreated();
+
+    if (user != null)
+        ranking.RecordGameStarted(user);
+
     return Results.Ok(game.ToPublicState());
 });
 
@@ -41,19 +109,25 @@ app.MapGet("/api/games/{id}", (string id, HttpContext context, GameStore store, 
 {
     players.Record(context);
     GameSession? game = store.Get(id);
-    return game == null
-        ? Results.NotFound(new { error = "Game not found" })
-        : Results.Ok(game.ToPublicState());
+
+    if (game == null)
+        return Results.NotFound(new { error = "Game not found" });
+
+    return Results.Ok(game.ToPublicState());
 });
 
 app.MapDelete("/api/games/{id}", (string id, HttpContext context, GameStore store, PlayerPresenceStore players) =>
 {
     players.Record(context);
+    GameSession? game = store.Get(id);
+    if (game == null)
+        return Results.NoContent();
+
     store.Remove(id);
     return Results.NoContent();
 });
 
-app.MapPost("/api/games/{id}/actions", (string id, GameAction action, HttpContext context, GameStore store, UsageMetrics metrics, PlayerPresenceStore players) =>
+app.MapPost("/api/games/{id}/actions", (string id, GameAction action, HttpContext context, GameStore store, UsageMetrics metrics, PlayerPresenceStore players, RankingStore ranking) =>
 {
     players.Record(context);
     metrics.RecordActionAttempted();
@@ -61,6 +135,16 @@ app.MapPost("/api/games/{id}/actions", (string id, GameAction action, HttpContex
     GameSession? game = store.Get(id);
     if (game == null)
         return Results.NotFound(new { error = "Game not found" });
+
+    string? uid = FirebaseUser.UidFromClaims(context.User);
+    if (game.IsOwnedByDifferentUser(uid))
+    {
+        return Results.Problem(
+            "Esta partida pertence a outra conta.",
+            statusCode: StatusCodes.Status403Forbidden);
+    }
+
+    game.DisableRankingIfSignedOut(uid);
 
     MoveResult result = game.Apply(action);
     if (!result.Ok)
@@ -71,7 +155,11 @@ app.MapPost("/api/games/{id}/actions", (string id, GameAction action, HttpContex
 
     metrics.RecordActionAccepted();
     if (result.WonNow)
+    {
         metrics.RecordWin();
+        if (game.OwnerUid != null)
+            ranking.RecordWin(game.OwnerUid);
+    }
 
     return Results.Ok(game.ToPublicState());
 });
@@ -86,6 +174,27 @@ app.MapPost("/api/presence", (HttpContext context, PlayerPresenceStore players) 
 app.MapGet("/api/usage", (GameStore games, UsageMetrics metrics, PlayerPresenceStore players) =>
     Results.Ok(metrics.Snapshot(games.Count, players.ActiveCount)));
 
+app.MapGet("/api/ranking", (RankingStore ranking) =>
+    Results.Ok(ranking.Snapshot()));
+
+if (firebaseAuthEnabled)
+{
+    app.MapGet("/api/ranking/me", (ClaimsPrincipal user, RankingStore ranking) =>
+    {
+        string? uid = FirebaseUser.UidFromClaims(user);
+        return uid == null
+            ? Results.Unauthorized()
+            : Results.Ok(ranking.GetPlayer(uid));
+    }).RequireAuthorization();
+}
+else
+{
+    app.MapGet("/api/ranking/me", () =>
+        Results.Problem(
+            "Firebase authentication is not configured.",
+            statusCode: StatusCodes.Status501NotImplemented));
+}
+
 app.Run();
 
 sealed class GameStore
@@ -96,9 +205,9 @@ sealed class GameStore
 
     public int Count => games.Count;
 
-    public GameSession Create()
+    public GameSession Create(string? ownerUid)
     {
-        var game = GameSession.New();
+        var game = GameSession.New(ownerUid);
         games[game.Id] = game;
         return game;
     }
@@ -165,6 +274,277 @@ sealed record UsageSnapshot(
     long ApiErrors,
     long Wins);
 
+sealed class RankingStore
+{
+    static readonly TimeSpan SnapshotLifetime = TimeSpan.FromMinutes(5);
+    readonly object gate = new();
+    readonly string databasePath;
+    RankingSnapshot? cachedSnapshot;
+
+    public RankingStore(IConfiguration configuration)
+    {
+        databasePath = configuration["Ranking:DatabasePath"] ??
+            Path.Combine(AppContext.BaseDirectory, "data", "ranking.db");
+        EnsureDatabase();
+    }
+
+    public RankingSnapshot Snapshot()
+    {
+        lock (gate)
+        {
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            if (cachedSnapshot != null && cachedSnapshot.ExpiresAt > now)
+                return cachedSnapshot;
+
+            using SqliteConnection connection = OpenConnection();
+            using SqliteCommand command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT display_name, games_started, wins, updated_at
+                FROM ranking_players
+                ORDER BY
+                    wins DESC,
+                    CASE WHEN games_started >= 3 THEN CAST(wins AS REAL) / games_started ELSE -1 END DESC,
+                    games_started DESC,
+                    display_name COLLATE NOCASE ASC
+                LIMIT 50;
+                """;
+
+            List<RankingEntry> entries = new();
+            using SqliteDataReader reader = command.ExecuteReader();
+            while (reader.Read())
+                entries.Add(ReadEntry(reader));
+
+            RankingSummary summary = Summary(connection);
+
+            cachedSnapshot = new RankingSnapshot(
+                now,
+                now.Add(SnapshotLifetime),
+                entries,
+                summary.GamesStarted,
+                summary.Wins);
+            return cachedSnapshot;
+        }
+    }
+
+    public RankingSummary Summary()
+    {
+        lock (gate)
+        {
+            using SqliteConnection connection = OpenConnection();
+            return Summary(connection);
+        }
+    }
+
+    public RankingEntry? GetPlayer(string uid)
+    {
+        lock (gate)
+        {
+            using SqliteConnection connection = OpenConnection();
+            using SqliteCommand command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT display_name, games_started, wins, updated_at
+                FROM ranking_players
+                WHERE uid = $uid;
+                """;
+            command.Parameters.AddWithValue("$uid", uid);
+
+            using SqliteDataReader reader = command.ExecuteReader();
+            return reader.Read() ? ReadEntry(reader) : null;
+        }
+    }
+
+    public void RecordGameStarted(FirebaseUser user)
+    {
+        lock (gate)
+        {
+            using SqliteConnection connection = OpenConnection();
+            using SqliteCommand command = connection.CreateCommand();
+            command.CommandText = """
+                INSERT INTO ranking_players
+                    (uid, display_name, games_started, wins, created_at, updated_at)
+                VALUES
+                    ($uid, $displayName, 1, 0, $now, $now)
+                ON CONFLICT(uid) DO UPDATE SET
+                    display_name = CASE
+                        WHEN excluded.display_name <> '' THEN excluded.display_name
+                        ELSE ranking_players.display_name
+                    END,
+                    games_started = ranking_players.games_started + 1,
+                    updated_at = excluded.updated_at;
+                """;
+            AddPlayerParameters(command, user, DateTimeOffset.UtcNow);
+            command.ExecuteNonQuery();
+        }
+    }
+
+    public void RecordWin(string uid)
+    {
+        lock (gate)
+        {
+            using SqliteConnection connection = OpenConnection();
+            using SqliteCommand command = connection.CreateCommand();
+            command.CommandText = """
+                UPDATE ranking_players
+                SET wins = wins + 1,
+                    updated_at = $now
+                WHERE uid = $uid;
+                """;
+            command.Parameters.AddWithValue("$uid", uid);
+            command.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
+            command.ExecuteNonQuery();
+        }
+    }
+
+    void EnsureDatabase()
+    {
+        lock (gate)
+        {
+            string? directory = Path.GetDirectoryName(databasePath);
+            if (!string.IsNullOrWhiteSpace(directory))
+                Directory.CreateDirectory(directory);
+
+            using SqliteConnection connection = OpenConnection();
+            using SqliteCommand command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TABLE IF NOT EXISTS ranking_players (
+                    uid TEXT PRIMARY KEY,
+                    display_name TEXT NOT NULL,
+                    picture TEXT NULL,
+                    games_started INTEGER NOT NULL DEFAULT 0,
+                    wins INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_ranking_players_order
+                ON ranking_players (wins DESC, games_started DESC, display_name COLLATE NOCASE ASC);
+                """;
+            command.ExecuteNonQuery();
+        }
+    }
+
+    SqliteConnection OpenConnection()
+    {
+        SqliteConnectionStringBuilder builder = new()
+        {
+            DataSource = databasePath
+        };
+
+        SqliteConnection connection = new(builder.ToString());
+        connection.Open();
+        return connection;
+    }
+
+    static RankingSummary Summary(SqliteConnection connection)
+    {
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT
+                COUNT(*),
+                COALESCE(SUM(games_started), 0),
+                COALESCE(SUM(wins), 0)
+            FROM ranking_players;
+            """;
+
+        using SqliteDataReader reader = command.ExecuteReader();
+        if (!reader.Read())
+            return new RankingSummary(0, 0, 0);
+
+        return new RankingSummary(
+            reader.GetInt32(0),
+            reader.GetInt64(1),
+            reader.GetInt64(2));
+    }
+
+    static RankingEntry ReadEntry(SqliteDataReader reader)
+    {
+        long gamesStarted = reader.GetInt64(1);
+        long wins = reader.GetInt64(2);
+
+        return new RankingEntry(
+            reader.GetString(0),
+            gamesStarted,
+            wins,
+            gamesStarted == 0 ? 0 : Math.Round((double)wins / gamesStarted, 3),
+            DateTimeOffset.Parse(reader.GetString(3)));
+    }
+
+    static void AddPlayerParameters(SqliteCommand command, FirebaseUser user, DateTimeOffset now)
+    {
+        command.Parameters.AddWithValue("$uid", user.Uid);
+        command.Parameters.AddWithValue("$displayName", CleanName(user.Name) ?? "");
+        command.Parameters.AddWithValue("$now", now.ToString("O"));
+    }
+
+    static string? CleanName(string? value)
+    {
+        string? name = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        if (name == null)
+            return null;
+
+        string firstName = name.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0];
+        return firstName.Length <= 40 ? firstName : firstName[..40];
+    }
+}
+
+sealed record RankingSnapshot(
+    DateTimeOffset GeneratedAt,
+    DateTimeOffset ExpiresAt,
+    IReadOnlyList<RankingEntry> Players,
+    long GamesStarted,
+    long Wins);
+
+sealed record RankingSummary(
+    int Players,
+    long GamesStarted,
+    long Wins);
+
+sealed record RankingEntry(
+    string DisplayName,
+    long GamesStarted,
+    long Wins,
+    double WinRate,
+    DateTimeOffset UpdatedAt);
+
+sealed record FirebaseUser(
+    string Uid,
+    string? Name)
+{
+    public static string? UidFromClaims(ClaimsPrincipal user)
+    {
+        if (user.Identity?.IsAuthenticated != true)
+            return null;
+
+        static string? Claim(ClaimsPrincipal user, string type) =>
+            user.Claims.FirstOrDefault(claim => claim.Type == type)?.Value;
+
+        string? uid =
+            Claim(user, "user_id") ??
+            Claim(user, ClaimTypes.NameIdentifier) ??
+            Claim(user, "sub");
+
+        return string.IsNullOrWhiteSpace(uid) ? null : uid;
+    }
+
+    public static FirebaseUser FromClaims(ClaimsPrincipal user)
+    {
+        static string? Claim(ClaimsPrincipal user, string type) =>
+            user.Claims.FirstOrDefault(claim => claim.Type == type)?.Value;
+
+        string uid = UidFromClaims(user) ?? "";
+
+        return new FirebaseUser(
+            uid,
+            Claim(user, "name") ?? Claim(user, ClaimTypes.Name));
+    }
+
+    public static FirebaseUser? TryFromClaims(ClaimsPrincipal user)
+    {
+        string? uid = UidFromClaims(user);
+        return uid == null ? null : FromClaims(user);
+    }
+}
+
 sealed class PlayerPresenceStore
 {
     public const string HeaderName = "X-Solitaire-Player";
@@ -217,14 +597,16 @@ sealed class GameSession
     readonly List<Card>[] tableau = Enumerable.Range(0, 7).Select(_ => new List<Card>()).ToArray();
     readonly List<Card>[] foundations = Enumerable.Range(0, 4).Select(_ => new List<Card>()).ToArray();
 
-    GameSession(string id)
+    GameSession(string id, string? ownerUid)
     {
         Id = id;
+        OwnerUid = ownerUid;
         CreatedAt = DateTimeOffset.UtcNow;
         LastActivityAt = CreatedAt;
     }
 
     public string Id { get; }
+    public string? OwnerUid { get; private set; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset LastActivityAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
@@ -236,9 +618,9 @@ sealed class GameSession
             LastActivityAt = DateTimeOffset.UtcNow;
     }
 
-    public static GameSession New()
+    public static GameSession New(string? ownerUid)
     {
-        var game = new GameSession(Guid.NewGuid().ToString("N"));
+        var game = new GameSession(Guid.NewGuid().ToString("N"), ownerUid);
         game.Deal();
         return game;
     }
@@ -254,7 +636,23 @@ sealed class GameSession
                 waste.Count > 0 ? PublicCard.FromVisible(waste[^1]) : null,
                 tableau.Select(pile => pile.Select(PublicCard.From).ToList()).ToList(),
                 foundations.Select(pile => pile.Count > 0 ? PublicCard.FromVisible(pile[^1]) : null).ToList(),
-                foundations.Sum(pile => pile.Count) == 52);
+                foundations.Sum(pile => pile.Count) == 52,
+                OwnerUid != null);
+        }
+    }
+
+    public bool IsOwnedByDifferentUser(string? uid)
+    {
+        lock (gate)
+            return OwnerUid != null && uid != null && OwnerUid != uid;
+    }
+
+    public void DisableRankingIfSignedOut(string? uid)
+    {
+        lock (gate)
+        {
+            if (OwnerUid != null && uid == null)
+                OwnerUid = null;
         }
     }
 
@@ -497,7 +895,8 @@ sealed record PublicGameState(
     PublicCard? WasteTop,
     List<List<PublicCard>> Tableau,
     List<PublicCard?> Foundations,
-    bool Won);
+    bool Won,
+    bool Ranked);
 
 sealed record PublicCard(string? Id, int? Rank, string? Suit, bool FaceUp)
 {

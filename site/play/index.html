@@ -45,7 +45,7 @@
 
     .topbar {
       display: grid;
-      grid-template-columns: 42px 1fr;
+      grid-template-columns: 42px 1fr auto;
       gap: 12px;
       align-items: center;
     }
@@ -62,6 +62,26 @@
       font-size: 1.4rem;
       font-weight: 900;
       text-decoration: none;
+    }
+
+    .auth-link {
+      min-height: 36px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0 12px;
+      background: rgba(16, 23, 19, 0.72);
+      color: var(--text);
+      font-size: 0.88rem;
+      font-weight: 800;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .auth-link.signed-in {
+      border-color: rgba(217, 185, 85, 0.5);
+      color: var(--gold);
     }
 
     h1 {
@@ -235,6 +255,16 @@
         grid-template-columns: 44px 1fr;
       }
 
+      .topbar {
+        grid-template-columns: 42px 1fr;
+      }
+
+      .auth-link {
+        grid-column: 1 / -1;
+        width: fit-content;
+        justify-self: end;
+      }
+
       .badge {
         grid-column: 2;
         width: fit-content;
@@ -247,6 +277,7 @@
     <section class="topbar" aria-label="Topo">
       <a class="back" href="../" aria-label="Voltar">&lt;</a>
       <h1>Jogos MAUI</h1>
+      <a class="auth-link" data-auth-link href="#login">Entrar</a>
     </section>
 
     <p class="subtitle">Mesma ideia do menu do APK, com as rotas web espelhadas por jogo.</p>
@@ -261,14 +292,14 @@
         <div class="badge play">Jogar</div>
       </a>
 
-      <div class="game disabled" aria-disabled="true">
+      <a class="game" href="ranking/">
         <div class="mark">#</div>
         <div>
           <strong>Ranking</strong>
-          <span>Ranking online em breve.</span>
+          <span>Partidas ranqueadas e vitorias online.</span>
         </div>
-        <div class="badge">Em breve</div>
-      </div>
+        <div class="badge play">Ver</div>
+      </a>
 
       <div class="game disabled" aria-disabled="true">
         <div class="mark">D</div>
@@ -337,5 +368,6 @@
     });
   </script>
   <script src="../build-info.js"></script>
+  <script type="module" src="../auth-widget.js"></script>
 </body>
 </html>

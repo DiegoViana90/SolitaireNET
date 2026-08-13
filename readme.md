@@ -58,3 +58,26 @@ secrets:
 The matching public key must be present in the deployment user's
 `~/.ssh/authorized_keys` on the server. Never commit a private key to this
 repository.
+
+## Firebase login
+
+The Firebase login work is developed on `feature/firebase-auth` until the
+Firebase project is configured. The public UI uses an in-page modal opened by
+the `Entrar` buttons instead of a separate login route.
+
+To enable it:
+
+1. Create or open a Firebase project.
+2. Add a Web app and copy the config into `site/firebase-config.js`.
+3. Enable the Google provider in Firebase Authentication.
+4. Add `paciencia.net.br` and local dev hosts to Authorized domains.
+5. Set `Firebase__ProjectId` for `SolitaireNET.WebApi` in production.
+6. Verify the login modal signs in and `/api/auth/me` validates the Firebase ID token.
+
+Ranked Solitaire games are stored in a SQLite database at `data/ranking.db`
+beside the published API binary. Override it with `Ranking__DatabasePath` if
+production should store the database somewhere else.
+
+The public `/api/ranking` response is cached in memory for five minutes. Writes
+go to SQLite immediately, but the public table only refreshes when the current
+snapshot expires and the endpoint is requested again.
