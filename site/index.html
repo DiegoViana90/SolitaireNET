@@ -86,27 +86,6 @@
       text-decoration: none;
     }
 
-    .actions-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .secondary-link {
-      min-height: 48px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      padding: 0 16px;
-      background: rgba(17, 23, 19, 0.54);
-      color: var(--text);
-      font-weight: 800;
-      text-decoration: none;
-    }
-
     .coming-soon {
       width: fit-content;
       margin-top: -16px;
@@ -216,10 +195,7 @@
       </div>
     </section>
 
-    <div class="actions-row">
-      <a class="primary" href="play/">Jogar online</a>
-      <a class="secondary-link" data-auth-link href="login/">Entrar</a>
-    </div>
+    <a class="primary" href="play/">Jogar online</a>
     <div class="coming-soon">Ranking online em breve</div>
 
     <section class="downloads" aria-label="Disponibilidade">
@@ -248,6 +224,5 @@
     </div>
   </main>
   <script src="build-info.js"></script>
-  <script type="module" src="auth-widget.js"></script>
 </body>
 </html>
