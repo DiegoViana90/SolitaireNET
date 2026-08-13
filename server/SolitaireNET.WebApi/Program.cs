@@ -29,6 +29,7 @@ if (firebaseAuthEnabled)
 }
 
 builder.Services.AddSingleton<GameStore>();
+builder.Services.AddSingleton<CheckersStore>();
 builder.Services.AddSingleton<UsageMetrics>();
 builder.Services.AddSingleton<PlayerPresenceStore>();
 builder.Services.AddSingleton<RankingStore>();
@@ -180,6 +181,36 @@ app.MapGet("/api/usage", (GameStore games, UsageMetrics metrics, PlayerPresenceS
 app.MapGet("/api/ranking", (RankingStore ranking) =>
     Results.Ok(ranking.Snapshot()));
 
+app.MapPost("/api/checkers/rooms", (CheckersStore store) =>
+    Results.Ok(store.CreatePrivateRoom()));
+
+app.MapPost("/api/checkers/rooms/{code}/join", (string code, CheckersStore store) =>
+{
+    CheckersJoinResult result = store.JoinRoom(code);
+    return result.Error == null
+        ? Results.Ok(result)
+        : Results.BadRequest(new { error = result.Error });
+});
+
+app.MapPost("/api/checkers/matchmaking", (CheckersStore store) =>
+    Results.Ok(store.JoinRandomRoom()));
+
+app.MapGet("/api/checkers/rooms/{code}", (string code, string playerId, CheckersStore store) =>
+{
+    CheckersJoinResult result = store.GetRoom(code, playerId);
+    return result.Error == null
+        ? Results.Ok(result)
+        : Results.NotFound(new { error = result.Error });
+});
+
+app.MapPost("/api/checkers/rooms/{code}/actions", (string code, CheckersMoveAction action, CheckersStore store) =>
+{
+    CheckersJoinResult result = store.ApplyMove(code, action);
+    return result.Error == null
+        ? Results.Ok(result)
+        : Results.BadRequest(new { error = result.Error });
+});
+
 if (firebaseAuthEnabled)
 {
     app.MapGet("/api/ranking/me", (ClaimsPrincipal user, RankingStore ranking) =>
@@ -235,6 +266,453 @@ sealed class GameStore
                 games.TryRemove(new KeyValuePair<string, GameSession>(id, game));
         }
     }
+}
+
+sealed class CheckersStore
+{
+    readonly object gate = new();
+    readonly ConcurrentDictionary<string, CheckersSession> rooms = new();
+    string? waitingRandomCode;
+
+    public CheckersJoinResult CreatePrivateRoom()
+    {
+        CheckersSession room = CreateRoom();
+        return room.AddPlayer();
+    }
+
+    public CheckersJoinResult JoinRoom(string code)
+    {
+        code = NormalizeCode(code);
+        if (!rooms.TryGetValue(code, out CheckersSession? room))
+            return CheckersJoinResult.Fail(code, "Sala nao encontrada.");
+
+        return room.AddPlayer();
+    }
+
+    public CheckersJoinResult JoinRandomRoom()
+    {
+        lock (gate)
+        {
+            if (waitingRandomCode != null &&
+                rooms.TryGetValue(waitingRandomCode, out CheckersSession? waitingRoom) &&
+                waitingRoom.IsWaiting)
+            {
+                waitingRandomCode = null;
+                return waitingRoom.AddPlayer();
+            }
+
+            CheckersSession room = CreateRoom();
+            waitingRandomCode = room.Code;
+            return room.AddPlayer();
+        }
+    }
+
+    public CheckersJoinResult GetRoom(string code, string playerId)
+    {
+        code = NormalizeCode(code);
+        if (!rooms.TryGetValue(code, out CheckersSession? room))
+            return CheckersJoinResult.Fail(code, "Sala nao encontrada.");
+
+        return room.ToJoinResult(playerId);
+    }
+
+    public CheckersJoinResult ApplyMove(string code, CheckersMoveAction action)
+    {
+        code = NormalizeCode(code);
+        if (!rooms.TryGetValue(code, out CheckersSession? room))
+            return CheckersJoinResult.Fail(code, "Sala nao encontrada.");
+
+        return room.ApplyMove(action);
+    }
+
+    CheckersSession CreateRoom()
+    {
+        string code;
+        do
+        {
+            code = CreateCode();
+        } while (rooms.ContainsKey(code));
+
+        var room = CheckersSession.New(code);
+        rooms[code] = room;
+        return room;
+    }
+
+    static string CreateCode()
+    {
+        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        Span<char> value = stackalloc char[4];
+        for (int i = 0; i < value.Length; i++)
+            value[i] = chars[Random.Shared.Next(chars.Length)];
+        return new string(value);
+    }
+
+    static string NormalizeCode(string code) =>
+        (code ?? string.Empty).Trim().ToUpperInvariant();
+}
+
+sealed class CheckersSession
+{
+    readonly object gate = new();
+    readonly CheckersPiece?[,] board = new CheckersPiece?[8, 8];
+
+    CheckersSession(string code)
+    {
+        Code = code;
+        Deal();
+    }
+
+    public string Code { get; }
+    public string? LightPlayerId { get; private set; }
+    public string? DarkPlayerId { get; private set; }
+    public string Turn { get; private set; } = "light";
+    public string? ForcedPieceId { get; private set; }
+    public string? Winner { get; private set; }
+    public bool IsWaiting => LightPlayerId != null && DarkPlayerId == null;
+
+    public static CheckersSession New(string code) => new(code);
+
+    public CheckersJoinResult AddPlayer()
+    {
+        lock (gate)
+        {
+            string playerId = Guid.NewGuid().ToString("N");
+            string side;
+
+            if (LightPlayerId == null)
+            {
+                LightPlayerId = playerId;
+                side = "light";
+            }
+            else if (DarkPlayerId == null)
+            {
+                DarkPlayerId = playerId;
+                side = "dark";
+            }
+            else
+            {
+                return CheckersJoinResult.Fail(Code, "Sala cheia.");
+            }
+
+            return BuildJoinResult(playerId, side);
+        }
+    }
+
+    public CheckersJoinResult ToJoinResult(string playerId)
+    {
+        lock (gate)
+        {
+            string? side = SideFor(playerId);
+            return side == null
+                ? CheckersJoinResult.Fail(Code, "Jogador nao pertence a esta sala.")
+                : BuildJoinResult(playerId, side);
+        }
+    }
+
+    public CheckersJoinResult ApplyMove(CheckersMoveAction action)
+    {
+        lock (gate)
+        {
+            string? side = SideFor(action.PlayerId);
+            if (side == null)
+                return CheckersJoinResult.Fail(Code, "Jogador nao pertence a esta sala.");
+
+            if (!IsReady)
+                return CheckersJoinResult.Fail(Code, "Aguardando segundo jogador.");
+
+            if (Winner != null)
+                return CheckersJoinResult.Fail(Code, "Partida finalizada.");
+
+            if (side != Turn)
+                return CheckersJoinResult.Fail(Code, "Aguarde sua vez.");
+
+            CheckersPiece? piece = PieceAt(action.From.Row, action.From.Col);
+            if (piece == null || piece.Owner != side)
+                return CheckersJoinResult.Fail(Code, "Peca de origem invalida.");
+
+            if (ForcedPieceId != null && piece.Id != ForcedPieceId)
+                return CheckersJoinResult.Fail(Code, "Continue a captura com a mesma peca.");
+
+            List<CheckersMove> legalMoves = GetMovesByPiece(side)
+                .SelectMany(pair => pair.Value)
+                .ToList();
+
+            CheckersMove? move = legalMoves.FirstOrDefault(candidate =>
+                candidate.From.Row == action.From.Row &&
+                candidate.From.Col == action.From.Col &&
+                candidate.To.Row == action.To.Row &&
+                candidate.To.Col == action.To.Col);
+
+            if (move == null)
+                return CheckersJoinResult.Fail(Code, "Jogada invalida.");
+
+            ApplyLegalMove(piece, move);
+            return BuildJoinResult(action.PlayerId, side);
+        }
+    }
+
+    bool IsReady => LightPlayerId != null && DarkPlayerId != null;
+
+    void Deal()
+    {
+        for (int row = 0; row < 3; row++)
+        {
+            for (int col = 0; col < 8; col++)
+            {
+                if (IsDarkSquare(row, col))
+                    board[row, col] = new CheckersPiece($"dark-{row}-{col}", "dark", false);
+            }
+        }
+
+        for (int row = 5; row < 8; row++)
+        {
+            for (int col = 0; col < 8; col++)
+            {
+                if (IsDarkSquare(row, col))
+                    board[row, col] = new CheckersPiece($"light-{row}-{col}", "light", false);
+            }
+        }
+    }
+
+    void ApplyLegalMove(CheckersPiece piece, CheckersMove move)
+    {
+        board[move.From.Row, move.From.Col] = null;
+        board[move.To.Row, move.To.Col] = piece;
+
+        if (move.Captured != null)
+            board[move.Captured.Row, move.Captured.Col] = null;
+
+        PromoteIfNeeded(piece, move.To.Row);
+
+        bool canContinueCapture =
+            move.Captured != null &&
+            GetMovesForPiece(move.To.Row, move.To.Col, onlyCaptures: true).Count > 0;
+
+        if (canContinueCapture)
+        {
+            ForcedPieceId = piece.Id;
+            return;
+        }
+
+        ForcedPieceId = null;
+        Turn = Opponent(Turn);
+        Winner = ResolveWinner();
+    }
+
+    void PromoteIfNeeded(CheckersPiece piece, int row)
+    {
+        if (piece.King)
+            return;
+
+        if ((piece.Owner == "light" && row == 0) ||
+            (piece.Owner == "dark" && row == 7))
+        {
+            piece.King = true;
+        }
+    }
+
+    Dictionary<string, List<CheckersMove>> GetMovesByPiece(string owner)
+    {
+        Dictionary<string, List<CheckersMove>> captures = new();
+        Dictionary<string, List<CheckersMove>> regular = new();
+
+        ForEachPiece((piece, row, col) =>
+        {
+            if (piece.Owner != owner)
+                return;
+
+            if (ForcedPieceId != null && piece.Id != ForcedPieceId)
+                return;
+
+            List<CheckersMove> captureMoves = GetMovesForPiece(row, col, onlyCaptures: true);
+            if (captureMoves.Count > 0)
+            {
+                captures[piece.Id] = captureMoves;
+                return;
+            }
+
+            List<CheckersMove> moves = GetMovesForPiece(row, col, onlyCaptures: false);
+            if (moves.Count > 0)
+                regular[piece.Id] = moves;
+        });
+
+        return captures.Count > 0 ? captures : regular;
+    }
+
+    List<CheckersMove> GetMovesForPiece(int row, int col, bool onlyCaptures)
+    {
+        CheckersPiece? piece = PieceAt(row, col);
+        if (piece == null)
+            return new List<CheckersMove>();
+
+        List<CheckersMove> moves = new();
+        IEnumerable<(int Row, int Col)> directions = onlyCaptures
+            ? CaptureDirections(piece)
+            : MoveDirections(piece);
+
+        foreach ((int dr, int dc) in directions)
+        {
+            int stepRow = row + dr;
+            int stepCol = col + dc;
+            int jumpRow = row + dr * 2;
+            int jumpCol = col + dc * 2;
+            CheckersPiece? stepPiece = PieceAt(stepRow, stepCol);
+
+            if (stepPiece != null &&
+                stepPiece.Owner != piece.Owner &&
+                IsInside(jumpRow, jumpCol) &&
+                PieceAt(jumpRow, jumpCol) == null)
+            {
+                moves.Add(new CheckersMove(
+                    new CheckersPosition(row, col),
+                    new CheckersPosition(jumpRow, jumpCol),
+                    new CheckersPosition(stepRow, stepCol)));
+                continue;
+            }
+
+            if (!onlyCaptures && IsInside(stepRow, stepCol) && stepPiece == null)
+            {
+                moves.Add(new CheckersMove(
+                    new CheckersPosition(row, col),
+                    new CheckersPosition(stepRow, stepCol),
+                    null));
+            }
+        }
+
+        return moves;
+    }
+
+    string? ResolveWinner()
+    {
+        int light = 0;
+        int dark = 0;
+        ForEachPiece((piece, _, _) =>
+        {
+            if (piece.Owner == "light")
+                light++;
+            else
+                dark++;
+        });
+
+        if (light == 0)
+            return "dark";
+        if (dark == 0)
+            return "light";
+        if (GetMovesByPiece(Turn).Count == 0)
+            return Opponent(Turn);
+
+        return null;
+    }
+
+    CheckersJoinResult BuildJoinResult(string playerId, string side) =>
+        new(
+            Code,
+            playerId,
+            side,
+            !IsReady,
+            null,
+            ToPublicState(side));
+
+    CheckersPublicState ToPublicState(string playerSide)
+    {
+        List<List<CheckersPublicPiece?>> rows = new();
+        for (int row = 0; row < 8; row++)
+        {
+            List<CheckersPublicPiece?> current = new();
+            for (int col = 0; col < 8; col++)
+            {
+                CheckersPiece? piece = board[row, col];
+                current.Add(piece == null
+                    ? null
+                    : new CheckersPublicPiece(piece.Id, piece.Owner, piece.King));
+            }
+            rows.Add(current);
+        }
+
+        return new CheckersPublicState(
+            rows,
+            Turn,
+            playerSide,
+            IsReady,
+            ForcedPieceId,
+            Winner);
+    }
+
+    string? SideFor(string playerId)
+    {
+        if (playerId == LightPlayerId)
+            return "light";
+        if (playerId == DarkPlayerId)
+            return "dark";
+        return null;
+    }
+
+    CheckersPiece? PieceAt(int row, int col) =>
+        IsInside(row, col) ? board[row, col] : null;
+
+    void ForEachPiece(Action<CheckersPiece, int, int> callback)
+    {
+        for (int row = 0; row < 8; row++)
+            for (int col = 0; col < 8; col++)
+                if (board[row, col] is { } piece)
+                    callback(piece, row, col);
+    }
+
+    static IEnumerable<(int Row, int Col)> MoveDirections(CheckersPiece piece)
+    {
+        if (piece.King)
+            return AllDirections;
+
+        int dr = piece.Owner == "light" ? -1 : 1;
+        return new[] { (dr, 1), (dr, -1) };
+    }
+
+    static IEnumerable<(int Row, int Col)> CaptureDirections(CheckersPiece piece) =>
+        piece.King ? AllDirections : AllDirections;
+
+    static readonly (int Row, int Col)[] AllDirections =
+    {
+        (1, 1),
+        (1, -1),
+        (-1, 1),
+        (-1, -1)
+    };
+
+    static string Opponent(string owner) => owner == "light" ? "dark" : "light";
+    static bool IsInside(int row, int col) => row >= 0 && row < 8 && col >= 0 && col < 8;
+    static bool IsDarkSquare(int row, int col) => (row + col) % 2 == 1;
+}
+
+sealed record CheckersJoinResult(
+    string RoomCode,
+    string? PlayerId,
+    string? PlayerSide,
+    bool Waiting,
+    string? Error,
+    CheckersPublicState? State)
+{
+    public static CheckersJoinResult Fail(string roomCode, string error) =>
+        new(roomCode, null, null, false, error, null);
+}
+
+sealed record CheckersPublicState(
+    List<List<CheckersPublicPiece?>> Board,
+    string Turn,
+    string PlayerSide,
+    bool Ready,
+    string? ForcedPieceId,
+    string? Winner);
+
+sealed record CheckersPublicPiece(string Id, string Owner, bool King);
+sealed record CheckersMoveAction(string PlayerId, CheckersPosition From, CheckersPosition To);
+sealed record CheckersMove(CheckersPosition From, CheckersPosition To, CheckersPosition? Captured);
+sealed record CheckersPosition(int Row, int Col);
+
+sealed class CheckersPiece(string id, string owner, bool king)
+{
+    public string Id { get; } = id;
+    public string Owner { get; } = owner;
+    public bool King { get; set; } = king;
 }
 
 sealed class UsageMetrics

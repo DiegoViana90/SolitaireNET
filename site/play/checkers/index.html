@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Damas - SolitaireNET Web</title>
+  <link rel="icon" href="../../appicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=1">
+</head>
+<body>
+  <main class="game-shell" aria-label="Damas">
+    <header class="topbar">
+      <a class="icon-button" href="../" aria-label="Voltar">&lt;</a>
+      <div>
+        <h1>Damas</h1>
+        <p id="status">Vez das claras.</p>
+      </div>
+      <button id="new-game" type="button">Novo</button>
+    </header>
+
+    <section class="lobby" id="lobby" aria-label="Entrada da partida">
+      <button id="create-room" type="button">
+        <strong>Criar sala</strong>
+        <span>Gera um codigo para outro jogador entrar.</span>
+      </button>
+      <button id="random-room" type="button">
+        <strong>Procurar sala aleatoria</strong>
+        <span>Se nao houver outro jogador, voce fica aguardando.</span>
+      </button>
+      <div class="join-code">
+        <input id="room-code" type="text" maxlength="4" autocomplete="off" placeholder="CODIGO" aria-label="Codigo da sala">
+        <button id="join-code" type="button">Entrar</button>
+      </div>
+    </section>
+
+    <p class="room-info" id="room-info" hidden></p>
+
+    <section class="scorebar" aria-label="Placar">
+      <div>
+        <span>Claras</span>
+        <strong id="light-score">12</strong>
+      </div>
+      <div>
+        <span>Escuras</span>
+        <strong id="dark-score">12</strong>
+      </div>
+    </section>
+
+    <section class="board-wrap" aria-label="Tabuleiro de damas">
+      <div class="board" id="board" hidden></div>
+    </section>
+  </main>
+
+  <script type="module" src="app.js?v=2"></script>
+</body>
+</html>
