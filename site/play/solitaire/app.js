@@ -97,6 +97,13 @@ async function startNewGame() {
 }
 
 async function loadGame() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("new") === "1") {
+    window.history.replaceState({}, "", window.location.pathname);
+    await startNewGame();
+    return;
+  }
+
   const id = localStorage.getItem(saveKey);
 
   if (id) {
