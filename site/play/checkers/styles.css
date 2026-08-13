@@ -246,6 +246,7 @@ button {
   border: clamp(8px, 2vw, 16px) solid #2a1b10;
   border-radius: 8px;
   background: #2a1b10;
+  position: relative;
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
@@ -345,6 +346,16 @@ button {
 .piece.must-capture {
   outline: 3px solid var(--danger);
   outline-offset: 2px;
+}
+
+.piece.animating-target {
+  opacity: 0;
+}
+
+.move-ghost {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
 }
 
 @media (max-width: 520px) {

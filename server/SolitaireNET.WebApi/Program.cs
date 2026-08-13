@@ -211,6 +211,14 @@ app.MapPost("/api/checkers/rooms/{code}/actions", (string code, CheckersMoveActi
         : Results.BadRequest(new { error = result.Error });
 });
 
+app.MapPost("/api/checkers/rooms/{code}/leave", (string code, CheckersLeaveAction action, CheckersStore store) =>
+{
+    CheckersJoinResult result = store.LeaveRoom(code, action.PlayerId);
+    return result.Error == null
+        ? Results.Ok(result)
+        : Results.BadRequest(new { error = result.Error });
+});
+
 if (firebaseAuthEnabled)
 {
     app.MapGet("/api/ranking/me", (ClaimsPrincipal user, RankingStore ranking) =>
@@ -270,6 +278,8 @@ sealed class GameStore
 
 sealed class CheckersStore
 {
+    static readonly TimeSpan InactiveRoomLifetime = TimeSpan.FromMinutes(30);
+    static readonly TimeSpan CanceledRoomLifetime = TimeSpan.FromMinutes(2);
     readonly object gate = new();
     readonly ConcurrentDictionary<string, CheckersSession> rooms = new();
     string? waitingRandomCode;
@@ -325,6 +335,45 @@ sealed class CheckersStore
         return room.ApplyMove(action);
     }
 
+    public CheckersJoinResult LeaveRoom(string code, string playerId)
+    {
+        code = NormalizeCode(code);
+        if (!rooms.TryGetValue(code, out CheckersSession? room))
+            return CheckersJoinResult.Fail(code, "Sala nao encontrada.");
+
+        CheckersJoinResult result = room.CancelByPlayer(playerId);
+        if (result.Error == null && waitingRandomCode == code)
+        {
+            lock (gate)
+            {
+                if (waitingRandomCode == code)
+                    waitingRandomCode = null;
+            }
+        }
+
+        return result;
+    }
+
+    public void RemoveExpired(DateTimeOffset now)
+    {
+        foreach ((string code, CheckersSession room) in rooms)
+        {
+            TimeSpan lifetime = room.IsCanceled ? CanceledRoomLifetime : InactiveRoomLifetime;
+            if (now - room.LastActivityAt > lifetime)
+            {
+                rooms.TryRemove(new KeyValuePair<string, CheckersSession>(code, room));
+                if (waitingRandomCode == code)
+                {
+                    lock (gate)
+                    {
+                        if (waitingRandomCode == code)
+                            waitingRandomCode = null;
+                    }
+                }
+            }
+        }
+    }
+
     CheckersSession CreateRoom()
     {
         string code;
@@ -368,7 +417,11 @@ sealed class CheckersSession
     public string Turn { get; private set; } = "light";
     public string? ForcedPieceId { get; private set; }
     public string? Winner { get; private set; }
-    public bool IsWaiting => LightPlayerId != null && DarkPlayerId == null;
+    public string? CanceledBy { get; private set; }
+    public CheckersMoveEvent? LastMove { get; private set; }
+    public DateTimeOffset LastActivityAt { get; private set; } = DateTimeOffset.UtcNow;
+    public bool IsCanceled => CanceledBy != null;
+    public bool IsWaiting => !IsCanceled && LightPlayerId != null && DarkPlayerId == null;
 
     public static CheckersSession New(string code) => new(code);
 
@@ -376,6 +429,9 @@ sealed class CheckersSession
     {
         lock (gate)
         {
+            if (IsCanceled)
+                return CheckersJoinResult.Fail(Code, "Partida encerrada.");
+
             string playerId = Guid.NewGuid().ToString("N");
             string side;
 
@@ -394,6 +450,7 @@ sealed class CheckersSession
                 return CheckersJoinResult.Fail(Code, "Sala cheia.");
             }
 
+            Touch();
             return BuildJoinResult(playerId, side);
         }
     }
@@ -403,9 +460,28 @@ sealed class CheckersSession
         lock (gate)
         {
             string? side = SideFor(playerId);
-            return side == null
-                ? CheckersJoinResult.Fail(Code, "Jogador nao pertence a esta sala.")
-                : BuildJoinResult(playerId, side);
+            if (side == null)
+                return CheckersJoinResult.Fail(Code, "Jogador nao pertence a esta sala.");
+
+            Touch();
+            return BuildJoinResult(playerId, side);
+        }
+    }
+
+    public CheckersJoinResult CancelByPlayer(string playerId)
+    {
+        lock (gate)
+        {
+            string? side = SideFor(playerId);
+            if (side == null)
+                return CheckersJoinResult.Fail(Code, "Jogador nao pertence a esta sala.");
+
+            if (CanceledBy == null)
+                CanceledBy = side;
+
+            ForcedPieceId = null;
+            Touch();
+            return BuildJoinResult(playerId, side);
         }
     }
 
@@ -416,6 +492,9 @@ sealed class CheckersSession
             string? side = SideFor(action.PlayerId);
             if (side == null)
                 return CheckersJoinResult.Fail(Code, "Jogador nao pertence a esta sala.");
+
+            if (IsCanceled)
+                return CheckersJoinResult.Fail(Code, "Partida encerrada.");
 
             if (!IsReady)
                 return CheckersJoinResult.Fail(Code, "Aguardando segundo jogador.");
@@ -446,7 +525,8 @@ sealed class CheckersSession
             if (move == null)
                 return CheckersJoinResult.Fail(Code, "Jogada invalida.");
 
-            ApplyLegalMove(piece, move);
+            ApplyLegalMove(piece, move, side);
+            Touch();
             return BuildJoinResult(action.PlayerId, side);
         }
     }
@@ -474,7 +554,7 @@ sealed class CheckersSession
         }
     }
 
-    void ApplyLegalMove(CheckersPiece piece, CheckersMove move)
+    void ApplyLegalMove(CheckersPiece piece, CheckersMove move, string side)
     {
         board[move.From.Row, move.From.Col] = null;
         board[move.To.Row, move.To.Col] = piece;
@@ -483,6 +563,13 @@ sealed class CheckersSession
             board[move.Captured.Row, move.Captured.Col] = null;
 
         PromoteIfNeeded(piece, move.To.Row);
+        LastMove = new CheckersMoveEvent(
+            Guid.NewGuid().ToString("N"),
+            side,
+            move.From,
+            move.To,
+            move.Captured,
+            new CheckersPublicPiece(piece.Id, piece.Owner, piece.King));
 
         bool canContinueCapture =
             move.Captured != null &&
@@ -635,7 +722,10 @@ sealed class CheckersSession
             playerSide,
             IsReady,
             ForcedPieceId,
-            Winner);
+            Winner,
+            IsCanceled,
+            CanceledBy,
+            LastMove);
     }
 
     string? SideFor(string playerId)
@@ -681,6 +771,8 @@ sealed class CheckersSession
     static string Opponent(string owner) => owner == "light" ? "dark" : "light";
     static bool IsInside(int row, int col) => row >= 0 && row < 8 && col >= 0 && col < 8;
     static bool IsDarkSquare(int row, int col) => (row + col) % 2 == 1;
+
+    void Touch() => LastActivityAt = DateTimeOffset.UtcNow;
 }
 
 sealed record CheckersJoinResult(
@@ -701,10 +793,21 @@ sealed record CheckersPublicState(
     string PlayerSide,
     bool Ready,
     string? ForcedPieceId,
-    string? Winner);
+    string? Winner,
+    bool Canceled,
+    string? CanceledBy,
+    CheckersMoveEvent? LastMove);
 
 sealed record CheckersPublicPiece(string Id, string Owner, bool King);
 sealed record CheckersMoveAction(string PlayerId, CheckersPosition From, CheckersPosition To);
+sealed record CheckersLeaveAction(string PlayerId);
+sealed record CheckersMoveEvent(
+    string Id,
+    string PlayerSide,
+    CheckersPosition From,
+    CheckersPosition To,
+    CheckersPosition? Captured,
+    CheckersPublicPiece Piece);
 sealed record CheckersMove(CheckersPosition From, CheckersPosition To, CheckersPosition? Captured);
 sealed record CheckersPosition(int Row, int Col);
 
@@ -1094,7 +1197,7 @@ sealed class PlayerPresenceStore
     }
 }
 
-sealed class CleanupService(GameStore games, PlayerPresenceStore players) : BackgroundService
+sealed class CleanupService(GameStore games, CheckersStore checkers, PlayerPresenceStore players) : BackgroundService
 {
     static readonly TimeSpan Interval = TimeSpan.FromMinutes(5);
 
@@ -1105,6 +1208,7 @@ sealed class CleanupService(GameStore games, PlayerPresenceStore players) : Back
         {
             DateTimeOffset now = DateTimeOffset.UtcNow;
             games.RemoveExpired(now);
+            checkers.RemoveExpired(now);
             players.RemoveExpired(now);
         }
     }

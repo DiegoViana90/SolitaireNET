@@ -14,7 +14,8 @@ const state = {
   busy: false,
   pollTimer: null,
   message: "",
-  noticeUntil: null
+  noticeUntil: null,
+  lastMoveId: null
 };
 
 const lobbyEl = document.querySelector("#lobby");
@@ -88,6 +89,7 @@ function applyJoinResult(result) {
   state.playerSide = result.playerSide;
   state.game = result.state;
   state.selected = null;
+  state.lastMoveId = state.game?.lastMove?.id || null;
 
   if (result.waiting) {
     setMessage("Aguardando outro jogador entrar.");
@@ -100,7 +102,12 @@ function applyJoinResult(result) {
     playerId: state.playerId
   }));
 
-  startPolling();
+  if (state.game?.canceled) {
+    handleCanceledRoom();
+  } else {
+    startPolling();
+  }
+
   render();
 }
 
@@ -145,8 +152,21 @@ async function refreshRoom() {
   try {
     const wasWaiting = state.game && !state.game.ready;
     const result = await request(`/checkers/rooms/${encodeURIComponent(state.roomCode)}?playerId=${encodeURIComponent(state.playerId)}`);
+    const nextMove = result.state?.lastMove;
+    const shouldAnimateMove =
+      nextMove &&
+      nextMove.id !== state.lastMoveId &&
+      nextMove.playerSide !== state.playerSide;
+
     state.game = result.state;
     state.playerSide = result.playerSide;
+    state.lastMoveId = nextMove?.id || state.lastMoveId;
+
+    if (state.game?.canceled) {
+      handleCanceledRoom();
+      render();
+      return;
+    }
 
     if (wasWaiting && state.game?.ready) {
       setMessage("Jogador entrou na sala.", 4200);
@@ -155,15 +175,32 @@ async function refreshRoom() {
     }
 
     render();
+    if (shouldAnimateMove) {
+      animateLastMove(nextMove);
+    }
   } catch (error) {
     setMessage(error.message);
     render();
   }
 }
 
-function leaveRoom() {
+async function leaveRoom() {
+  await notifyLeave();
   clearSession();
   render();
+}
+
+async function notifyLeave() {
+  if (!state.roomCode || !state.playerId || state.game?.canceled) return;
+
+  try {
+    await request(`/checkers/rooms/${encodeURIComponent(state.roomCode)}/leave`, {
+      method: "POST",
+      body: JSON.stringify({ playerId: state.playerId })
+    });
+  } catch {
+    // Best effort: local exit should not be blocked by a network hiccup.
+  }
 }
 
 function clearSession() {
@@ -174,6 +211,7 @@ function clearSession() {
   state.playerSide = null;
   state.game = null;
   state.selected = null;
+  state.lastMoveId = null;
   setMessage("");
 }
 
@@ -241,6 +279,7 @@ function render() {
 function pieceEl(piece, row, col, movesByPiece) {
   const el = document.createElement("span");
   el.className = `piece ${piece.owner === "light" ? "light-piece" : "dark-piece"}`;
+  el.dataset.pieceId = piece.id;
 
   if (piece.king) {
     el.classList.add("king");
@@ -302,6 +341,7 @@ async function sendMove(move) {
       })
     });
     state.game = result.state;
+    state.lastMoveId = state.game.lastMove?.id || state.lastMoveId;
     state.selected = null;
     setMessage("");
     render();
@@ -393,6 +433,12 @@ function getCaptureDirections(piece) {
 }
 
 function getStatus(counts, movesByPiece) {
+  if (state.game.canceled) {
+    return state.game.canceledBy === state.playerSide
+      ? "Voce saiu. Partida encerrada."
+      : "Adversario saiu. Partida encerrada.";
+  }
+
   if (!state.game.ready) {
     return `${currentMessage() || "Aguardando outro jogador entrar."} Codigo: ${state.roomCode}`;
   }
@@ -425,6 +471,7 @@ function countPieces() {
 function canPlay() {
   return Boolean(
     state.game?.ready &&
+    !state.game.canceled &&
     !state.game.winner &&
     state.game.turn === state.playerSide);
 }
@@ -469,7 +516,76 @@ function currentMessage() {
   return state.message;
 }
 
+function handleCanceledRoom() {
+  stopPolling();
+  localStorage.removeItem(sessionKey);
+  state.selected = null;
+  setMessage(state.game?.canceledBy === state.playerSide
+    ? "Voce saiu. Partida encerrada."
+    : "Adversario saiu. Partida encerrada.");
+}
+
+function animateLastMove(move) {
+  if (!move?.piece || !boardEl.isConnected) return;
+
+  const from = viewPositionFromBoard(move.from.row, move.from.col);
+  const to = viewPositionFromBoard(move.to.row, move.to.col);
+  const boardSize = boardEl.clientWidth;
+  if (!boardSize) return;
+
+  const squareSize = boardSize / 8;
+  const pieceSize = squareSize * 0.72;
+  const offset = (squareSize - pieceSize) / 2;
+  const startLeft = from.col * squareSize + offset;
+  const startTop = from.row * squareSize + offset;
+  const endLeft = to.col * squareSize + offset;
+  const endTop = to.row * squareSize + offset;
+
+  const targetPiece = [...boardEl.querySelectorAll(".piece")]
+    .find((piece) => piece.dataset.pieceId === move.piece.id);
+  targetPiece?.classList.add("animating-target");
+
+  const ghost = document.createElement("span");
+  ghost.className = `piece move-ghost ${move.piece.owner === "light" ? "light-piece" : "dark-piece"}`;
+  if (move.piece.king) {
+    ghost.classList.add("king");
+  }
+
+  ghost.style.width = `${pieceSize}px`;
+  ghost.style.height = `${pieceSize}px`;
+  ghost.style.left = `${startLeft}px`;
+  ghost.style.top = `${startTop}px`;
+  boardEl.append(ghost);
+
+  const animation = ghost.animate(
+    [
+      { transform: "translate3d(0, 0, 0)" },
+      { transform: `translate3d(${endLeft - startLeft}px, ${endTop - startTop}px, 0)` }
+    ],
+    {
+      duration: 420,
+      easing: "cubic-bezier(.22, .76, .24, 1)",
+      fill: "forwards"
+    });
+
+  animation.onfinish = () => {
+    ghost.remove();
+    targetPiece?.classList.remove("animating-target");
+  };
+}
+
 function boardPositionFromView(row, col) {
+  if (state.playerSide === "dark") {
+    return {
+      row: 7 - row,
+      col: 7 - col
+    };
+  }
+
+  return { row, col };
+}
+
+function viewPositionFromBoard(row, col) {
   if (state.playerSide === "dark") {
     return {
       row: 7 - row,
@@ -495,13 +611,32 @@ roomCodeEl.addEventListener("keydown", (event) => {
     joinRoomByCode();
   }
 });
-newGameEl.addEventListener("click", () => {
+newGameEl.addEventListener("click", async () => {
   if (state.game) {
-    leaveRoom();
+    await leaveRoom();
     return;
   }
 
   createRoom();
+});
+
+window.addEventListener("pagehide", () => {
+  if (!state.roomCode || !state.playerId || state.game?.canceled) return;
+
+  const payload = JSON.stringify({ playerId: state.playerId });
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon(
+      `${apiBase}/checkers/rooms/${encodeURIComponent(state.roomCode)}/leave`,
+      new Blob([payload], { type: "application/json" }));
+    return;
+  }
+
+  fetch(`${apiBase}/checkers/rooms/${encodeURIComponent(state.roomCode)}/leave`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: payload,
+    keepalive: true
+  }).catch(() => {});
 });
 
 restoreSession();
