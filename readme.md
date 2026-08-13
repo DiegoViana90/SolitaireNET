@@ -58,3 +58,16 @@ secrets:
 The matching public key must be present in the deployment user's
 `~/.ssh/authorized_keys` on the server. Never commit a private key to this
 repository.
+
+## Firebase login
+
+The web login page lives at `/login/` and uses Firebase Authentication with
+Google and GitHub providers.
+
+To enable it in production:
+
+1. Create or open a Firebase project.
+2. Add a Web app and copy the Firebase config.
+3. Paste the config values into `site/firebase-config.js`.
+4. In Firebase Authentication, enable the Google and GitHub sign-in providers.
+5. Add `paciencia.net.br` to the authorized domains.
