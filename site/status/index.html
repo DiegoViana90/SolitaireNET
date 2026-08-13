@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Status - SolitaireNET</title>
+  <link rel="icon" href="../appicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101713;
+      --panel: #17241d;
+      --text: #fff6e5;
+      --muted: #cabfa8;
+      --gold: #d9b955;
+      --line: rgba(255, 246, 229, 0.16);
+      --ok: #69d391;
+      --bad: #ff7b7b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Segoe UI, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, var(--bg), #0e5b34 62%, #211e18);
+      color: var(--text);
+    }
+
+    main {
+      width: min(720px, calc(100% - 32px));
+      min-height: 100vh;
+      margin: 0 auto;
+      display: grid;
+      align-content: center;
+      gap: 18px;
+      padding: 42px 0;
+    }
+
+    .back {
+      width: fit-content;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 6vw, 3.8rem);
+      line-height: 1;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(23, 36, 29, 0.88);
+      padding: 18px;
+    }
+
+    .summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .state {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.05rem;
+      font-weight: 900;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--bad);
+    }
+
+    .ok .dot {
+      background: var(--ok);
+    }
+
+    .updated {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: rgba(16, 23, 19, 0.44);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 1.6rem;
+      line-height: 1;
+      color: var(--gold);
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    pre {
+      max-height: 300px;
+      overflow: auto;
+      margin: 14px 0 0;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.34);
+      padding: 12px;
+      color: #e8ddc8;
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 620px) {
+      .summary,
+      .metrics {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back" href="../play/">&lt; Voltar</a>
+    <h1>Status</h1>
+
+    <section class="panel" aria-label="Status da API">
+      <div class="summary" id="summary">
+        <div class="state"><span class="dot"></span><span id="state-text">Verificando...</span></div>
+        <div class="updated" id="updated"></div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><strong id="active-players">-</strong><span>online</span></div>
+        <div class="metric"><strong id="games-memory">-</strong><span>partidas na memoria</span></div>
+        <div class="metric"><strong id="wins">-</strong><span>vitorias desde o restart</span></div>
+      </div>
+
+      <pre id="raw">{}</pre>
+    </section>
+  </main>
+
+  <script>
+    const summaryEl = document.querySelector("#summary");
+    const stateTextEl = document.querySelector("#state-text");
+    const updatedEl = document.querySelector("#updated");
+    const activePlayersEl = document.querySelector("#active-players");
+    const gamesMemoryEl = document.querySelector("#games-memory");
+    const winsEl = document.querySelector("#wins");
+    const rawEl = document.querySelector("#raw");
+
+    async function refresh() {
+      try {
+        const response = await fetch("/api/health", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        const usage = data.usage || {};
+        summaryEl.classList.toggle("ok", Boolean(data.ok));
+        stateTextEl.textContent = data.ok ? "API online" : "API com alerta";
+        activePlayersEl.textContent = usage.activePlayers ?? "-";
+        gamesMemoryEl.textContent = usage.gamesInMemory ?? "-";
+        winsEl.textContent = usage.wins ?? "-";
+        rawEl.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        summaryEl.classList.remove("ok");
+        stateTextEl.textContent = "API offline";
+        rawEl.textContent = String(error);
+      } finally {
+        updatedEl.textContent = new Date().toLocaleString("pt-BR");
+      }
+    }
+
+    refresh();
+    window.setInterval(refresh, 30000);
+  </script>
+</body>
+</html>
