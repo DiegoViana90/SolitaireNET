@@ -1,11 +1,15 @@
 :root {
   color-scheme: dark;
-  --bg: #111713;
-  --panel: #18241d;
+  --bg: #101713;
+  --panel: #17241d;
   --text: #fff6e5;
   --muted: #cabfa8;
   --gold: #d9b955;
   --line: rgba(255, 246, 229, 0.16);
+  --red: #d94343;
+  --blue: #2f80ed;
+  --green: #27ae60;
+  --yellow: #f2c94c;
 }
 
 * {
@@ -17,110 +21,417 @@ body {
   min-height: 100vh;
   font-family: Segoe UI, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   background:
-    radial-gradient(circle at 18% 0%, rgba(217, 185, 85, 0.18), transparent 30rem),
+    radial-gradient(circle at 18% 0%, rgba(217, 185, 85, 0.16), transparent 30rem),
     linear-gradient(135deg, #101713, #0e5b34 54%, #211e18);
   color: var(--text);
 }
 
-.coming-shell {
-  width: min(760px, calc(100% - 32px));
+button,
+input {
+  font: inherit;
+}
+
+.game-shell {
+  width: min(880px, calc(100% - 24px));
   min-height: 100vh;
   margin: 0 auto;
   display: grid;
-  align-content: center;
-  gap: 24px;
-  padding: 42px 0;
+  align-content: start;
+  gap: 14px;
+  padding: 24px 0;
 }
 
-.back {
-  width: 42px;
-  height: 42px;
+.topbar {
   display: grid;
-  place-items: center;
+  grid-template-columns: 42px 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.icon-button,
+.topbar button {
+  min-height: 42px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: rgba(16, 23, 19, 0.72);
   color: var(--text);
-  font-size: 1.4rem;
-  font-weight: 900;
   text-decoration: none;
-}
-
-.hero {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 20px;
-  align-items: center;
-}
-
-.mark {
-  width: 86px;
-  aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border: 5px solid #fff6e5;
-  border-radius: 8px;
-  background:
-    linear-gradient(135deg, #d94343 0 34%, #2f80ed 34% 58%, #27ae60 58% 78%, #f2c94c 78%);
-  color: #111713;
-  font-size: 1.65rem;
-  font-weight: 950;
-  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.34);
-}
-
-.mark span {
-  display: grid;
-  place-items: center;
-  width: 54px;
-  height: 54px;
-  border-radius: 999px;
-  background: #fff6e5;
-}
-
-.eyebrow {
-  margin: 0 0 8px;
-  color: var(--gold);
   font-weight: 900;
+  cursor: pointer;
+}
+
+.icon-button {
+  font-size: 1.4rem;
+}
+
+.topbar button {
+  padding: 0 14px;
+}
+
+.topbar button[hidden] {
+  display: none;
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(2.6rem, 8vw, 5rem);
-  line-height: 0.98;
+  font-size: clamp(2rem, 6vw, 4.2rem);
+  line-height: 1;
   letter-spacing: 0;
 }
 
-.lead {
-  max-width: 620px;
-  margin: 14px 0 0;
+#status {
+  margin: 4px 0 0;
   color: var(--muted);
-  font-size: 1.08rem;
-  line-height: 1.55;
+  font-weight: 800;
 }
 
-.status-card {
+.lobby {
   display: grid;
-  gap: 8px;
+  gap: 12px;
+}
+
+.lobby[hidden],
+.table[hidden],
+.room-info[hidden],
+.next-round[hidden] {
+  display: none;
+}
+
+.lobby > button,
+.join-code,
+.room-info,
+.table,
+.scorebar,
+.opponent-hand {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(24, 36, 29, 0.84);
-  padding: 18px;
+  background: rgba(23, 36, 29, 0.86);
 }
 
-.status-card h2 {
-  margin: 0;
-  font-size: 1.2rem;
-  letter-spacing: 0;
+.lobby > button {
+  min-height: 82px;
+  display: grid;
+  justify-items: start;
+  gap: 5px;
+  padding: 16px;
+  color: inherit;
+  cursor: pointer;
 }
 
-.status-card p {
-  margin: 0;
+.lobby strong {
+  font-size: 1.15rem;
+}
+
+.lobby span,
+.room-info,
+.opponent-hand span {
   color: var(--muted);
-  line-height: 1.5;
 }
 
-@media (max-width: 560px) {
-  .hero {
-    grid-template-columns: 1fr;
+.join-code {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 12px;
+}
+
+.join-code input {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(16, 23, 19, 0.8);
+  color: var(--text);
+  padding: 0 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.join-code button,
+.next-round {
+  border: 0;
+  border-radius: 6px;
+  background: var(--gold);
+  color: #20160b;
+  padding: 10px 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.room-info {
+  margin: 0;
+  padding: 9px 12px;
+  color: var(--gold);
+  font-weight: 900;
+}
+
+.table {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+.scorebar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 12px;
+}
+
+.scorebar div {
+  display: grid;
+  gap: 3px;
+}
+
+.scorebar span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.scorebar strong {
+  font-size: 1.3rem;
+}
+
+.center-table {
+  display: grid;
+  grid-template-columns: minmax(92px, 140px) minmax(92px, 140px);
+  justify-content: center;
+  gap: clamp(18px, 8vw, 80px);
+  align-items: center;
+  padding: 8px 0;
+}
+
+.draw-pile {
+  min-height: 178px;
+  border: 4px solid rgba(255, 246, 229, 0.86);
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, #d94343 0 34%, #2f80ed 34% 58%, #27ae60 58% 78%, #f2c94c 78%);
+  color: #111713;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.draw-pile:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.draw-pile span,
+.draw-pile strong {
+  border-radius: 999px;
+  background: #fff6e5;
+  padding: 6px 10px;
+}
+
+.discard-card {
+  display: grid;
+  place-items: center;
+}
+
+.color-picker {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.color-picker button {
+  width: 42px;
+  height: 42px;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.color-picker .selected {
+  border-color: #fff6e5;
+  box-shadow: 0 0 0 3px rgba(217, 185, 85, 0.42);
+}
+
+.red,
+.card.red {
+  background: var(--red);
+}
+
+.blue,
+.card.blue {
+  background: var(--blue);
+}
+
+.green,
+.card.green {
+  background: var(--green);
+}
+
+.yellow,
+.card.yellow {
+  background: var(--yellow);
+}
+
+.card.wild {
+  background:
+    linear-gradient(135deg, #d94343 0 34%, #2f80ed 34% 58%, #27ae60 58% 78%, #f2c94c 78%);
+}
+
+.card.chosen-red {
+  outline-color: var(--red);
+}
+
+.card.chosen-blue {
+  outline-color: var(--blue);
+}
+
+.card.chosen-green {
+  outline-color: var(--green);
+}
+
+.card.chosen-yellow {
+  outline-color: var(--yellow);
+}
+
+.opponent-hand {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+}
+
+.opponent-hand strong {
+  color: var(--gold);
+}
+
+.hand {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 2px 10px;
+  scroll-snap-type: x proximity;
+}
+
+.card {
+  flex: 0 0 96px;
+  width: 96px;
+  height: 140px;
+  border: 4px solid #fff6e5;
+  border-radius: 10px;
+  color: #111713;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
+  padding: 10px;
+  font-weight: 950;
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.28);
+  scroll-snap-align: start;
+}
+
+button.card {
+  cursor: pointer;
+}
+
+button.card:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.card span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+}
+
+.card strong {
+  place-self: center;
+  border-radius: 999px;
+  background: #fff6e5;
+  padding: 8px;
+  min-width: 54px;
+  min-height: 54px;
+  display: grid;
+  place-items: center;
+  font-size: 1.45rem;
+}
+
+.discard-card .card {
+  width: 112px;
+  height: 162px;
+}
+
+.next-round {
+  justify-self: center;
+}
+
+.toast-stack {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 50;
+  display: grid;
+  gap: 8px;
+}
+
+.toast {
+  max-width: min(320px, calc(100vw - 24px));
+  border: 1px solid rgba(255, 246, 229, 0.22);
+  border-radius: 8px;
+  background: rgba(16, 23, 19, 0.94);
+  color: var(--text);
+  padding: 10px 12px;
+  font-weight: 800;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.32);
+}
+
+@media (max-width: 620px) {
+  .game-shell {
+    width: min(100% - 16px, 520px);
+    padding: 14px 0;
+  }
+
+  .table {
+    padding: 10px;
+  }
+
+  .scorebar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .scorebar div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .center-table {
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+
+  .draw-pile {
+    min-height: 142px;
+  }
+
+  .card {
+    flex-basis: 82px;
+    width: 82px;
+    height: 122px;
+    padding: 8px;
+  }
+
+  .discard-card .card {
+    width: 92px;
+    height: 138px;
+  }
+
+  .card strong {
+    min-width: 46px;
+    min-height: 46px;
+    font-size: 1.2rem;
   }
 }

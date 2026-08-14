@@ -4,32 +4,85 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>+4 - Em breve | paciencia . net</title>
-  <meta name="description" content="+4, um jogo original de cartas por cores e numeros em desenvolvimento no paciencia . net.">
+  <title>+4 - paciencia . net</title>
+  <meta name="description" content="+4, um jogo original de cartas por cores e numeros no paciencia . net.">
   <link rel="canonical" href="https://paciencia.net.br/play/plus-four/">
   <link rel="icon" href="../../appicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=1">
+  <link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body>
-  <main class="coming-shell" aria-label="+4">
-    <a class="back" href="../" aria-label="Voltar">&lt;</a>
-
-    <section class="hero">
-      <div class="mark" aria-hidden="true">
-        <span>+4</span>
-      </div>
+  <main class="game-shell" aria-label="+4">
+    <header class="topbar">
+      <a class="icon-button" href="../" aria-label="Voltar">&lt;</a>
       <div>
-        <p class="eyebrow">Em breve</p>
         <h1>+4</h1>
-        <p class="lead">Um jogo original de descarte por cores e numeros, com varias rodadas e pontuacao acumulada.</p>
+        <p id="status">Crie uma sala ou procure uma partida.</p>
+      </div>
+      <button id="leave-room" type="button" hidden>Sair</button>
+    </header>
+
+    <section class="lobby" id="lobby" aria-label="Entrada da partida">
+      <button id="create-room" type="button">
+        <strong>Criar sala</strong>
+        <span>Gera um codigo para outro jogador entrar.</span>
+      </button>
+      <button id="random-room" type="button">
+        <strong>Procurar sala aleatoria</strong>
+        <span>Se nao houver outro jogador, voce fica aguardando.</span>
+      </button>
+      <div class="join-code">
+        <input id="room-code" type="text" maxlength="4" autocomplete="off" placeholder="CODIGO" aria-label="Codigo da sala">
+        <button id="join-code" type="button">Entrar</button>
       </div>
     </section>
 
-    <section class="status-card" aria-label="Status do jogo">
-      <h2>Rota criada</h2>
-      <p>Esta pagina ainda nao aparece no menu e esta marcada como noindex enquanto o jogo nao fica pronto.</p>
-      <p>Nao usa marca, logo, arte ou baralho de terceiros.</p>
+    <p class="room-info" id="room-info" hidden></p>
+
+    <section class="table" id="table" aria-label="Mesa do +4" hidden>
+      <div class="scorebar" aria-label="Placar">
+        <div>
+          <span>Voce</span>
+          <strong id="my-score">0</strong>
+        </div>
+        <div>
+          <span>Adversario</span>
+          <strong id="opponent-score">0</strong>
+        </div>
+        <div>
+          <span>Rodada</span>
+          <strong id="round-number">1</strong>
+        </div>
+      </div>
+
+      <div class="center-table">
+        <button class="draw-pile" id="draw-card" type="button">
+          <span>Comprar</span>
+          <strong id="draw-count">0</strong>
+        </button>
+
+        <div class="discard-card" id="discard-card" aria-label="Carta no descarte"></div>
+      </div>
+
+      <div class="color-picker" id="color-picker" aria-label="Escolha a cor">
+        <button class="red" type="button" data-color="red" aria-label="Vermelho"></button>
+        <button class="blue" type="button" data-color="blue" aria-label="Azul"></button>
+        <button class="green" type="button" data-color="green" aria-label="Verde"></button>
+        <button class="yellow" type="button" data-color="yellow" aria-label="Amarelo"></button>
+      </div>
+
+      <div class="opponent-hand" aria-label="Cartas do adversario">
+        <span>Adversario</span>
+        <strong id="opponent-count">0 cartas</strong>
+      </div>
+
+      <div class="hand" id="hand" aria-label="Sua mao"></div>
+
+      <button class="next-round" id="next-round" type="button" hidden>Proxima rodada</button>
     </section>
   </main>
+
+  <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+  <script type="module" src="app.js?v=1"></script>
 </body>
 </html>
