@@ -232,7 +232,7 @@ function render() {
     state.lastTiming.renderMs = state.lastRenderMs;
     state.lastTiming.totalMs = state.lastTiming.requestMs + state.lastTiming.renderMs;
     console.info(
-      `[SolitaireNET] ${state.lastTiming.action}: ` +
+      `[paciencia . net] ${state.lastTiming.action}: ` +
       `request=${state.lastTiming.requestMs.toFixed(1)}ms ` +
       `render=${state.lastTiming.renderMs.toFixed(1)}ms ` +
       `total=${state.lastTiming.totalMs.toFixed(1)}ms`);
