@@ -280,7 +280,8 @@ h1 {
 }
 
 .draw-pile {
-  min-height: 126px;
+  width: 72px;
+  height: 106px;
   border: 3px solid rgba(255, 246, 229, 0.86);
   border-radius: 8px;
   background:
@@ -599,12 +600,13 @@ button.card:disabled {
   }
 
   .center-table {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: auto auto;
     gap: 18px;
   }
 
   .draw-pile {
-    min-height: 104px;
+    width: 64px;
+    height: 96px;
   }
 
   .card {
