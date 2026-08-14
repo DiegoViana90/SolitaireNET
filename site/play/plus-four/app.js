@@ -250,7 +250,7 @@ function renderOpponents() {
   if (!state.simulated) {
     topOpponentLabelEl.textContent = "Adversario";
     opponentCountEl.textContent = `${state.game.opponentCount} carta${state.game.opponentCount === 1 ? "" : "s"}`;
-    opponentCardsEl.replaceChildren(...Array.from({ length: state.game.opponentCount }, () => cardBackEl()));
+    opponentCardsEl.replaceChildren(...cardBacks(state.game.opponentCount));
     topOpponentSeatEl.classList.toggle("current-turn", state.game.turn !== state.playerSide);
     renderSideOpponent(null, {
       seat: leftSeatEl,
@@ -287,15 +287,15 @@ function renderTopOpponent(opponent) {
   const count = opponent?.hand.length || 0;
   topOpponentLabelEl.textContent = opponent?.name || "Adversario";
   opponentCountEl.textContent = `${count} carta${count === 1 ? "" : "s"}`;
-  opponentCardsEl.replaceChildren(...Array.from({ length: count }, () => cardBackEl()));
+  opponentCardsEl.replaceChildren(...cardBacks(count));
   topOpponentSeatEl.classList.toggle("current-turn", state.game.turn === opponent?.id);
 }
 
 function renderSideOpponent(opponent, elements) {
   elements.seat.classList.toggle("active-opponent", Boolean(opponent));
   elements.seat.classList.toggle("current-turn", state.game?.turn === opponent?.id);
-  elements.label.textContent = opponent?.name || "Vazio";
-  elements.cards.replaceChildren(...Array.from({ length: opponent?.hand.length || 0 }, () => cardBackEl()));
+  elements.label.textContent = opponent?.shortName || "Vazio";
+  elements.cards.replaceChildren(...cardBacks(opponent?.hand.length || 0));
   elements.count.textContent = opponent
     ? `${opponent.hand.length} carta${opponent.hand.length === 1 ? "" : "s"}`
     : "";
@@ -306,6 +306,10 @@ function cardBackEl() {
   el.className = "card-back";
   el.setAttribute("aria-hidden", "true");
   return el;
+}
+
+function cardBacks(count) {
+  return Array.from({ length: Math.min(count, 7) }, () => cardBackEl());
 }
 
 function cardEl(card, options = {}) {
@@ -386,6 +390,7 @@ async function animateCardToDiscard(color, sourceEl, options = {}) {
   const from = sourceEl.getBoundingClientRect();
   const to = discardCardEl.getBoundingClientRect();
   if (!from.width || !to.width) return;
+  const flightFrom = getFlightRect(sourceEl, from, options);
 
   const ghost = options.card
     ? cardEl({ ...options.card, playedColor: color || options.card.playedColor }, { large: true })
@@ -396,17 +401,17 @@ async function animateCardToDiscard(color, sourceEl, options = {}) {
   if (color) ghost.classList.add(`chosen-${color}`);
 
   Object.assign(ghost.style, {
-    left: `${from.left}px`,
-    top: `${from.top}px`,
-    width: `${from.width}px`,
-    height: `${from.height}px`
+    left: `${flightFrom.left}px`,
+    top: `${flightFrom.top}px`,
+    width: `${flightFrom.width}px`,
+    height: `${flightFrom.height}px`
   });
 
   document.body.append(ghost);
 
-  const deltaX = to.left + (to.width / 2) - (from.left + (from.width / 2));
-  const deltaY = to.top + (to.height / 2) - (from.top + (from.height / 2));
-  const scale = Math.min(1.65, Math.max(1.08, to.height / from.height));
+  const deltaX = to.left + (to.width / 2) - (flightFrom.left + (flightFrom.width / 2));
+  const deltaY = to.top + (to.height / 2) - (flightFrom.top + (flightFrom.height / 2));
+  const scale = Math.min(1.65, Math.max(1.08, to.height / flightFrom.height));
 
   try {
     await ghost.animate([
@@ -419,6 +424,19 @@ async function animateCardToDiscard(color, sourceEl, options = {}) {
   } finally {
     ghost.remove();
   }
+}
+
+function getFlightRect(sourceEl, rect, options) {
+  if (!options.card || !sourceEl.closest?.(".side-cards")) return rect;
+
+  const width = window.matchMedia("(max-width: 620px)").matches ? 34 : 38;
+  const height = window.matchMedia("(max-width: 620px)").matches ? 50 : 56;
+  return {
+    left: rect.left + (rect.width / 2) - (width / 2),
+    top: rect.top + (rect.height / 2) - (height / 2),
+    width,
+    height
+  };
 }
 
 async function animateDrawTo(targetEl) {

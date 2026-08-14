@@ -326,24 +326,23 @@ h1 {
 }
 
 .side-cards {
-  width: 58px;
+  width: 44px;
   height: 132px;
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding-top: 28px;
+  justify-content: flex-end;
   overflow: hidden;
 }
 
 .side-cards .card-back {
+  width: 32px;
+  height: 46px;
   margin-left: 0;
-  margin-top: -28px;
-  transform: rotate(90deg);
-  transform-origin: center;
+  margin-top: -27px;
 }
 
-.side-cards .card-back:last-child {
+.side-cards .card-back:first-child {
   margin-top: 0;
 }
 
@@ -677,7 +676,7 @@ button.card:disabled {
   }
 
   .side-seat.active-opponent > span {
-    font-size: 0.72rem;
+    font-size: 0.76rem;
     line-height: 1.05;
     text-align: center;
   }
@@ -687,16 +686,17 @@ button.card:disabled {
   }
 
   .side-cards {
-    width: 44px;
+    width: 34px;
     height: 92px;
-    padding-top: 20px;
   }
 
   .side-cards .card-back {
-    margin-top: -21px;
+    width: 26px;
+    height: 38px;
+    margin-top: -23px;
   }
 
-  .side-cards .card-back:last-child {
+  .side-cards .card-back:first-child {
     margin-top: 0;
   }
 
