@@ -289,8 +289,6 @@ h1 {
   color: #111713;
   display: grid;
   place-items: center;
-  align-content: center;
-  gap: 8px;
   font-weight: 950;
   cursor: pointer;
 }
@@ -300,7 +298,6 @@ h1 {
   cursor: default;
 }
 
-.draw-pile span,
 .draw-pile strong {
   border-radius: 999px;
   background: #fff6e5;
@@ -573,35 +570,60 @@ button.card:disabled {
 @media (max-width: 620px) {
   .game-shell {
     width: min(100% - 16px, 520px);
-    padding: 14px 0;
+    padding: 14px 0 42px;
   }
 
   .table {
-    padding: 10px;
+    gap: 10px;
+    padding: 8px;
   }
 
   .playmat {
-    min-height: 62dvh;
-    grid-template-columns: 42px 1fr 42px;
-    gap: 10px;
+    min-height: auto;
+    grid-template-columns: 36px 1fr 36px;
+    grid-template-rows: auto auto auto;
+    gap: 8px;
   }
 
   .side-seat {
-    min-height: 116px;
+    min-height: 96px;
     writing-mode: vertical-rl;
   }
 
   .scorebar {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 10px;
   }
 
   .scorebar div:last-child {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 
   .center-table {
     grid-template-columns: auto auto;
-    gap: 18px;
+    gap: 24px;
+    padding: 0;
+  }
+
+  .top-player,
+  .player-area {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .top-player {
+    width: min(340px, 100%);
+  }
+
+  .opponent-cards {
+    min-height: 48px;
+  }
+
+  .card-back {
+    width: 34px;
+    height: 50px;
+    margin-left: -12px;
   }
 
   .draw-pile {
@@ -631,5 +653,13 @@ button.card:disabled {
     min-width: 24px;
     min-height: 24px;
     font-size: 0.76rem;
+  }
+
+  .build-version {
+    right: 10px;
+    bottom: 4px;
+    max-width: calc(100% - 20px);
+    font-size: 0.68rem;
+    opacity: 0.82;
   }
 }
