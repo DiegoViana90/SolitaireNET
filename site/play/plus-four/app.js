@@ -495,7 +495,7 @@ function startLocalRound(options) {
     drawPile: deck,
     discardPile: [topCard],
     opponents,
-    turnOrder: ["one", ...opponents.map((opponent) => opponent.id)]
+    turnOrder: localTurnOrderFor(opponents)
   };
   state.roomCode = "BOT";
   state.playerId = "simulated-player";
@@ -705,6 +705,11 @@ function localNextSide(side) {
   const currentIndex = turnOrder.indexOf(side);
   if (currentIndex < 0) return turnOrder[0];
   return turnOrder[(currentIndex + 1) % turnOrder.length];
+}
+
+function localTurnOrderFor(opponents) {
+  const activeIds = new Set(opponents.map((opponent) => opponent.id));
+  return ["one", "bot-left", "bot-top", "bot-right"].filter((side) => side === "one" || activeIds.has(side));
 }
 
 function currentLocalOpponentName() {
