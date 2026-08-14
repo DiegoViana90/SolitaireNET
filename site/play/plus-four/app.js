@@ -347,6 +347,42 @@ async function animateCardToDiscard(color, sourceEl, options = {}) {
   }
 }
 
+async function animateDrawTo(targetEl) {
+  if (!targetEl || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const from = drawCardEl.getBoundingClientRect();
+  const to = targetEl.getBoundingClientRect();
+  if (!from.width || !to.width) return;
+
+  const ghost = document.createElement("div");
+  ghost.className = "card-back flying-card";
+  Object.assign(ghost.style, {
+    left: `${from.left}px`,
+    top: `${from.top}px`,
+    width: `${Math.min(42, from.width)}px`,
+    height: `${Math.min(62, from.height)}px`
+  });
+
+  document.body.append(ghost);
+
+  const startX = from.width > 42 ? (from.width - 42) / 2 : 0;
+  const startY = from.height > 62 ? (from.height - 62) / 2 : 0;
+  const deltaX = to.left + (to.width / 2) - (from.left + startX + 21);
+  const deltaY = to.top + (to.height / 2) - (from.top + startY + 31);
+
+  try {
+    await ghost.animate([
+      { transform: `translate(${startX}px, ${startY}px) scale(1)`, opacity: 1 },
+      { transform: `translate(${startX + deltaX}px, ${startY + deltaY}px) scale(0.92)`, opacity: 0.96 }
+    ], {
+      duration: 320,
+      easing: "cubic-bezier(0.18, 0.82, 0.2, 1)"
+    }).finished;
+  } finally {
+    ghost.remove();
+  }
+}
+
 function simulateTable() {
   stopPolling();
   startLocalRound({
@@ -423,7 +459,7 @@ async function nextRound() {
 
 async function sendAction(action) {
   if (state.simulated) {
-    applySimulatedAction(action);
+    await applySimulatedAction(action);
     return;
   }
 
@@ -445,7 +481,7 @@ async function sendAction(action) {
   }
 }
 
-function applySimulatedAction(action) {
+async function applySimulatedAction(action) {
   if (!state.game || !state.localGame) return;
 
   if (action.type === "next-round") {
@@ -467,6 +503,13 @@ function applySimulatedAction(action) {
       return;
     }
 
+    state.animating = true;
+    try {
+      await animateDrawTo(handEl);
+    } finally {
+      state.animating = false;
+    }
+
     state.game.hand.push(card);
     state.game.turn = "two";
     syncLocalPublicState();
@@ -485,7 +528,7 @@ function applySimulatedAction(action) {
     state.localGame.discardPile.push({ ...card, playedColor: action.color || card.playedColor });
     state.game.topCard = state.localGame.discardPile.at(-1);
     state.game.currentColor = action.color || card.color;
-    state.game.turn = nextLocalTurnAfter(card, "one");
+    state.game.turn = await nextLocalTurnAfter(card, "one");
     finishLocalRoundIfNeeded("one");
     syncLocalPublicState();
     render();
@@ -505,6 +548,13 @@ async function simulateBotTurn() {
   if (!card) {
     const drawn = drawLocalCard();
     if (drawn) {
+      state.animating = true;
+      try {
+        await animateDrawTo(opponentCardsEl);
+      } finally {
+        state.animating = false;
+      }
+
       state.localGame.botHand.push(drawn);
       showToast("IA adversaria comprou uma carta.");
     } else {
@@ -529,7 +579,7 @@ async function simulateBotTurn() {
   state.localGame.discardPile.push({ ...card, playedColor: chosenColor || card.playedColor });
   state.game.currentColor = chosenColor || card.color;
   state.game.topCard = state.localGame.discardPile.at(-1);
-  state.game.turn = nextLocalTurnAfter(card, "two");
+  state.game.turn = await nextLocalTurnAfter(card, "two");
   finishLocalRoundIfNeeded("two");
   syncLocalPublicState();
   showToast(`IA adversaria jogou ${card.value}.`);
@@ -649,15 +699,15 @@ function chooseBotColor() {
     .sort((left, right) => right.count - left.count)[0]?.color || "red";
 }
 
-function nextLocalTurnAfter(card, side) {
+async function nextLocalTurnAfter(card, side) {
   const other = side === "one" ? "two" : "one";
   if (card.value === "+2") {
-    drawLocalCards(other, 2);
+    await drawLocalCardsWithMotion(other, 2);
     return side;
   }
 
   if (card.value === "+4") {
-    drawLocalCards(other, 4);
+    await drawLocalCardsWithMotion(other, 4);
     return side;
   }
 
@@ -674,6 +724,29 @@ function drawLocalCards(side, count) {
     } else {
       state.localGame.botHand.push(card);
     }
+  }
+}
+
+async function drawLocalCardsWithMotion(side, count) {
+  for (let index = 0; index < count; index += 1) {
+    const card = drawLocalCard();
+    if (!card) return;
+
+    state.animating = true;
+    try {
+      await animateDrawTo(side === "one" ? handEl : opponentCardsEl);
+    } finally {
+      state.animating = false;
+    }
+
+    if (side === "one") {
+      state.game.hand.push(card);
+    } else {
+      state.localGame.botHand.push(card);
+    }
+
+    syncLocalPublicState();
+    render();
   }
 }
 
