@@ -241,8 +241,10 @@ function openModal() {
 
 function setLinkState(user) {
   authLinks.forEach((link) => {
+    const signedOutLabel = link.dataset.signedOutLabel || "Entrar";
+
     if (!authConfigured()) {
-      link.textContent = "Entrar";
+      link.textContent = signedOutLabel;
       link.classList.remove("signed-in");
       return;
     }
@@ -253,7 +255,7 @@ function setLinkState(user) {
       return;
     }
 
-    link.textContent = "Entrar";
+    link.textContent = signedOutLabel;
     link.classList.remove("signed-in");
   });
 }

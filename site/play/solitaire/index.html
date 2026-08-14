@@ -15,7 +15,7 @@
   <meta property="og:image" content="https://paciencia.net.br/preview.svg">
   <meta name="twitter:card" content="summary">
   <link rel="icon" href="../../appicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=31">
+  <link rel="stylesheet" href="styles.css?v=32">
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -31,8 +31,6 @@
 </head>
 <body>
   <main class="game-shell" aria-label="Paciencia">
-    <a class="account-chip" data-auth-link href="#login">Conta</a>
-
     <section class="board" aria-label="Mesa de paciencia">
       <div class="top-row">
         <button class="slot stock" id="stock" type="button" aria-label="Monte"></button>
@@ -44,6 +42,10 @@
         <div class="slot foundation" data-foundation="3" role="button" tabindex="0" aria-label="Base 4"></div>
       </div>
 
+      <div class="top-meta" aria-label="Contadores">
+        <div class="stock-waste-info" id="stock-waste-info">Monte: 0 | Lixo: 0</div>
+      </div>
+
       <div class="tableau" id="tableau" aria-label="Colunas"></div>
     </section>
 
@@ -52,6 +54,7 @@
       <button class="control-button" id="new-game" type="button">Novo</button>
     </div>
 
+    <a class="account-chip" data-auth-link data-signed-out-label="Partida nao ranqueada" href="#login">Partida nao ranqueada</a>
     <footer class="status" id="status"></footer>
     <div class="build-version" data-build-version>Versão: desenvolvimento local</div>
 
@@ -91,6 +94,6 @@
 
   <script src="../../build-info.js"></script>
   <script type="module" src="../../auth-widget.js"></script>
-  <script type="module" src="app.js?v=33"></script>
+  <script type="module" src="app.js?v=34"></script>
 </body>
 </html>

@@ -32,6 +32,7 @@ const gameBoardEl = document.querySelector(".board");
 const board = document.querySelector("#tableau");
 const stockEl = document.querySelector("#stock");
 const wasteEl = document.querySelector("#waste");
+const stockWasteInfoEl = document.querySelector("#stock-waste-info");
 const statusEl = document.querySelector("#status");
 const menuButtonEl = document.querySelector("#menu-button");
 const newGameEl = document.querySelector("#new-game");
@@ -175,7 +176,6 @@ function render() {
   if (!state.game) return;
 
   const startedAt = performance.now();
-  const ranking = state.game.ranked ? "" : " | Sem ranking";
   gameBoardEl.classList.toggle("dealing", state.dealing);
   stockEl.classList.toggle("has-cards", state.game.stockCount > 0);
   wasteEl.classList.toggle("has-card", Boolean(state.game.wasteTop));
@@ -212,11 +212,12 @@ function render() {
   });
 
   const selected = state.selected?.cards?.length
-    ? ` | Selecionada: ${state.selected.cards.length}`
+    ? `Selecionada: ${state.selected.cards.length}`
     : "";
+  stockWasteInfoEl.textContent = `Monte: ${state.game.stockCount} | Lixo: ${state.game.wasteCount}`;
   showStatus(state.game.won
-    ? `Vitoria.${ranking}`
-    : `Monte: ${state.game.stockCount} | Lixo: ${state.game.wasteCount}${selected}${ranking}`);
+    ? "Vitoria."
+    : selected);
 
   if (state.game.won) {
     localStorage.removeItem(saveKey);
