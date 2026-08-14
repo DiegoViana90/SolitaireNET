@@ -316,6 +316,10 @@ function pieceEl(piece, square, movesByFrom) {
   }
 
   el.addEventListener("click", (event) => {
+    if (piece.side !== state.playerSide && state.selected) {
+      return;
+    }
+
     event.stopPropagation();
     onPiece(square, piece, movesByFrom);
   });
