@@ -395,7 +395,8 @@ async function animateCardToDiscard(color, sourceEl, options = {}) {
   const from = sourceEl.getBoundingClientRect();
   const to = discardCardEl.getBoundingClientRect();
   if (!from.width || !to.width) return;
-  const flightFrom = getFlightRect(sourceEl, from, options);
+  const hasKnownCard = Boolean(options.card);
+  const flightFrom = hasKnownCard ? getDiscardSizedFlightRect(from, to) : getFlightRect(sourceEl, from, options);
 
   const ghost = options.card
     ? cardEl({ ...options.card, playedColor: color || options.card.playedColor }, { large: true })
@@ -416,7 +417,7 @@ async function animateCardToDiscard(color, sourceEl, options = {}) {
 
   const deltaX = to.left + (to.width / 2) - (flightFrom.left + (flightFrom.width / 2));
   const deltaY = to.top + (to.height / 2) - (flightFrom.top + (flightFrom.height / 2));
-  const scale = Math.min(1.65, Math.max(1.08, to.height / flightFrom.height));
+  const scale = hasKnownCard ? 1 : Math.min(1.65, Math.max(1.08, to.height / flightFrom.height));
 
   try {
     await ghost.animate([
@@ -429,6 +430,15 @@ async function animateCardToDiscard(color, sourceEl, options = {}) {
   } finally {
     ghost.remove();
   }
+}
+
+function getDiscardSizedFlightRect(sourceRect, discardRect) {
+  return {
+    left: sourceRect.left + (sourceRect.width / 2) - (discardRect.width / 2),
+    top: sourceRect.top + (sourceRect.height / 2) - (discardRect.height / 2),
+    width: discardRect.width,
+    height: discardRect.height
+  };
 }
 
 function getFlightRect(sourceEl, rect, options) {
