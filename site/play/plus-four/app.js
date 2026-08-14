@@ -17,6 +17,7 @@ const state = {
   selectedColor: "red",
   pendingColorCardId: null,
   simulated: false,
+  animating: false,
   busy: false,
   pollTimer: null,
   message: ""
@@ -43,6 +44,9 @@ const opponentScoreEl = document.querySelector("#opponent-score");
 const roundNumberEl = document.querySelector("#round-number");
 const nextRoundEl = document.querySelector("#next-round");
 const colorPickerEl = document.querySelector("#color-picker");
+const colorModalEl = document.querySelector("#color-modal");
+const colorModalCardEl = document.querySelector("#color-modal-card");
+const colorModalCloseEl = document.querySelector("#color-modal-close");
 const toastStackEl = document.querySelector("#toast-stack");
 
 async function request(path, options = {}) {
@@ -210,7 +214,11 @@ function render() {
   handEl.replaceChildren(...game.hand.map((card) => cardEl(card)));
   opponentCardsEl.replaceChildren(...Array.from({ length: game.opponentCount }, () => cardBackEl()));
 
-  colorPickerEl.hidden = !state.pendingColorCardId;
+  colorModalEl.hidden = !state.pendingColorCardId;
+  const pendingCard = game.hand.find((card) => card.id === state.pendingColorCardId);
+  colorModalCardEl.replaceChildren(pendingCard
+    ? cardEl({ ...pendingCard, playedColor: state.selectedColor }, { large: true })
+    : document.createDocumentFragment());
   colorPickerEl.querySelectorAll("button").forEach((button) => {
     button.classList.toggle("selected", button.dataset.color === state.selectedColor);
   });
@@ -228,36 +236,37 @@ function cardEl(card, options = {}) {
   el.className = `card ${card.color}`;
   if (card.playedColor) el.classList.add(`chosen-${card.playedColor}`);
   if (card.id === state.pendingColorCardId) el.classList.add("pending-color");
+  el.dataset.cardId = card.id;
   el.dataset.color = card.color;
   el.dataset.value = card.value;
-  el.innerHTML = `<span>${label(card)}</span><strong>${card.value}</strong>`;
+  el.setAttribute("aria-label", `${card.value} ${label(card)}`);
+  el.innerHTML = `<strong>${card.value}</strong>`;
 
   if (!options.large) {
     const playable = canAct() && canPlay(card);
     if (playable) el.classList.add("playable");
     el.type = "button";
     el.disabled = !playable;
-    el.addEventListener("click", () => playCard(card));
+    el.addEventListener("click", () => playCard(card, el));
   }
 
   return el;
 }
 
-async function playCard(card) {
+async function playCard(card, sourceEl) {
   if (!canAct() || !canPlay(card)) return;
   if (card.color === "wild") {
     state.pendingColorCardId = card.id;
+    state.selectedColor = state.game.currentColor && state.game.currentColor !== "wild"
+      ? state.game.currentColor
+      : "red";
     setMessage("Escolha a cor para jogar essa carta.");
     render();
     return;
   }
 
   state.pendingColorCardId = null;
-  await sendAction({
-    type: "play",
-    cardId: card.id,
-    color: null
-  });
+  await playCardWithMotion(card, null, sourceEl);
 }
 
 async function playPendingColorCard(color) {
@@ -270,11 +279,67 @@ async function playPendingColorCard(color) {
 
   state.selectedColor = color;
   state.pendingColorCardId = null;
+  colorModalEl.hidden = true;
+  await playCardWithMotion(card, color, findHandCardEl(card.id));
+}
+
+async function playCardWithMotion(card, color, sourceEl) {
+  state.animating = true;
+  try {
+    await animateCardToDiscard(color, sourceEl);
+  } finally {
+    state.animating = false;
+  }
+
   await sendAction({
     type: "play",
     cardId: card.id,
     color
   });
+}
+
+function findHandCardEl(cardId) {
+  return Array.from(handEl.querySelectorAll("[data-card-id]"))
+    .find((item) => item.dataset.cardId === cardId);
+}
+
+async function animateCardToDiscard(color, sourceEl) {
+  if (!sourceEl || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const from = sourceEl.getBoundingClientRect();
+  const to = discardCardEl.getBoundingClientRect();
+  if (!from.width || !to.width) return;
+
+  const ghost = sourceEl.cloneNode(true);
+  ghost.classList.add("flying-card");
+  ghost.classList.remove("playable", "pending-color");
+  ghost.removeAttribute("disabled");
+  if (color) ghost.classList.add(`chosen-${color}`);
+
+  Object.assign(ghost.style, {
+    left: `${from.left}px`,
+    top: `${from.top}px`,
+    width: `${from.width}px`,
+    height: `${from.height}px`
+  });
+
+  document.body.append(ghost);
+
+  const deltaX = to.left + (to.width / 2) - (from.left + (from.width / 2));
+  const deltaY = to.top + (to.height / 2) - (from.top + (from.height / 2));
+  const scale = Math.min(1.65, Math.max(1.08, to.height / from.height));
+
+  try {
+    await ghost.animate([
+      { transform: "translate(0, 0) scale(1)", opacity: 1 },
+      { transform: `translate(${deltaX}px, ${deltaY}px) scale(${scale})`, opacity: 0.96 }
+    ], {
+      duration: 340,
+      easing: "cubic-bezier(0.18, 0.82, 0.2, 1)"
+    }).finished;
+  } finally {
+    ghost.remove();
+  }
 }
 
 function simulateTable() {
@@ -317,6 +382,7 @@ function sampleCard(id, color, value, playedColor) {
 async function drawCard() {
   if (!canAct()) return;
   state.pendingColorCardId = null;
+  colorModalEl.hidden = true;
   await sendAction({ type: "draw" });
 }
 
@@ -406,6 +472,7 @@ function canAct() {
     !state.game?.canceled &&
     !state.game?.roundWinner &&
     state.game?.turn === state.playerSide &&
+    !state.animating &&
     !state.busy);
 }
 
@@ -453,6 +520,8 @@ function clearSession() {
   state.message = "";
   state.pendingColorCardId = null;
   state.simulated = false;
+  state.animating = false;
+  colorModalEl.hidden = true;
 }
 
 function showEventToast(event) {
@@ -487,6 +556,17 @@ colorPickerEl.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-color]");
   if (!button) return;
   playPendingColorCard(button.dataset.color);
+});
+colorModalCloseEl.addEventListener("click", () => {
+  state.pendingColorCardId = null;
+  colorModalEl.hidden = true;
+  render();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || colorModalEl.hidden) return;
+  state.pendingColorCardId = null;
+  colorModalEl.hidden = true;
+  render();
 });
 
 restoreSession();

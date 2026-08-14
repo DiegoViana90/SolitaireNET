@@ -8,7 +8,7 @@
   <meta name="description" content="+4, um jogo original de cartas por cores e numeros no paciencia . net.">
   <link rel="canonical" href="https://paciencia.net.br/play/plus-four/">
   <link rel="icon" href="../../appicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
   <main class="game-shell" aria-label="+4">
@@ -82,13 +82,6 @@
           <span>Vazio</span>
         </div>
 
-        <div class="color-picker" id="color-picker" aria-label="Escolha a cor" hidden>
-          <button class="red" type="button" data-color="red" aria-label="Vermelho"></button>
-          <button class="blue" type="button" data-color="blue" aria-label="Azul"></button>
-          <button class="green" type="button" data-color="green" aria-label="Verde"></button>
-          <button class="yellow" type="button" data-color="yellow" aria-label="Amarelo"></button>
-        </div>
-
         <div class="player-area my-area" aria-label="Suas cartas">
           <span>Voce</span>
           <div class="hand" id="hand" aria-label="Sua mao"></div>
@@ -99,8 +92,22 @@
     </section>
   </main>
 
+  <div class="color-modal" id="color-modal" role="dialog" aria-modal="true" aria-labelledby="color-modal-title" hidden>
+    <div class="color-modal-panel">
+      <button class="modal-close" id="color-modal-close" type="button" aria-label="Fechar">x</button>
+      <h2 id="color-modal-title">Escolha uma cor</h2>
+      <div class="modal-card-preview" id="color-modal-card" aria-hidden="true"></div>
+      <div class="color-picker" id="color-picker" aria-label="Cores disponiveis">
+        <button class="red" type="button" data-color="red" aria-label="Vermelho"></button>
+        <button class="blue" type="button" data-color="blue" aria-label="Azul"></button>
+        <button class="green" type="button" data-color="green" aria-label="Verde"></button>
+        <button class="yellow" type="button" data-color="yellow" aria-label="Amarelo"></button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
 
-  <script type="module" src="app.js?v=4"></script>
+  <script type="module" src="app.js?v=5"></script>
 </body>
 </html>

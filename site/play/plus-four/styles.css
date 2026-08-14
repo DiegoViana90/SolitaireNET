@@ -96,7 +96,8 @@ h1 {
 .table[hidden],
 .room-info[hidden],
 .next-round[hidden],
-.color-picker[hidden] {
+.color-picker[hidden],
+.color-modal[hidden] {
   display: none;
 }
 
@@ -202,11 +203,10 @@ h1 {
   min-height: min(66dvh, 560px);
   display: grid;
   grid-template-columns: minmax(54px, 84px) 1fr minmax(54px, 84px);
-  grid-template-rows: auto 1fr auto auto;
+  grid-template-rows: auto 1fr auto;
   grid-template-areas:
     ". top ."
     "left center right"
-    ". colors ."
     "mine mine mine";
   gap: 14px;
   align-items: center;
@@ -312,19 +312,19 @@ h1 {
 }
 
 .color-picker {
-  grid-area: colors;
   display: flex;
   justify-content: center;
-  gap: 7px;
+  gap: 10px;
   align-items: center;
 }
 
 .color-picker button {
-  width: 28px;
-  height: 28px;
+  width: 42px;
+  height: 42px;
   border: 2px solid transparent;
   border-radius: 999px;
   cursor: pointer;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.28);
 }
 
 .color-picker .selected {
@@ -373,6 +373,22 @@ h1 {
   outline-color: var(--yellow);
 }
 
+.card.wild.chosen-red {
+  background: var(--red);
+}
+
+.card.wild.chosen-blue {
+  background: var(--blue);
+}
+
+.card.wild.chosen-green {
+  background: var(--green);
+}
+
+.card.wild.chosen-yellow {
+  background: var(--yellow);
+}
+
 .my-area {
   grid-area: mine;
   padding-bottom: 14px;
@@ -394,8 +410,7 @@ h1 {
   border-radius: 8px;
   color: #111713;
   display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 3px;
+  place-items: center;
   padding: 4px;
   font-weight: 950;
   box-shadow: 0 8px 14px rgba(0, 0, 0, 0.28);
@@ -435,11 +450,7 @@ button.card:disabled {
 }
 
 .card span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.46rem;
+  display: none;
 }
 
 .card strong {
@@ -460,8 +471,65 @@ button.card:disabled {
   margin-left: 0;
 }
 
+.flying-card {
+  position: fixed;
+  z-index: 80;
+  pointer-events: none;
+  margin: 0;
+  will-change: transform;
+}
+
 .next-round {
   justify-self: center;
+}
+
+.color-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(8, 12, 10, 0.64);
+  backdrop-filter: blur(5px);
+}
+
+.color-modal-panel {
+  position: relative;
+  width: min(320px, 100%);
+  border: 1px solid rgba(255, 246, 229, 0.2);
+  border-radius: 8px;
+  background: rgba(23, 36, 29, 0.96);
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 22px;
+  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.42);
+}
+
+.color-modal h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.modal-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(16, 23, 19, 0.82);
+  color: var(--text);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.modal-card-preview .card {
+  width: 64px;
+  height: 94px;
+  margin-left: 0;
 }
 
 .toast-stack {
