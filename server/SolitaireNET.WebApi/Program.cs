@@ -2328,7 +2328,7 @@ sealed class PlusFourSession
                 drawPile.Insert(0, first);
         } while (first.Color == "wild");
 
-        discardPile.Add(first);
+        discardPile.Add(first.Value == "Inverte" ? first with { PlayedColor = first.Color } : first);
         CurrentColor = first.Color;
         Turn = startingSide;
         RoundWinner = null;

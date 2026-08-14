@@ -512,6 +512,9 @@ function startLocalRound(options) {
     deck.unshift(topCard);
     topCard = deck.pop();
   }
+  if (topCard?.value === "Inverte") {
+    topCard = { ...topCard, playedColor: topCard.color };
+  }
 
   state.simulated = true;
   state.localGame = {
