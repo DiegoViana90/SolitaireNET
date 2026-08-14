@@ -167,8 +167,7 @@ button {
   cursor: wait;
 }
 
-.room-info,
-.rules-panel {
+.room-info {
   margin: 0;
   border: 1px solid rgba(217, 185, 85, 0.36);
   border-radius: 6px;
@@ -189,16 +188,6 @@ button {
 
 .room-info[hidden] {
   display: none;
-}
-
-.rules-panel {
-  width: min(var(--board-size), 100%);
-  margin-inline: auto;
-}
-
-.rules-panel strong {
-  color: var(--gold);
-  margin-right: 6px;
 }
 
 .board-wrap {
@@ -443,8 +432,7 @@ button {
     font-size: 0.78rem;
   }
 
-  .room-info,
-  .rules-panel {
+  .room-info {
     font-size: 0.74rem;
     padding: 5px 7px;
   }
