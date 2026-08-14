@@ -438,7 +438,8 @@ h1 {
   background: var(--yellow);
 }
 
-.card.wild {
+.card.wild,
+.card.color-action {
   background:
     linear-gradient(135deg, #d94343 0 34%, #2f80ed 34% 58%, #27ae60 58% 78%, #f2c94c 78%);
 }
@@ -554,6 +555,13 @@ button.card:disabled {
   display: grid;
   place-items: center;
   font-size: 0.76rem;
+}
+
+.card[data-value="Inverte"] strong {
+  min-width: 30px;
+  min-height: 30px;
+  font-size: 1.18rem;
+  line-height: 1;
 }
 
 .discard-card .card {

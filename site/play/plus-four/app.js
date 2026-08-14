@@ -315,6 +315,7 @@ function cardBacks(count) {
 function cardEl(card, options = {}) {
   const el = document.createElement(options.large ? "div" : "button");
   el.className = `card ${card.color}`;
+  if (needsColorChoice(card) && !card.playedColor) el.classList.add("color-action");
   if (card.playedColor) el.classList.add(`chosen-${card.playedColor}`);
   if (card.id === state.pendingColorCardId) el.classList.add("pending-color");
   el.dataset.cardId = card.id;
