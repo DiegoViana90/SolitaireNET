@@ -14,7 +14,7 @@
   <meta property="og:url" content="https://paciencia.net.br/play/chess/">
   <meta property="og:image" content="https://paciencia.net.br/preview.svg">
   <link rel="icon" href="../../appicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
   <main class="game-shell" aria-label="Xadrez">
@@ -63,7 +63,9 @@
   </div>
 
   <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
+  <div class="build-version" data-build-version>Versão: desenvolvimento local</div>
 
+  <script src="../../build-info.js?v=__BUILD_ASSET_VERSION__"></script>
   <script type="module" src="app.js?v=3"></script>
 </body>
 </html>

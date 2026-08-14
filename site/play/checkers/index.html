@@ -14,7 +14,7 @@
   <meta property="og:url" content="https://paciencia.net.br/play/checkers/">
   <meta property="og:image" content="https://paciencia.net.br/preview.svg">
   <link rel="icon" href="../../appicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=3">
+  <link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
   <main class="game-shell" aria-label="Damas">
@@ -60,8 +60,10 @@
     </section>
   </main>
 
+  <div class="build-version" data-build-version>Versão: desenvolvimento local</div>
   <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
 
+  <script src="../../build-info.js?v=__BUILD_ASSET_VERSION__"></script>
   <script type="module" src="app.js?v=5"></script>
 </body>
 </html>

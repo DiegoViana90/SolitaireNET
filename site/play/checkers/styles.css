@@ -400,6 +400,18 @@ button {
   animation: toast-out 170ms ease-in both;
 }
 
+.build-version {
+  position: fixed;
+  right: 12px;
+  bottom: 10px;
+  z-index: 18;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: right;
+  pointer-events: none;
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;
