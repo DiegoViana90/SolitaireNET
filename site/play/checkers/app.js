@@ -15,7 +15,10 @@ const state = {
   pollTimer: null,
   message: "",
   noticeUntil: null,
-  lastMoveId: null
+  lastMoveId: null,
+  lastTurn: null,
+  lastReady: false,
+  lastDisconnectedSide: null
 };
 
 const lobbyEl = document.querySelector("#lobby");
@@ -30,6 +33,7 @@ const scorebarEl = document.querySelector("#scorebar");
 const lightScoreEl = document.querySelector("#light-score");
 const darkScoreEl = document.querySelector("#dark-score");
 const newGameEl = document.querySelector("#new-game");
+const toastStackEl = document.querySelector("#toast-stack");
 
 async function request(path, options = {}) {
   const response = await fetch(`${apiBase}${path}`, {
@@ -83,18 +87,25 @@ async function joinFromResult(promise) {
   }
 }
 
-function applyJoinResult(result) {
+function applyJoinResult(result, options = {}) {
   state.roomCode = result.roomCode;
   state.playerId = result.playerId;
   state.playerSide = result.playerSide;
   state.game = result.state;
   state.selected = null;
   state.lastMoveId = state.game?.lastMove?.id || null;
+  state.lastTurn = state.game?.turn || null;
+  state.lastReady = Boolean(state.game?.ready);
+  state.lastDisconnectedSide = state.game?.disconnectedSide || null;
 
   if (result.waiting) {
     setMessage("Aguardando outro jogador entrar.");
+  } else if (options.restored) {
+    setMessage("Voce voltou para a sala.", 4200);
+    showToast("Voce voltou para a sala.", "success");
   } else {
     setMessage("Voce entrou na sala.", 4200);
+    showToast("Voce entrou na sala.", "success");
   }
 
   localStorage.setItem(sessionKey, JSON.stringify({
@@ -127,7 +138,7 @@ async function restoreSession() {
     }
 
     const result = await request(`/checkers/rooms/${encodeURIComponent(saved.roomCode)}?playerId=${encodeURIComponent(saved.playerId)}`);
-    applyJoinResult(result);
+    applyJoinResult(result, { restored: true });
   } catch {
     clearSession();
     render();
@@ -151,6 +162,9 @@ async function refreshRoom() {
 
   try {
     const wasWaiting = state.game && !state.game.ready;
+    const previousReady = Boolean(state.game?.ready);
+    const previousTurn = state.lastTurn;
+    const previousDisconnectedSide = state.lastDisconnectedSide;
     const result = await request(`/checkers/rooms/${encodeURIComponent(state.roomCode)}?playerId=${encodeURIComponent(state.playerId)}`);
     const nextMove = result.state?.lastMove;
     const shouldAnimateMove =
@@ -161,6 +175,9 @@ async function refreshRoom() {
     state.game = result.state;
     state.playerSide = result.playerSide;
     state.lastMoveId = nextMove?.id || state.lastMoveId;
+    state.lastTurn = state.game?.turn || null;
+    state.lastReady = Boolean(state.game?.ready);
+    state.lastDisconnectedSide = state.game?.disconnectedSide || null;
 
     if (state.game?.canceled) {
       handleCanceledRoom();
@@ -170,9 +187,13 @@ async function refreshRoom() {
 
     if (wasWaiting && state.game?.ready) {
       setMessage("Jogador entrou na sala.", 4200);
+      showToast("Jogador entrou na sala.", "success");
     } else if (state.game?.ready && state.message === "Aguardando outro jogador entrar.") {
       setMessage("");
     }
+
+    announceDisconnectChange(previousDisconnectedSide, state.game?.disconnectedSide || null);
+    announceTurnChange(previousReady, previousTurn);
 
     render();
     if (shouldAnimateMove) {
@@ -212,6 +233,9 @@ function clearSession() {
   state.game = null;
   state.selected = null;
   state.lastMoveId = null;
+  state.lastTurn = null;
+  state.lastReady = false;
+  state.lastDisconnectedSide = null;
   setMessage("");
 }
 
@@ -447,6 +471,11 @@ function getStatus(counts, movesByPiece) {
     return state.game.winner === state.playerSide ? "Voce venceu." : "Voce perdeu.";
   }
 
+  const disconnectMessage = getDisconnectMessage();
+  if (disconnectMessage) {
+    return disconnectMessage;
+  }
+
   const message = currentMessage();
   if (message) {
     return message;
@@ -472,6 +501,7 @@ function canPlay() {
   return Boolean(
     state.game?.ready &&
     !state.game.canceled &&
+    !state.game.disconnectedSide &&
     !state.game.winner &&
     state.game.turn === state.playerSide);
 }
@@ -507,6 +537,69 @@ function setMessage(message, ttlMs = null) {
   state.noticeUntil = ttlMs ? Date.now() + ttlMs : null;
 }
 
+function showToast(message, tone = "info") {
+  if (!toastStackEl || !message) return;
+
+  const toast = document.createElement("div");
+  toast.className = `toast ${tone}`;
+  toast.setAttribute("role", "status");
+  toast.textContent = message;
+  toastStackEl.append(toast);
+
+  window.setTimeout(() => {
+    toast.classList.add("leaving");
+    toast.addEventListener("animationend", () => toast.remove(), { once: true });
+  }, 3600);
+}
+
+function announceTurnChange(previousReady, previousTurn) {
+  if (!state.game?.ready || state.game.winner || state.game.disconnectedSide) return;
+  if (state.game.turn !== state.playerSide) return;
+
+  const becameReady = !previousReady && state.game.ready;
+  const becameMyTurn = previousTurn !== state.game.turn || becameReady;
+  if (becameMyTurn) {
+    showToast("Sua vez.", "turn");
+  }
+}
+
+function announceDisconnectChange(previousSide, currentSide) {
+  if (previousSide === currentSide) return;
+
+  if (currentSide) {
+    const message = currentSide === state.playerSide
+      ? "Voce saiu da partida. Volte antes do tempo acabar."
+      : "Adversario desconectado. Aguardando retorno.";
+    showToast(message, "warning");
+    return;
+  }
+
+  if (previousSide) {
+    const message = previousSide === state.playerSide
+      ? "Voce reconectou."
+      : "Adversario voltou para a partida.";
+    showToast(message, "success");
+  }
+}
+
+function getDisconnectMessage() {
+  const side = state.game?.disconnectedSide;
+  if (!side) return "";
+
+  const seconds = state.game.disconnectSecondsRemaining ?? 0;
+  const time = formatTimer(seconds);
+  return side === state.playerSide
+    ? `Voce esta reconectando. Tempo restante: ${time}.`
+    : `Adversario desconectado. Aguardando retorno: ${time}.`;
+}
+
+function formatTimer(seconds) {
+  const safeSeconds = Math.max(0, Number(seconds) || 0);
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainder = String(safeSeconds % 60).padStart(2, "0");
+  return `${minutes}:${remainder}`;
+}
+
 function currentMessage() {
   if (state.noticeUntil && Date.now() > state.noticeUntil) {
     state.message = "";
@@ -520,9 +613,11 @@ function handleCanceledRoom() {
   stopPolling();
   localStorage.removeItem(sessionKey);
   state.selected = null;
-  setMessage(state.game?.canceledBy === state.playerSide
+  const message = state.game?.canceledBy === state.playerSide
     ? "Voce saiu. Partida encerrada."
-    : "Adversario saiu. Partida encerrada.");
+    : "Adversario saiu. Partida encerrada.";
+  setMessage(message);
+  showToast(message, "warning");
 }
 
 function animateLastMove(move) {

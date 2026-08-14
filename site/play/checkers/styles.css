@@ -358,6 +358,72 @@ button {
   pointer-events: none;
 }
 
+.toast-stack {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  width: min(360px, calc(100vw - 28px));
+  display: grid;
+  gap: 8px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.toast {
+  border: 1px solid rgba(255, 246, 229, 0.22);
+  border-left: 4px solid var(--gold);
+  border-radius: 8px;
+  background: rgba(16, 23, 19, 0.94);
+  color: var(--text);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.36);
+  padding: 10px 12px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1.3;
+  animation: toast-in 180ms ease-out both;
+}
+
+.toast.success {
+  border-left-color: #42c77b;
+}
+
+.toast.warning {
+  border-left-color: #e1a141;
+}
+
+.toast.turn {
+  border-left-color: var(--gold);
+  background: rgba(37, 38, 43, 0.96);
+}
+
+.toast.leaving {
+  animation: toast-out 170ms ease-in both;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
 @media (max-width: 520px) {
   .game-shell {
     align-content: start;
@@ -393,5 +459,12 @@ button {
 
   .lobby {
     grid-template-columns: 1fr;
+  }
+
+  .toast-stack {
+    top: auto;
+    right: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: calc(100vw - 20px);
   }
 }

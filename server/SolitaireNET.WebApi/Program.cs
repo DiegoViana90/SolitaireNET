@@ -341,7 +341,7 @@ sealed class CheckersStore
         if (!rooms.TryGetValue(code, out CheckersSession? room))
             return CheckersJoinResult.Fail(code, "Sala nao encontrada.");
 
-        CheckersJoinResult result = room.CancelByPlayer(playerId);
+        CheckersJoinResult result = room.MarkPlayerDisconnected(playerId);
         if (result.Error == null && waitingRandomCode == code)
         {
             lock (gate)
@@ -358,6 +358,7 @@ sealed class CheckersStore
     {
         foreach ((string code, CheckersSession room) in rooms)
         {
+            room.ExpireDisconnects(now);
             TimeSpan lifetime = room.IsCanceled ? CanceledRoomLifetime : InactiveRoomLifetime;
             if (now - room.LastActivityAt > lifetime)
             {
@@ -402,8 +403,13 @@ sealed class CheckersStore
 
 sealed class CheckersSession
 {
+    static readonly TimeSpan DisconnectGracePeriod = TimeSpan.FromMinutes(1);
     readonly object gate = new();
     readonly CheckersPiece?[,] board = new CheckersPiece?[8, 8];
+    DateTimeOffset? lightDisconnectedAt;
+    DateTimeOffset? darkDisconnectedAt;
+    TimeSpan lightDisconnectRemaining = DisconnectGracePeriod;
+    TimeSpan darkDisconnectRemaining = DisconnectGracePeriod;
 
     CheckersSession(string code)
     {
@@ -421,7 +427,7 @@ sealed class CheckersSession
     public CheckersMoveEvent? LastMove { get; private set; }
     public DateTimeOffset LastActivityAt { get; private set; } = DateTimeOffset.UtcNow;
     public bool IsCanceled => CanceledBy != null;
-    public bool IsWaiting => !IsCanceled && LightPlayerId != null && DarkPlayerId == null;
+    public bool IsWaiting => !IsCanceled && LightPlayerId != null && DarkPlayerId == null && lightDisconnectedAt == null;
 
     public static CheckersSession New(string code) => new(code);
 
@@ -429,6 +435,9 @@ sealed class CheckersSession
     {
         lock (gate)
         {
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            UpdateDisconnectState(now, reconnectingSide: null);
+
             if (IsCanceled)
                 return CheckersJoinResult.Fail(Code, "Partida encerrada.");
 
@@ -450,8 +459,8 @@ sealed class CheckersSession
                 return CheckersJoinResult.Fail(Code, "Sala cheia.");
             }
 
-            Touch();
-            return BuildJoinResult(playerId, side);
+            Touch(now);
+            return BuildJoinResult(playerId, side, now);
         }
     }
 
@@ -459,29 +468,32 @@ sealed class CheckersSession
     {
         lock (gate)
         {
+            DateTimeOffset now = DateTimeOffset.UtcNow;
             string? side = SideFor(playerId);
             if (side == null)
                 return CheckersJoinResult.Fail(Code, "Jogador nao pertence a esta sala.");
 
-            Touch();
-            return BuildJoinResult(playerId, side);
+            UpdateDisconnectState(now, side);
+            Touch(now);
+            return BuildJoinResult(playerId, side, now);
         }
     }
 
-    public CheckersJoinResult CancelByPlayer(string playerId)
+    public CheckersJoinResult MarkPlayerDisconnected(string playerId)
     {
         lock (gate)
         {
+            DateTimeOffset now = DateTimeOffset.UtcNow;
             string? side = SideFor(playerId);
             if (side == null)
                 return CheckersJoinResult.Fail(Code, "Jogador nao pertence a esta sala.");
 
-            if (CanceledBy == null)
-                CanceledBy = side;
+            UpdateDisconnectState(now, reconnectingSide: null);
+            if (!IsCanceled)
+                StartDisconnect(side, now);
 
-            ForcedPieceId = null;
-            Touch();
-            return BuildJoinResult(playerId, side);
+            Touch(now);
+            return BuildJoinResult(playerId, side, now);
         }
     }
 
@@ -489,9 +501,12 @@ sealed class CheckersSession
     {
         lock (gate)
         {
+            DateTimeOffset now = DateTimeOffset.UtcNow;
             string? side = SideFor(action.PlayerId);
             if (side == null)
                 return CheckersJoinResult.Fail(Code, "Jogador nao pertence a esta sala.");
+
+            UpdateDisconnectState(now, side);
 
             if (IsCanceled)
                 return CheckersJoinResult.Fail(Code, "Partida encerrada.");
@@ -501,6 +516,9 @@ sealed class CheckersSession
 
             if (Winner != null)
                 return CheckersJoinResult.Fail(Code, "Partida finalizada.");
+
+            if (DisconnectedSide() != null)
+                return CheckersJoinResult.Fail(Code, "Aguardando jogador reconectar.");
 
             if (side != Turn)
                 return CheckersJoinResult.Fail(Code, "Aguarde sua vez.");
@@ -526,9 +544,15 @@ sealed class CheckersSession
                 return CheckersJoinResult.Fail(Code, "Jogada invalida.");
 
             ApplyLegalMove(piece, move, side);
-            Touch();
-            return BuildJoinResult(action.PlayerId, side);
+            Touch(now);
+            return BuildJoinResult(action.PlayerId, side, now);
         }
+    }
+
+    public void ExpireDisconnects(DateTimeOffset now)
+    {
+        lock (gate)
+            UpdateDisconnectState(now, reconnectingSide: null);
     }
 
     bool IsReady => LightPlayerId != null && DarkPlayerId != null;
@@ -691,16 +715,16 @@ sealed class CheckersSession
         return null;
     }
 
-    CheckersJoinResult BuildJoinResult(string playerId, string side) =>
+    CheckersJoinResult BuildJoinResult(string playerId, string side, DateTimeOffset now) =>
         new(
             Code,
             playerId,
             side,
             !IsReady,
             null,
-            ToPublicState(side));
+            ToPublicState(side, now));
 
-    CheckersPublicState ToPublicState(string playerSide)
+    CheckersPublicState ToPublicState(string playerSide, DateTimeOffset now)
     {
         List<List<CheckersPublicPiece?>> rows = new();
         for (int row = 0; row < 8; row++)
@@ -716,6 +740,8 @@ sealed class CheckersSession
             rows.Add(current);
         }
 
+        (string? disconnectedSide, int? disconnectSecondsRemaining) = DisconnectSnapshot(playerSide, now);
+
         return new CheckersPublicState(
             rows,
             Turn,
@@ -725,7 +751,123 @@ sealed class CheckersSession
             Winner,
             IsCanceled,
             CanceledBy,
+            disconnectedSide,
+            disconnectSecondsRemaining,
             LastMove);
+    }
+
+    void UpdateDisconnectState(DateTimeOffset now, string? reconnectingSide)
+    {
+        if (IsCanceled)
+            return;
+
+        if (reconnectingSide == "light")
+            ReconnectSide("light", now);
+        else if (reconnectingSide == "dark")
+            ReconnectSide("dark", now);
+
+        ExpireSideIfNeeded("light", now);
+        ExpireSideIfNeeded("dark", now);
+    }
+
+    void StartDisconnect(string side, DateTimeOffset now)
+    {
+        if (DisconnectRemaining(side, now) <= TimeSpan.Zero)
+        {
+            CancelForDisconnect(side, now);
+            return;
+        }
+
+        if (side == "light" && lightDisconnectedAt == null)
+            lightDisconnectedAt = now;
+
+        if (side == "dark" && darkDisconnectedAt == null)
+            darkDisconnectedAt = now;
+    }
+
+    void ReconnectSide(string side, DateTimeOffset now)
+    {
+        DateTimeOffset? disconnectedAt = DisconnectedAt(side);
+        if (disconnectedAt == null)
+            return;
+
+        TimeSpan remaining = DisconnectRemaining(side, now);
+        SetDisconnectRemaining(side, remaining);
+        SetDisconnectedAt(side, null);
+
+        if (remaining <= TimeSpan.Zero)
+            CancelForDisconnect(side, now);
+    }
+
+    void ExpireSideIfNeeded(string side, DateTimeOffset now)
+    {
+        if (DisconnectedAt(side) != null && DisconnectRemaining(side, now) <= TimeSpan.Zero)
+            CancelForDisconnect(side, now);
+    }
+
+    void CancelForDisconnect(string side, DateTimeOffset now)
+    {
+        if (CanceledBy != null)
+            return;
+
+        CanceledBy = side;
+        ForcedPieceId = null;
+        SetDisconnectedAt(side, null);
+        SetDisconnectRemaining(side, TimeSpan.Zero);
+        LastActivityAt = now;
+    }
+
+    (string? Side, int? SecondsRemaining) DisconnectSnapshot(string playerSide, DateTimeOffset now)
+    {
+        string opponent = Opponent(playerSide);
+        if (DisconnectedAt(opponent) != null)
+            return (opponent, SecondsRemaining(opponent, now));
+
+        if (DisconnectedAt(playerSide) != null)
+            return (playerSide, SecondsRemaining(playerSide, now));
+
+        return (null, null);
+    }
+
+    string? DisconnectedSide()
+    {
+        if (lightDisconnectedAt != null)
+            return "light";
+        if (darkDisconnectedAt != null)
+            return "dark";
+        return null;
+    }
+
+    int SecondsRemaining(string side, DateTimeOffset now) =>
+        Math.Max(0, (int)Math.Ceiling(DisconnectRemaining(side, now).TotalSeconds));
+
+    TimeSpan DisconnectRemaining(string side, DateTimeOffset now)
+    {
+        TimeSpan remaining = side == "light" ? lightDisconnectRemaining : darkDisconnectRemaining;
+        DateTimeOffset? disconnectedAt = DisconnectedAt(side);
+        if (disconnectedAt != null)
+            remaining -= now - disconnectedAt.Value;
+
+        return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
+    }
+
+    DateTimeOffset? DisconnectedAt(string side) =>
+        side == "light" ? lightDisconnectedAt : darkDisconnectedAt;
+
+    void SetDisconnectedAt(string side, DateTimeOffset? value)
+    {
+        if (side == "light")
+            lightDisconnectedAt = value;
+        else
+            darkDisconnectedAt = value;
+    }
+
+    void SetDisconnectRemaining(string side, TimeSpan value)
+    {
+        if (side == "light")
+            lightDisconnectRemaining = value;
+        else
+            darkDisconnectRemaining = value;
     }
 
     string? SideFor(string playerId)
@@ -772,7 +914,7 @@ sealed class CheckersSession
     static bool IsInside(int row, int col) => row >= 0 && row < 8 && col >= 0 && col < 8;
     static bool IsDarkSquare(int row, int col) => (row + col) % 2 == 1;
 
-    void Touch() => LastActivityAt = DateTimeOffset.UtcNow;
+    void Touch(DateTimeOffset now) => LastActivityAt = now;
 }
 
 sealed record CheckersJoinResult(
@@ -796,6 +938,8 @@ sealed record CheckersPublicState(
     string? Winner,
     bool Canceled,
     string? CanceledBy,
+    string? DisconnectedSide,
+    int? DisconnectSecondsRemaining,
     CheckersMoveEvent? LastMove);
 
 sealed record CheckersPublicPiece(string Id, string Owner, bool King);
@@ -1199,7 +1343,7 @@ sealed class PlayerPresenceStore
 
 sealed class CleanupService(GameStore games, CheckersStore checkers, PlayerPresenceStore players) : BackgroundService
 {
-    static readonly TimeSpan Interval = TimeSpan.FromMinutes(5);
+    static readonly TimeSpan Interval = TimeSpan.FromSeconds(15);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
