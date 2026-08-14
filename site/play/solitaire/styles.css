@@ -452,6 +452,38 @@ button {
   background: rgba(0, 0, 0, 0.45);
 }
 
+.seo-panel {
+  width: min(860px, calc(100% - 32px));
+  margin: 0 auto 36px;
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  padding-top: 18px;
+  color: rgba(248, 241, 223, 0.82);
+  line-height: 1.55;
+}
+
+.seo-panel h1 {
+  margin: 0 0 8px;
+  color: #f8f1df;
+  font-size: 1.45rem;
+  letter-spacing: 0;
+}
+
+.seo-panel p {
+  margin: 0 0 10px;
+}
+
+.seo-panel nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.seo-panel a {
+  color: var(--gold);
+  font-weight: 800;
+  text-decoration: none;
+}
+
 @media (max-width: 620px) {
   :root {
     --viewport-w: 100dvw;

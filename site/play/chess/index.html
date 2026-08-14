@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Xadrez Online Gratis - SolitaireNET</title>
+  <meta name="description" content="Jogue xadrez online gratis no SolitaireNET. Crie uma sala, compartilhe o codigo e jogue uma partida 1v1 com regras validadas pelo servidor.">
+  <link rel="canonical" href="https://paciencia.net.br/play/chess/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:site_name" content="SolitaireNET">
+  <meta property="og:title" content="Xadrez Online Gratis - SolitaireNET">
+  <meta property="og:description" content="Crie uma sala e jogue xadrez online gratis.">
+  <meta property="og:url" content="https://paciencia.net.br/play/chess/">
+  <meta property="og:image" content="https://paciencia.net.br/preview.svg">
+  <link rel="icon" href="../../appicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=1">
+</head>
+<body>
+  <main class="game-shell" aria-label="Xadrez">
+    <header class="topbar">
+      <a class="icon-button" href="../" aria-label="Voltar">&lt;</a>
+      <div>
+        <h1>Xadrez</h1>
+        <p id="status">Crie uma sala ou procure uma partida.</p>
+      </div>
+      <button id="new-game" type="button">Novo</button>
+    </header>
+
+    <section class="lobby" id="lobby" aria-label="Entrada da partida">
+      <button id="create-room" type="button">
+        <strong>Criar sala</strong>
+        <span>Gera um codigo para outro jogador entrar.</span>
+      </button>
+      <button id="random-room" type="button">
+        <strong>Procurar sala aleatoria</strong>
+        <span>Se nao houver outro jogador, voce fica aguardando.</span>
+      </button>
+      <div class="join-code">
+        <input id="room-code" type="text" maxlength="4" autocomplete="off" placeholder="CODIGO" aria-label="Codigo da sala">
+        <button id="join-code" type="button">Entrar</button>
+      </div>
+    </section>
+
+    <p class="room-info" id="room-info" hidden></p>
+
+    <section class="board-wrap" aria-label="Tabuleiro de xadrez">
+      <div class="board" id="board" hidden></div>
+    </section>
+
+    <section class="rules-panel" aria-label="Regras do xadrez">
+      <strong>Regras claras</strong>
+      <span>Movimentos legais, xeque, xeque-mate, empate, roque, en passant e promocao sao validados pela API.</span>
+    </section>
+  </main>
+
+  <div class="promotion-modal" id="promotion-modal" hidden>
+    <div class="promotion-box" role="dialog" aria-modal="true" aria-labelledby="promotion-title">
+      <h2 id="promotion-title">Promover peao</h2>
+      <div class="promotion-actions">
+        <button type="button" data-promotion="queen">♕</button>
+        <button type="button" data-promotion="rook">♖</button>
+        <button type="button" data-promotion="bishop">♗</button>
+        <button type="button" data-promotion="knight">♘</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+  <script type="module" src="app.js?v=1"></script>
+</body>
+</html>

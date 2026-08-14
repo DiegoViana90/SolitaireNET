@@ -6,6 +6,7 @@
     <AssemblyName>SolitaireNET.WebApi</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Gera.Chess" Version="1.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.8" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.8" />
     <PackageReference Include="Npgsql" Version="10.0.3" />

@@ -1,0 +1,134 @@
+:root {
+  color-scheme: dark;
+  --bg: #101713;
+  --panel: #17241d;
+  --text: #fff6e5;
+  --muted: #cabfa8;
+  --gold: #d9b955;
+  --line: rgba(255, 246, 229, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Segoe UI, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(217, 185, 85, 0.16), transparent 30rem),
+    linear-gradient(135deg, #101713, #0e5b34 54%, #211e18);
+  color: var(--text);
+}
+
+main {
+  width: min(820px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 42px 0 54px;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.brand,
+.topbar nav a,
+.content a {
+  color: var(--gold);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.topbar nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hero {
+  margin-bottom: 24px;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.15rem, 7vw, 4.7rem);
+  line-height: 0.98;
+  letter-spacing: 0;
+}
+
+.lead {
+  max-width: 680px;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 1.08rem;
+  line-height: 1.55;
+}
+
+.content {
+  display: grid;
+  gap: 18px;
+  color: var(--muted);
+  line-height: 1.58;
+}
+
+.content section {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+
+h2 {
+  margin: 0 0 8px;
+  color: var(--text);
+  font-size: 1.35rem;
+  letter-spacing: 0;
+}
+
+p {
+  margin: 0 0 10px;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding-left: 22px;
+}
+
+li + li {
+  margin-top: 7px;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  width: fit-content;
+  margin-top: 4px;
+  border-radius: 6px;
+  background: var(--gold);
+  color: #20160b;
+  padding: 0 16px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.footer-links a {
+  color: var(--muted);
+  font-weight: 700;
+  text-decoration: none;
+}
