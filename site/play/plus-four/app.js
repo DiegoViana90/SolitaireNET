@@ -306,14 +306,16 @@ function findHandCardEl(cardId) {
     .find((item) => item.dataset.cardId === cardId);
 }
 
-async function animateCardToDiscard(color, sourceEl) {
+async function animateCardToDiscard(color, sourceEl, options = {}) {
   if (!sourceEl || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
   const from = sourceEl.getBoundingClientRect();
   const to = discardCardEl.getBoundingClientRect();
   if (!from.width || !to.width) return;
 
-  const ghost = sourceEl.cloneNode(true);
+  const ghost = options.card
+    ? cardEl({ ...options.card, playedColor: color || options.card.playedColor }, { large: true })
+    : sourceEl.cloneNode(true);
   ghost.classList.add("flying-card");
   ghost.classList.remove("playable", "pending-color");
   ghost.removeAttribute("disabled");
@@ -401,7 +403,9 @@ function startLocalRound(options) {
   };
 
   if (state.game.turn === "two") {
-    window.setTimeout(simulateBotTurn, 700);
+    window.setTimeout(() => {
+      void simulateBotTurn();
+    }, 700);
   }
 }
 
@@ -467,7 +471,9 @@ function applySimulatedAction(action) {
     state.game.turn = "two";
     syncLocalPublicState();
     render();
-    window.setTimeout(simulateBotTurn, 700);
+    window.setTimeout(() => {
+      void simulateBotTurn();
+    }, 700);
     return;
   }
 
@@ -485,12 +491,14 @@ function applySimulatedAction(action) {
     render();
 
     if (state.game.turn === "two" && !state.game.roundWinner) {
-      window.setTimeout(simulateBotTurn, 700);
+      window.setTimeout(() => {
+        void simulateBotTurn();
+      }, 700);
     }
   }
 }
 
-function simulateBotTurn() {
+async function simulateBotTurn() {
   if (!state.simulated || !state.game || !state.localGame || state.game.turn !== "two") return;
 
   const card = chooseBotCard();
@@ -511,6 +519,13 @@ function simulateBotTurn() {
 
   state.localGame.botHand = state.localGame.botHand.filter((item) => item.id !== card.id);
   const chosenColor = card.color === "wild" ? chooseBotColor() : null;
+  state.animating = true;
+  try {
+    await animateOpponentCardToDiscard(card, chosenColor);
+  } finally {
+    state.animating = false;
+  }
+
   state.localGame.discardPile.push({ ...card, playedColor: chosenColor || card.playedColor });
   state.game.currentColor = chosenColor || card.color;
   state.game.topCard = state.localGame.discardPile.at(-1);
@@ -521,8 +536,20 @@ function simulateBotTurn() {
   render();
 
   if (state.game.turn === "two" && !state.game.roundWinner) {
-    window.setTimeout(simulateBotTurn, 750);
+    window.setTimeout(() => {
+      void simulateBotTurn();
+    }, 750);
   }
+}
+
+async function animateOpponentCardToDiscard(card, color) {
+  const sourceEl = findOpponentCardEl();
+  await animateCardToDiscard(color, sourceEl, { card });
+}
+
+function findOpponentCardEl() {
+  const cards = Array.from(opponentCardsEl.querySelectorAll(".card-back"));
+  return cards.at(-1) || opponentCardsEl;
 }
 
 function buildDeck() {
