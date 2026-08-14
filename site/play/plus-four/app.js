@@ -8,6 +8,8 @@ const colors = {
   yellow: "Amarelo",
   wild: "Livre"
 };
+const playColors = ["red", "blue", "green", "yellow"];
+let localCardSequence = 0;
 
 const state = {
   roomCode: null,
@@ -17,6 +19,7 @@ const state = {
   selectedColor: "red",
   pendingColorCardId: null,
   simulated: false,
+  localGame: null,
   animating: false,
   busy: false,
   pollTimer: null,
@@ -200,7 +203,7 @@ function render() {
   }
 
   roomInfoEl.textContent = state.simulated
-    ? "Simulacao local | Bot visual"
+    ? "Partida local | IA adversaria"
     : `Sala ${state.roomCode} | Voce e Jogador ${state.playerSide === "one" ? "1" : "2"}`;
   drawCountEl.textContent = game.drawCount;
   opponentCountEl.textContent = `${game.opponentCount} carta${game.opponentCount === 1 ? "" : "s"}`;
@@ -344,7 +347,38 @@ async function animateCardToDiscard(color, sourceEl) {
 
 function simulateTable() {
   stopPolling();
+  startLocalRound({
+    oneScore: 0,
+    twoScore: 0,
+    round: 1,
+    startingSide: "one"
+  });
+  showToast("Partida local contra IA iniciada.");
+  render();
+}
+
+function startLocalRound(options) {
+  const deck = shuffle(buildDeck());
+  const playerHand = [];
+  const botHand = [];
+
+  for (let index = 0; index < 7; index += 1) {
+    playerHand.push(deck.pop());
+    botHand.push(deck.pop());
+  }
+
+  let topCard = deck.pop();
+  while (topCard?.color === "wild") {
+    deck.unshift(topCard);
+    topCard = deck.pop();
+  }
+
   state.simulated = true;
+  state.localGame = {
+    drawPile: deck,
+    discardPile: [topCard],
+    botHand
+  };
   state.roomCode = "BOT";
   state.playerId = "simulated-player";
   state.playerSide = "one";
@@ -352,31 +386,23 @@ function simulateTable() {
   state.game = {
     ready: true,
     canceled: false,
-    turn: "one",
-    currentColor: "yellow",
-    round: 3,
-    oneScore: 35,
-    twoScore: 28,
+    turn: options.startingSide,
+    currentColor: topCard.color,
+    round: options.round,
+    oneScore: options.oneScore,
+    twoScore: options.twoScore,
     roundWinner: null,
     matchWinner: null,
-    drawCount: 64,
-    topCard: sampleCard("top", "yellow", "5", null),
-    hand: [
-      sampleCard("p1", "yellow", "+2", null),
-      sampleCard("p2", "red", "4", null),
-      sampleCard("p3", "yellow", "8", null),
-      sampleCard("p4", "yellow", "2", null),
-      sampleCard("p5", "blue", "1", null),
-      sampleCard("p6", "wild", "+4", null)
-    ],
-    opponentCount: 7,
+    drawCount: deck.length,
+    topCard,
+    hand: playerHand,
+    opponentCount: botHand.length,
     lastEvent: null
   };
-  render();
-}
 
-function sampleCard(id, color, value, playedColor) {
-  return { id, color, value, playedColor };
+  if (state.game.turn === "two") {
+    window.setTimeout(simulateBotTurn, 700);
+  }
 }
 
 async function drawCard() {
@@ -416,12 +442,30 @@ async function sendAction(action) {
 }
 
 function applySimulatedAction(action) {
-  if (!state.game) return;
+  if (!state.game || !state.localGame) return;
+
+  if (action.type === "next-round") {
+    startLocalRound({
+      oneScore: state.game.oneScore,
+      twoScore: state.game.twoScore,
+      round: state.game.round + 1,
+      startingSide: state.game.roundWinner === "one" ? "two" : "one"
+    });
+    render();
+    return;
+  }
 
   if (action.type === "draw") {
-    state.game.drawCount = Math.max(0, state.game.drawCount - 1);
-    state.game.hand.push(sampleCard(`p${Date.now()}`, "green", "7", null));
+    const card = drawLocalCard();
+    if (!card) {
+      showToast("Monte vazio.");
+      render();
+      return;
+    }
+
+    state.game.hand.push(card);
     state.game.turn = "two";
+    syncLocalPublicState();
     render();
     window.setTimeout(simulateBotTurn, 700);
     return;
@@ -429,35 +473,214 @@ function applySimulatedAction(action) {
 
   if (action.type === "play") {
     const card = state.game.hand.find((item) => item.id === action.cardId);
-    if (!card) return;
+    if (!card || !canPlay(card)) return;
 
     state.game.hand = state.game.hand.filter((item) => item.id !== action.cardId);
-    state.game.topCard = { ...card, playedColor: action.color || card.playedColor };
+    state.localGame.discardPile.push({ ...card, playedColor: action.color || card.playedColor });
+    state.game.topCard = state.localGame.discardPile.at(-1);
     state.game.currentColor = action.color || card.color;
-    state.game.turn = "two";
+    state.game.turn = nextLocalTurnAfter(card, "one");
+    finishLocalRoundIfNeeded("one");
+    syncLocalPublicState();
     render();
-    window.setTimeout(simulateBotTurn, 700);
+
+    if (state.game.turn === "two" && !state.game.roundWinner) {
+      window.setTimeout(simulateBotTurn, 700);
+    }
   }
 }
 
 function simulateBotTurn() {
-  if (!state.simulated || !state.game || state.game.turn !== "two") return;
+  if (!state.simulated || !state.game || !state.localGame || state.game.turn !== "two") return;
 
-  const botShouldDraw = state.game.drawCount > 0 && Math.random() < 0.35;
-  if (botShouldDraw) {
-    state.game.drawCount = Math.max(0, state.game.drawCount - 1);
-    state.game.opponentCount += 1;
+  const card = chooseBotCard();
+  if (!card) {
+    const drawn = drawLocalCard();
+    if (drawn) {
+      state.localGame.botHand.push(drawn);
+      showToast("IA adversaria comprou uma carta.");
+    } else {
+      showToast("IA adversaria passou.");
+    }
+
     state.game.turn = "one";
-    showToast("Bot comprou uma carta.");
+    syncLocalPublicState();
     render();
     return;
   }
 
-  state.game.opponentCount = Math.max(1, state.game.opponentCount - 1);
-  state.game.topCard = sampleCard(`bot${Date.now()}`, state.game.currentColor, "3", null);
-  state.game.turn = "one";
-  showToast("Bot jogou uma carta.");
+  state.localGame.botHand = state.localGame.botHand.filter((item) => item.id !== card.id);
+  const chosenColor = card.color === "wild" ? chooseBotColor() : null;
+  state.localGame.discardPile.push({ ...card, playedColor: chosenColor || card.playedColor });
+  state.game.currentColor = chosenColor || card.color;
+  state.game.topCard = state.localGame.discardPile.at(-1);
+  state.game.turn = nextLocalTurnAfter(card, "two");
+  finishLocalRoundIfNeeded("two");
+  syncLocalPublicState();
+  showToast(`IA adversaria jogou ${card.value}.`);
   render();
+
+  if (state.game.turn === "two" && !state.game.roundWinner) {
+    window.setTimeout(simulateBotTurn, 750);
+  }
+}
+
+function buildDeck() {
+  const deck = [];
+  for (const color of playColors) {
+    deck.push(newLocalCard(color, "0"));
+    for (let copy = 0; copy < 2; copy += 1) {
+      for (let value = 1; value <= 9; value += 1) {
+        deck.push(newLocalCard(color, value.toString()));
+      }
+      deck.push(newLocalCard(color, "Pula"));
+      deck.push(newLocalCard(color, "+2"));
+    }
+  }
+
+  for (let index = 0; index < 4; index += 1) {
+    deck.push(newLocalCard("wild", "Livre"));
+    deck.push(newLocalCard("wild", "+4"));
+  }
+
+  return deck;
+}
+
+function newLocalCard(color, value) {
+  localCardSequence += 1;
+  return {
+    id: `local-${Date.now()}-${localCardSequence}`,
+    color,
+    value,
+    playedColor: null
+  };
+}
+
+function shuffle(cards) {
+  const deck = [...cards];
+  for (let index = deck.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(Math.random() * (index + 1));
+    [deck[index], deck[target]] = [deck[target], deck[index]];
+  }
+  return deck;
+}
+
+function drawLocalCard() {
+  ensureLocalDrawPile();
+  const card = state.localGame?.drawPile.pop() || null;
+  syncLocalPublicState();
+  return card;
+}
+
+function ensureLocalDrawPile() {
+  if (!state.localGame || state.localGame.drawPile.length > 0 || state.localGame.discardPile.length <= 1) {
+    return;
+  }
+
+  const topCard = state.localGame.discardPile.at(-1);
+  const recycled = state.localGame.discardPile
+    .slice(0, -1)
+    .map((card) => ({ ...card, playedColor: null }));
+
+  state.localGame.discardPile = [topCard];
+  state.localGame.drawPile = shuffle(recycled);
+}
+
+function chooseBotCard() {
+  if (!state.localGame) return null;
+  return [...state.localGame.botHand]
+    .filter((card) => canPlayLocal(card))
+    .sort((left, right) => botCardWeight(right) - botCardWeight(left))[0] || null;
+}
+
+function canPlayLocal(card) {
+  const top = state.game?.topCard;
+  if (!top) return false;
+  return card.color === "wild" ||
+    card.color === state.game.currentColor ||
+    card.value === top.value;
+}
+
+function botCardWeight(card) {
+  if (card.value === "+4") return 90;
+  if (card.value === "+2") return 70;
+  if (card.value === "Pula") return 60;
+  if (card.color === state.game?.currentColor) return 40;
+  if (card.color === "wild") return 30;
+  return Number.parseInt(card.value, 10) || 10;
+}
+
+function chooseBotColor() {
+  if (!state.localGame) return "red";
+  const counts = Object.fromEntries(playColors.map((color) => [color, 0]));
+  for (const card of state.localGame.botHand) {
+    if (counts[card.color] !== undefined) counts[card.color] += 1;
+  }
+
+  return playColors
+    .map((color) => ({ color, count: counts[color] }))
+    .sort((left, right) => right.count - left.count)[0]?.color || "red";
+}
+
+function nextLocalTurnAfter(card, side) {
+  const other = side === "one" ? "two" : "one";
+  if (card.value === "+2") {
+    drawLocalCards(other, 2);
+    return side;
+  }
+
+  if (card.value === "+4") {
+    drawLocalCards(other, 4);
+    return side;
+  }
+
+  if (card.value === "Pula") return side;
+  return other;
+}
+
+function drawLocalCards(side, count) {
+  for (let index = 0; index < count; index += 1) {
+    const card = drawLocalCard();
+    if (!card) return;
+    if (side === "one") {
+      state.game.hand.push(card);
+    } else {
+      state.localGame.botHand.push(card);
+    }
+  }
+}
+
+function finishLocalRoundIfNeeded(side) {
+  if (!state.game || !state.localGame) return;
+  const winnerHandCount = side === "one"
+    ? state.game.hand.length
+    : state.localGame.botHand.length;
+
+  if (winnerHandCount > 0) return;
+
+  state.game.roundWinner = side;
+  state.game.turn = side;
+  if (side === "one") {
+    state.game.oneScore += state.localGame.botHand.reduce((total, card) => total + cardPoints(card), 0);
+    showToast("Voce venceu a rodada.");
+  } else {
+    state.game.twoScore += state.game.hand.reduce((total, card) => total + cardPoints(card), 0);
+    showToast("IA adversaria venceu a rodada.");
+  }
+}
+
+function cardPoints(card) {
+  if (card.value === "+4") return 50;
+  if (card.value === "Livre") return 40;
+  if (card.value === "+2" || card.value === "Pula") return 20;
+  return Number.parseInt(card.value, 10) || 10;
+}
+
+function syncLocalPublicState() {
+  if (!state.game || !state.localGame) return;
+  state.game.drawCount = state.localGame.drawPile.length;
+  state.game.opponentCount = state.localGame.botHand.length;
+  state.game.topCard = state.localGame.discardPile.at(-1);
 }
 
 async function leaveRoom() {
@@ -500,9 +723,13 @@ function getStatus() {
   if (state.game.canceled) return "Sala encerrada.";
   if (!state.game.ready) return `${state.message || "Aguardando outro jogador entrar."} Codigo: ${state.roomCode}`;
   if (state.game.matchWinner) return state.game.matchWinner === state.playerSide ? "Voce venceu a partida!" : "Adversario venceu a partida.";
-  if (state.game.roundWinner) return state.game.roundWinner === state.playerSide ? "Voce venceu a rodada." : "Adversario venceu a rodada.";
+  if (state.game.roundWinner) {
+    if (state.game.roundWinner === state.playerSide) return "Voce venceu a rodada.";
+    return state.simulated ? "IA adversaria venceu a rodada." : "Adversario venceu a rodada.";
+  }
   if (state.pendingColorCardId) return "Escolha uma cor para jogar essa carta.";
   if (state.game.turn === state.playerSide) return "Sua vez.";
+  if (state.simulated) return "Vez da IA adversaria.";
   return "Vez do adversario.";
 }
 
@@ -531,6 +758,7 @@ function clearSession() {
   state.message = "";
   state.pendingColorCardId = null;
   state.simulated = false;
+  state.localGame = null;
   state.animating = false;
   colorModalEl.hidden = true;
 }
