@@ -396,8 +396,9 @@ h1 {
 
 .hand {
   display: flex;
+  justify-content: safe center;
   overflow-x: auto;
-  padding: 12px 2px 8px 14px;
+  padding: 12px 18px 8px 28px;
   scroll-snap-type: x proximity;
 }
 
@@ -599,7 +600,8 @@ button.card:disabled {
   }
 
   .hand {
-    padding-left: 14px;
+    padding-left: 28px;
+    padding-right: 18px;
   }
 
   .discard-card .card {
