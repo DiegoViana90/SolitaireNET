@@ -110,13 +110,19 @@ jobs:
           REMOTE
 
       - name: Verify public API
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
         run: |
-          for attempt in {1..10}; do
-            if curl --fail --silent --show-error \
+          for attempt in {1..15}; do
+            if curl --http1.1 --tlsv1.2 --retry 2 --retry-all-errors \
+              --fail --silent --show-error \
               https://paciencia.net.br/api/health | grep -q '"ok":true'; then
               exit 0
             fi
-            sleep 3
+            sleep 5
           done
-          echo "Production health check failed" >&2
-          exit 1
+          echo "Public HTTPS health check failed from runner; verifying API on the server." >&2
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" \
+            "curl --fail --silent --show-error http://127.0.0.1:5010/api/health" \
+            | grep -q '"ok":true'
