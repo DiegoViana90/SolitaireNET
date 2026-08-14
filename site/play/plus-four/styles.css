@@ -336,7 +336,7 @@ h1 {
   transform-origin: center;
 }
 
-.side-cards .card-back:first-child {
+.side-cards .card-back:last-child {
   margin-top: 0;
 }
 
@@ -659,13 +659,20 @@ button.card:disabled {
 
   .playmat {
     min-height: auto;
-    grid-template-columns: 36px 1fr 36px;
+    grid-template-columns: 64px minmax(120px, 1fr) 64px;
     grid-template-rows: auto auto auto;
-    gap: 8px;
+    gap: 6px;
   }
 
   .side-seat {
-    min-height: 156px;
+    min-height: 138px;
+    padding: 6px;
+  }
+
+  .side-seat.active-opponent > span {
+    font-size: 0.72rem;
+    line-height: 1.05;
+    text-align: center;
   }
 
   .side-seat:not(.active-opponent) {
@@ -673,13 +680,21 @@ button.card:disabled {
   }
 
   .side-cards {
-    width: 50px;
-    min-height: 112px;
-    padding-top: 24px;
+    width: 44px;
+    min-height: 92px;
+    padding-top: 20px;
   }
 
   .side-cards .card-back {
-    margin-top: -24px;
+    margin-top: -21px;
+  }
+
+  .side-cards .card-back:last-child {
+    margin-top: 0;
+  }
+
+  .side-seat strong {
+    font-size: 0.7rem;
   }
 
   .scorebar {
