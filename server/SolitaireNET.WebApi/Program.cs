@@ -2358,6 +2358,7 @@ sealed class PlusFourSession
     {
         PlusFourCard top = discardPile[^1];
         return card.Color == "wild" ||
+            card.Value == "Inverte" ||
             card.Color == CurrentColor ||
             card.Value == top.Value;
     }

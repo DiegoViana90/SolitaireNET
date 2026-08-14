@@ -814,6 +814,7 @@ function canPlayLocal(card) {
   const top = state.game?.topCard;
   if (!top) return false;
   return card.color === "wild" ||
+    card.value === "Inverte" ||
     card.color === state.game.currentColor ||
     card.value === top.value;
 }
@@ -971,6 +972,7 @@ function canPlay(card) {
   const top = state.game?.topCard;
   if (!top) return false;
   return card.color === "wild" ||
+    card.value === "Inverte" ||
     card.color === state.game.currentColor ||
     card.value === top.value;
 }
