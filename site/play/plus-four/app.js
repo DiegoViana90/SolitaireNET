@@ -233,8 +233,10 @@ function cardEl(card, options = {}) {
   el.innerHTML = `<span>${label(card)}</span><strong>${card.value}</strong>`;
 
   if (!options.large) {
+    const playable = canAct() && canPlay(card);
+    if (playable) el.classList.add("playable");
     el.type = "button";
-    el.disabled = !canAct() || !canPlay(card);
+    el.disabled = !playable;
     el.addEventListener("click", () => playCard(card));
   }
 

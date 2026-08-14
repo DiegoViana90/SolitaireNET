@@ -381,24 +381,24 @@ h1 {
 .hand {
   display: flex;
   overflow-x: auto;
-  padding: 4px 2px 14px 14px;
+  padding: 12px 2px 8px 14px;
   scroll-snap-type: x proximity;
 }
 
 .card {
-  flex: 0 0 58px;
-  width: 58px;
-  height: 84px;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 56px;
   margin-left: -14px;
   border: 2px solid #fff6e5;
   border-radius: 8px;
   color: #111713;
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: 5px;
-  padding: 6px;
+  gap: 3px;
+  padding: 4px;
   font-weight: 950;
-  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 8px 14px rgba(0, 0, 0, 0.28);
   scroll-snap-align: start;
 }
 
@@ -407,7 +407,7 @@ button.card {
 }
 
 button.card:disabled {
-  opacity: 0.42;
+  opacity: 1;
   cursor: default;
 }
 
@@ -421,9 +421,17 @@ button.card:disabled {
   margin-left: 0;
 }
 
-.hand .card:not(:disabled):hover,
-.hand .card:not(:disabled):focus-visible {
+.hand .card.playable {
   transform: translateY(-8px);
+  box-shadow:
+    0 12px 18px rgba(0, 0, 0, 0.32),
+    0 0 0 2px rgba(217, 185, 85, 0.58);
+  z-index: 2;
+}
+
+.hand .card.playable:hover,
+.hand .card.playable:focus-visible {
+  transform: translateY(-12px);
 }
 
 .card span {
@@ -431,19 +439,19 @@ button.card:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.58rem;
+  font-size: 0.46rem;
 }
 
 .card strong {
   place-self: center;
   border-radius: 999px;
   background: #fff6e5;
-  padding: 5px;
-  min-width: 32px;
-  min-height: 32px;
+  padding: 3px;
+  min-width: 24px;
+  min-height: 24px;
   display: grid;
   place-items: center;
-  font-size: 0.95rem;
+  font-size: 0.76rem;
 }
 
 .discard-card .card {
@@ -515,15 +523,15 @@ button.card:disabled {
   }
 
   .card {
-    flex-basis: 52px;
-    width: 52px;
-    height: 76px;
-    margin-left: -16px;
-    padding: 5px;
+    flex-basis: 38px;
+    width: 38px;
+    height: 56px;
+    margin-left: -14px;
+    padding: 4px;
   }
 
   .hand {
-    padding-left: 16px;
+    padding-left: 14px;
   }
 
   .discard-card .card {
@@ -532,8 +540,8 @@ button.card:disabled {
   }
 
   .card strong {
-    min-width: 28px;
-    min-height: 28px;
-    font-size: 0.84rem;
+    min-width: 24px;
+    min-height: 24px;
+    font-size: 0.76rem;
   }
 }
