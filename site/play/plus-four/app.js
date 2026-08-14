@@ -6,7 +6,7 @@ const colors = {
   blue: "Azul",
   green: "Verde",
   yellow: "Amarelo",
-  wild: "Livre"
+  wild: "Troca cor"
 };
 const playColors = ["red", "blue", "green", "yellow"];
 let localCardSequence = 0;
@@ -321,7 +321,7 @@ function cardEl(card, options = {}) {
   el.dataset.color = card.color;
   el.dataset.value = card.value;
   el.setAttribute("aria-label", `${card.value} ${label(card)}`);
-  el.innerHTML = `<strong>${card.value}</strong>`;
+  el.innerHTML = `<strong>${displayValue(card)}</strong>`;
 
   if (!options.large) {
     const playable = canAct() && canPlay(card);
@@ -513,6 +513,7 @@ function startLocalRound(options) {
     drawPile: deck,
     discardPile: [topCard],
     opponents,
+    direction: 1,
     turnOrder: localTurnOrderFor(opponents)
   };
   state.roomCode = "BOT";
@@ -722,7 +723,8 @@ function localNextSide(side) {
   const turnOrder = state.localGame?.turnOrder || ["one", "bot-top"];
   const currentIndex = turnOrder.indexOf(side);
   if (currentIndex < 0) return turnOrder[0];
-  return turnOrder[(currentIndex + 1) % turnOrder.length];
+  const direction = state.localGame?.direction || 1;
+  return turnOrder[(currentIndex + direction + turnOrder.length) % turnOrder.length];
 }
 
 function localTurnOrderFor(opponents) {
@@ -744,11 +746,12 @@ function buildDeck() {
       }
       deck.push(newLocalCard(color, "Pula"));
       deck.push(newLocalCard(color, "+2"));
+      deck.push(newLocalCard(color, "Inverte"));
     }
   }
 
   for (let index = 0; index < 4; index += 1) {
-    deck.push(newLocalCard("wild", "Livre"));
+    deck.push(newLocalCard("wild", "Cor"));
     deck.push(newLocalCard("wild", "+4"));
   }
 
@@ -813,7 +816,7 @@ function canPlayLocal(card) {
 function botCardWeight(card) {
   if (card.value === "+4") return 90;
   if (card.value === "+2") return 70;
-  if (card.value === "Pula") return 60;
+  if (card.value === "Pula" || card.value === "Inverte") return 60;
   if (card.color === state.game?.currentColor) return 40;
   if (card.color === "wild") return 30;
   return Number.parseInt(card.value, 10) || 10;
@@ -844,6 +847,11 @@ async function nextLocalTurnAfter(card, side) {
   }
 
   if (card.value === "Pula") return localNextSide(next);
+  if (card.value === "Inverte") {
+    state.localGame.direction *= -1;
+    return state.localGame.turnOrder.length === 2 ? side : localNextSide(side);
+  }
+
   return next;
 }
 
@@ -910,8 +918,8 @@ function finishLocalRoundIfNeeded(side) {
 
 function cardPoints(card) {
   if (card.value === "+4") return 50;
-  if (card.value === "Livre") return 40;
-  if (card.value === "+2" || card.value === "Pula") return 20;
+  if (card.value === "Cor") return 40;
+  if (card.value === "+2" || card.value === "Pula" || card.value === "Inverte") return 20;
   return Number.parseInt(card.value, 10) || 10;
 }
 
@@ -978,8 +986,13 @@ function getStatus() {
 }
 
 function label(card) {
-  if (card.color === "wild") return card.playedColor ? colors[card.playedColor] : "Livre";
+  if (card.color === "wild") return card.playedColor ? colors[card.playedColor] : "Troca cor";
   return colors[card.color];
+}
+
+function displayValue(card) {
+  if (card.value === "Inverte") return "Inv";
+  return card.value;
 }
 
 function setMessage(text) {

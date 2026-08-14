@@ -2380,6 +2380,9 @@ sealed class PlusFourSession
         if (card.Value == "Pula")
             return side;
 
+        if (card.Value == "Inverte")
+            return side;
+
         return other;
     }
 
@@ -2438,8 +2441,8 @@ sealed class PlusFourSession
     static int CardPoints(PlusFourCard card) => card.Value switch
     {
         "+4" => 50,
-        "Livre" => 40,
-        "+2" or "Pula" => 20,
+        "Cor" => 40,
+        "+2" or "Pula" or "Inverte" => 20,
         _ => int.TryParse(card.Value, out int value) ? value : 10
     };
 
@@ -2455,12 +2458,13 @@ sealed class PlusFourSession
                     deck.Add(NewCard(color, value.ToString()));
                 deck.Add(NewCard(color, "Pula"));
                 deck.Add(NewCard(color, "+2"));
+                deck.Add(NewCard(color, "Inverte"));
             }
         }
 
         for (int i = 0; i < 4; i++)
         {
-            deck.Add(NewCard("wild", "Livre"));
+            deck.Add(NewCard("wild", "Cor"));
             deck.Add(NewCard("wild", "+4"));
         }
 
