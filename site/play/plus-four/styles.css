@@ -671,7 +671,9 @@ button.card:disabled {
   }
 
   .side-seat {
-    height: 138px;
+    height: 146px;
+    grid-template-rows: 16px 1fr 15px;
+    gap: 4px;
     padding: 6px;
   }
 
@@ -687,13 +689,13 @@ button.card:disabled {
 
   .side-cards {
     width: 34px;
-    height: 92px;
+    height: 82px;
   }
 
   .side-cards .card-back {
-    width: 26px;
-    height: 38px;
-    margin-top: -23px;
+    width: 24px;
+    height: 34px;
+    margin-top: -20px;
   }
 
   .side-cards .card-back:first-child {
@@ -701,7 +703,8 @@ button.card:disabled {
   }
 
   .side-seat strong {
-    font-size: 0.7rem;
+    font-size: 0.64rem;
+    line-height: 1;
   }
 
   .scorebar {
@@ -728,11 +731,26 @@ button.card:disabled {
 
   .top-player {
     width: min(340px, 100%);
-    height: 108px;
+    height: 96px;
+  }
+
+  .top-player > span {
+    font-size: 0.76rem;
+  }
+
+  .top-player strong {
+    font-size: 0.82rem;
+    line-height: 1;
   }
 
   .opponent-cards {
-    height: 48px;
+    height: 42px;
+  }
+
+  .top-player .card-back {
+    width: 30px;
+    height: 44px;
+    margin-left: -10px;
   }
 
   .card-back {
