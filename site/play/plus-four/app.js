@@ -336,7 +336,7 @@ function cardEl(card, options = {}) {
 
 async function playCard(card, sourceEl) {
   if (!canAct() || !canPlay(card)) return;
-  if (card.color === "wild") {
+  if (needsColorChoice(card)) {
     state.pendingColorCardId = card.id;
     state.selectedColor = state.game.currentColor && state.game.currentColor !== "wild"
       ? state.game.currentColor
@@ -352,7 +352,7 @@ async function playCard(card, sourceEl) {
 
 async function playPendingColorCard(color) {
   const card = state.game?.hand.find((item) => item.id === state.pendingColorCardId);
-  if (!card || card.color !== "wild" || !canAct() || !canPlay(card)) {
+  if (!card || !needsColorChoice(card) || !canAct() || !canPlay(card)) {
     state.pendingColorCardId = null;
     render();
     return;
@@ -382,6 +382,10 @@ async function playCardWithMotion(card, color, sourceEl) {
 function findHandCardEl(cardId) {
   return Array.from(handEl.querySelectorAll("[data-card-id]"))
     .find((item) => item.dataset.cardId === cardId);
+}
+
+function needsColorChoice(card) {
+  return card.color === "wild" || card.value === "Inverte";
 }
 
 async function animateCardToDiscard(color, sourceEl, options = {}) {
@@ -667,7 +671,7 @@ async function simulateBotTurn() {
   }
 
   opponent.hand = opponent.hand.filter((item) => item.id !== card.id);
-  const chosenColor = card.color === "wild" ? chooseBotColor(opponent) : null;
+  const chosenColor = needsColorChoice(card) ? chooseBotColor(opponent) : null;
   state.animating = true;
   try {
     await animateOpponentCardToDiscard(opponent.id, card, chosenColor);
@@ -991,7 +995,7 @@ function label(card) {
 }
 
 function displayValue(card) {
-  if (card.value === "Inverte") return "Inv";
+  if (card.value === "Inverte") return "\u21bb";
   return card.value;
 }
 

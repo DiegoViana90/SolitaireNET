@@ -444,19 +444,19 @@ h1 {
 }
 
 .card.chosen-red {
-  outline-color: var(--red);
+  background: var(--red);
 }
 
 .card.chosen-blue {
-  outline-color: var(--blue);
+  background: var(--blue);
 }
 
 .card.chosen-green {
-  outline-color: var(--green);
+  background: var(--green);
 }
 
 .card.chosen-yellow {
-  outline-color: var(--yellow);
+  background: var(--yellow);
 }
 
 .card.wild.chosen-red {

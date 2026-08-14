@@ -2256,7 +2256,7 @@ sealed class PlusFourSession
         if (!CanPlay(card))
             return PlusFourJoinResult.Fail(Code, "Essa carta nao pode ser jogada agora.");
 
-        string color = card.Color == "wild"
+        string color = card.Color == "wild" || card.Value == "Inverte"
             ? NormalizeColor(chosenColor) ?? ""
             : card.Color;
         if (string.IsNullOrEmpty(color))
