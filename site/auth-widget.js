@@ -265,14 +265,16 @@ function hydrateCachedLinkState() {
 
   const cachedProfile = readCachedProfile();
   authLinks.forEach((link) => {
+    const signedOutLabel = link.dataset.signedOutLabel || "Entrar";
+
     if (cachedProfile?.name) {
       link.textContent = cachedProfile.name;
       link.classList.add("signed-in");
       return;
     }
 
-    link.textContent = "Conta";
-    link.classList.add("signed-in");
+    link.textContent = signedOutLabel;
+    link.classList.remove("signed-in");
   });
 }
 
