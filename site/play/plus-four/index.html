@@ -8,7 +8,7 @@
   <meta name="description" content="+4, um jogo original de cartas por cores e numeros no paciencia . net.">
   <link rel="canonical" href="https://paciencia.net.br/play/plus-four/">
   <link rel="icon" href="../../appicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=16">
+  <link rel="stylesheet" href="styles.css?v=17">
 </head>
 <body>
   <main class="game-shell" aria-label="+4">
@@ -34,6 +34,14 @@
         <strong>Jogar contra IA</strong>
         <span>Cria uma partida local com baralho embaralhado e IA adversaria.</span>
       </button>
+      <div class="bot-options" aria-label="Quantidade de adversarios da IA">
+        <span>Adversarios IA</span>
+        <div class="bot-count-tabs">
+          <button class="selected" type="button" data-bot-count="1" aria-pressed="true">1</button>
+          <button type="button" data-bot-count="2" aria-pressed="false">2</button>
+          <button type="button" data-bot-count="3" aria-pressed="false">3</button>
+        </div>
+      </div>
       <div class="join-code">
         <input id="room-code" type="text" maxlength="4" autocomplete="off" placeholder="CODIGO" aria-label="Codigo da sala">
         <button id="join-code" type="button">Entrar</button>
@@ -49,7 +57,7 @@
           <strong id="my-score">0</strong>
         </div>
         <div>
-          <span>Adversario</span>
+          <span id="opponent-score-label">Adversario</span>
           <strong id="opponent-score">0</strong>
         </div>
         <div>
@@ -60,13 +68,15 @@
 
       <div class="playmat">
         <div class="player-area opponent top-player" aria-label="Cartas do adversario principal">
-          <span>Adversario</span>
+          <span id="top-opponent-label">Adversario</span>
           <div class="opponent-cards" id="opponent-cards"></div>
           <strong id="opponent-count">0 cartas</strong>
         </div>
 
-        <div class="side-seat left-seat" aria-label="Jogador lateral esquerdo">
-          <span>Vazio</span>
+        <div class="side-seat left-seat" id="left-seat" aria-label="Jogador lateral esquerdo">
+          <span id="left-seat-label">Vazio</span>
+          <div class="side-cards" id="left-opponent-cards"></div>
+          <strong id="left-opponent-count"></strong>
         </div>
 
         <div class="center-table">
@@ -77,8 +87,10 @@
           <div class="discard-card" id="discard-card" aria-label="Carta no descarte"></div>
         </div>
 
-        <div class="side-seat right-seat" aria-label="Jogador lateral direito">
-          <span>Vazio</span>
+        <div class="side-seat right-seat" id="right-seat" aria-label="Jogador lateral direito">
+          <span id="right-seat-label">Vazio</span>
+          <div class="side-cards" id="right-opponent-cards"></div>
+          <strong id="right-opponent-count"></strong>
         </div>
 
         <div class="player-area my-area" aria-label="Suas cartas">
@@ -109,6 +121,6 @@
   <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
 
   <script src="../../build-info.js?v=__BUILD_ASSET_VERSION__"></script>
-  <script type="module" src="app.js?v=9"></script>
+  <script type="module" src="app.js?v=10"></script>
 </body>
 </html>

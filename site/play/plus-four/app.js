@@ -11,6 +11,12 @@ const colors = {
 const playColors = ["red", "blue", "green", "yellow"];
 let localCardSequence = 0;
 
+const localOpponentSlots = [
+  { id: "bot-top", name: "Adversario", shortName: "IA 1" },
+  { id: "bot-left", name: "Adversario 2", shortName: "IA 2" },
+  { id: "bot-right", name: "Adversario 3", shortName: "IA 3" }
+];
+
 const state = {
   roomCode: null,
   playerId: null,
@@ -20,6 +26,7 @@ const state = {
   pendingColorCardId: null,
   simulated: false,
   localGame: null,
+  localOpponentCount: 1,
   animating: false,
   busy: false,
   pollTimer: null,
@@ -33,6 +40,7 @@ const statusEl = document.querySelector("#status");
 const createRoomEl = document.querySelector("#create-room");
 const randomRoomEl = document.querySelector("#random-room");
 const simulateTableEl = document.querySelector("#simulate-table");
+const botCountButtons = Array.from(document.querySelectorAll("[data-bot-count]"));
 const roomCodeEl = document.querySelector("#room-code");
 const joinCodeEl = document.querySelector("#join-code");
 const leaveRoomEl = document.querySelector("#leave-room");
@@ -42,6 +50,17 @@ const discardCardEl = document.querySelector("#discard-card");
 const handEl = document.querySelector("#hand");
 const opponentCardsEl = document.querySelector("#opponent-cards");
 const opponentCountEl = document.querySelector("#opponent-count");
+const opponentScoreLabelEl = document.querySelector("#opponent-score-label");
+const topOpponentLabelEl = document.querySelector("#top-opponent-label");
+const topOpponentSeatEl = document.querySelector(".top-player");
+const leftSeatEl = document.querySelector("#left-seat");
+const leftSeatLabelEl = document.querySelector("#left-seat-label");
+const leftOpponentCardsEl = document.querySelector("#left-opponent-cards");
+const leftOpponentCountEl = document.querySelector("#left-opponent-count");
+const rightSeatEl = document.querySelector("#right-seat");
+const rightSeatLabelEl = document.querySelector("#right-seat-label");
+const rightOpponentCardsEl = document.querySelector("#right-opponent-cards");
+const rightOpponentCountEl = document.querySelector("#right-opponent-count");
 const myScoreEl = document.querySelector("#my-score");
 const opponentScoreEl = document.querySelector("#opponent-score");
 const roundNumberEl = document.querySelector("#round-number");
@@ -203,11 +222,11 @@ function render() {
   }
 
   roomInfoEl.textContent = state.simulated
-    ? "Partida local | IA adversaria"
+    ? `Partida local | ${localOpponents().length} IA${localOpponents().length === 1 ? "" : "s"} adversaria${localOpponents().length === 1 ? "" : "s"}`
     : `Sala ${state.roomCode} | Voce e Jogador ${state.playerSide === "one" ? "1" : "2"}`;
   drawCountEl.textContent = game.drawCount;
-  opponentCountEl.textContent = `${game.opponentCount} carta${game.opponentCount === 1 ? "" : "s"}`;
   myScoreEl.textContent = state.playerSide === "one" ? game.oneScore : game.twoScore;
+  opponentScoreLabelEl.textContent = state.simulated && localOpponents().length > 1 ? "IAs" : "Adversario";
   opponentScoreEl.textContent = state.playerSide === "one" ? game.twoScore : game.oneScore;
   roundNumberEl.textContent = game.round;
   nextRoundEl.hidden = !game.roundWinner || game.matchWinner;
@@ -215,7 +234,7 @@ function render() {
 
   discardCardEl.replaceChildren(cardEl(game.topCard, { large: true }));
   handEl.replaceChildren(...game.hand.map((card) => cardEl(card)));
-  opponentCardsEl.replaceChildren(...Array.from({ length: game.opponentCount }, () => cardBackEl()));
+  renderOpponents();
 
   colorModalEl.hidden = !state.pendingColorCardId;
   const pendingCard = game.hand.find((card) => card.id === state.pendingColorCardId);
@@ -225,6 +244,61 @@ function render() {
   colorPickerEl.querySelectorAll("button").forEach((button) => {
     button.classList.toggle("selected", button.dataset.color === state.selectedColor);
   });
+}
+
+function renderOpponents() {
+  if (!state.simulated) {
+    topOpponentLabelEl.textContent = "Adversario";
+    opponentCountEl.textContent = `${state.game.opponentCount} carta${state.game.opponentCount === 1 ? "" : "s"}`;
+    opponentCardsEl.replaceChildren(...Array.from({ length: state.game.opponentCount }, () => cardBackEl()));
+    topOpponentSeatEl.classList.toggle("current-turn", state.game.turn !== state.playerSide);
+    renderSideOpponent(null, {
+      seat: leftSeatEl,
+      label: leftSeatLabelEl,
+      cards: leftOpponentCardsEl,
+      count: leftOpponentCountEl
+    });
+    renderSideOpponent(null, {
+      seat: rightSeatEl,
+      label: rightSeatLabelEl,
+      cards: rightOpponentCardsEl,
+      count: rightOpponentCountEl
+    });
+    return;
+  }
+
+  const [topOpponent, leftOpponent, rightOpponent] = localOpponents();
+  renderTopOpponent(topOpponent);
+  renderSideOpponent(leftOpponent, {
+    seat: leftSeatEl,
+    label: leftSeatLabelEl,
+    cards: leftOpponentCardsEl,
+    count: leftOpponentCountEl
+  });
+  renderSideOpponent(rightOpponent, {
+    seat: rightSeatEl,
+    label: rightSeatLabelEl,
+    cards: rightOpponentCardsEl,
+    count: rightOpponentCountEl
+  });
+}
+
+function renderTopOpponent(opponent) {
+  const count = opponent?.hand.length || 0;
+  topOpponentLabelEl.textContent = opponent?.name || "Adversario";
+  opponentCountEl.textContent = `${count} carta${count === 1 ? "" : "s"}`;
+  opponentCardsEl.replaceChildren(...Array.from({ length: count }, () => cardBackEl()));
+  topOpponentSeatEl.classList.toggle("current-turn", state.game.turn === opponent?.id);
+}
+
+function renderSideOpponent(opponent, elements) {
+  elements.seat.classList.toggle("active-opponent", Boolean(opponent));
+  elements.seat.classList.toggle("current-turn", state.game?.turn === opponent?.id);
+  elements.label.textContent = opponent?.name || "Vazio";
+  elements.cards.replaceChildren(...Array.from({ length: opponent?.hand.length || 0 }, () => cardBackEl()));
+  elements.count.textContent = opponent
+    ? `${opponent.hand.length} carta${opponent.hand.length === 1 ? "" : "s"}`
+    : "";
 }
 
 function cardBackEl() {
@@ -389,7 +463,8 @@ function simulateTable() {
     oneScore: 0,
     twoScore: 0,
     round: 1,
-    startingSide: "one"
+    startingSide: "one",
+    opponentCount: state.localOpponentCount
   });
   showToast("Partida local contra IA iniciada.");
   render();
@@ -398,11 +473,15 @@ function simulateTable() {
 function startLocalRound(options) {
   const deck = shuffle(buildDeck());
   const playerHand = [];
-  const botHand = [];
+  const opponents = localOpponentSlots
+    .slice(0, options.opponentCount || state.localOpponentCount || 1)
+    .map((slot) => ({ ...slot, hand: [] }));
 
   for (let index = 0; index < 7; index += 1) {
     playerHand.push(deck.pop());
-    botHand.push(deck.pop());
+    for (const opponent of opponents) {
+      opponent.hand.push(deck.pop());
+    }
   }
 
   let topCard = deck.pop();
@@ -415,7 +494,8 @@ function startLocalRound(options) {
   state.localGame = {
     drawPile: deck,
     discardPile: [topCard],
-    botHand
+    opponents,
+    turnOrder: ["one", ...opponents.map((opponent) => opponent.id)]
   };
   state.roomCode = "BOT";
   state.playerId = "simulated-player";
@@ -434,15 +514,16 @@ function startLocalRound(options) {
     drawCount: deck.length,
     topCard,
     hand: playerHand,
-    opponentCount: botHand.length,
+    opponentCount: opponents[0]?.hand.length || 0,
+    opponents: opponents.map((opponent) => ({
+      id: opponent.id,
+      name: opponent.name,
+      count: opponent.hand.length
+    })),
     lastEvent: null
   };
 
-  if (state.game.turn === "two") {
-    window.setTimeout(() => {
-      void simulateBotTurn();
-    }, 700);
-  }
+  scheduleLocalBotTurn();
 }
 
 async function drawCard() {
@@ -489,7 +570,8 @@ async function applySimulatedAction(action) {
       oneScore: state.game.oneScore,
       twoScore: state.game.twoScore,
       round: state.game.round + 1,
-      startingSide: state.game.roundWinner === "one" ? "two" : "one"
+      startingSide: state.game.roundWinner === "one" ? localNextSide("one") : "one",
+      opponentCount: state.localGame.opponents.length
     });
     render();
     return;
@@ -511,12 +593,10 @@ async function applySimulatedAction(action) {
     }
 
     state.game.hand.push(card);
-    state.game.turn = "two";
+    state.game.turn = localNextSide("one");
     syncLocalPublicState();
     render();
-    window.setTimeout(() => {
-      void simulateBotTurn();
-    }, 700);
+    scheduleLocalBotTurn();
     return;
   }
 
@@ -533,45 +613,45 @@ async function applySimulatedAction(action) {
     syncLocalPublicState();
     render();
 
-    if (state.game.turn === "two" && !state.game.roundWinner) {
-      window.setTimeout(() => {
-        void simulateBotTurn();
-      }, 700);
-    }
+    scheduleLocalBotTurn();
   }
 }
 
 async function simulateBotTurn() {
-  if (!state.simulated || !state.game || !state.localGame || state.game.turn !== "two") return;
+  if (!state.simulated || !state.game || !state.localGame || state.game.turn === "one") return;
 
-  const card = chooseBotCard();
+  const opponent = localOpponentById(state.game.turn);
+  if (!opponent) return;
+
+  const card = chooseBotCard(opponent);
   if (!card) {
     const drawn = drawLocalCard();
     if (drawn) {
       state.animating = true;
       try {
-        await animateDrawTo(opponentCardsEl);
+        await animateDrawTo(getOpponentCardsEl(opponent.id));
       } finally {
         state.animating = false;
       }
 
-      state.localGame.botHand.push(drawn);
-      showToast("IA adversaria comprou uma carta.");
+      opponent.hand.push(drawn);
+      showToast(`${opponent.name} comprou uma carta.`);
     } else {
-      showToast("IA adversaria passou.");
+      showToast(`${opponent.name} passou.`);
     }
 
-    state.game.turn = "one";
+    state.game.turn = localNextSide(opponent.id);
     syncLocalPublicState();
     render();
+    scheduleLocalBotTurn();
     return;
   }
 
-  state.localGame.botHand = state.localGame.botHand.filter((item) => item.id !== card.id);
-  const chosenColor = card.color === "wild" ? chooseBotColor() : null;
+  opponent.hand = opponent.hand.filter((item) => item.id !== card.id);
+  const chosenColor = card.color === "wild" ? chooseBotColor(opponent) : null;
   state.animating = true;
   try {
-    await animateOpponentCardToDiscard(card, chosenColor);
+    await animateOpponentCardToDiscard(opponent.id, card, chosenColor);
   } finally {
     state.animating = false;
   }
@@ -579,27 +659,56 @@ async function simulateBotTurn() {
   state.localGame.discardPile.push({ ...card, playedColor: chosenColor || card.playedColor });
   state.game.currentColor = chosenColor || card.color;
   state.game.topCard = state.localGame.discardPile.at(-1);
-  state.game.turn = await nextLocalTurnAfter(card, "two");
-  finishLocalRoundIfNeeded("two");
+  state.game.turn = await nextLocalTurnAfter(card, opponent.id);
+  finishLocalRoundIfNeeded(opponent.id);
   syncLocalPublicState();
-  showToast(`IA adversaria jogou ${card.value}.`);
+  showToast(`${opponent.name} jogou ${card.value}.`);
   render();
 
-  if (state.game.turn === "two" && !state.game.roundWinner) {
-    window.setTimeout(() => {
-      void simulateBotTurn();
-    }, 750);
-  }
+  scheduleLocalBotTurn();
 }
 
-async function animateOpponentCardToDiscard(card, color) {
-  const sourceEl = findOpponentCardEl();
+async function animateOpponentCardToDiscard(opponentId, card, color) {
+  const sourceEl = findOpponentCardEl(opponentId);
   await animateCardToDiscard(color, sourceEl, { card });
 }
 
-function findOpponentCardEl() {
-  const cards = Array.from(opponentCardsEl.querySelectorAll(".card-back"));
-  return cards.at(-1) || opponentCardsEl;
+function findOpponentCardEl(opponentId) {
+  const container = getOpponentCardsEl(opponentId);
+  const cards = Array.from(container.querySelectorAll(".card-back"));
+  return cards.at(-1) || container;
+}
+
+function getOpponentCardsEl(opponentId) {
+  if (opponentId === "bot-left") return leftOpponentCardsEl;
+  if (opponentId === "bot-right") return rightOpponentCardsEl;
+  return opponentCardsEl;
+}
+
+function scheduleLocalBotTurn(delay = 700) {
+  if (!state.simulated || !state.game || state.game.roundWinner || state.game.turn === "one") return;
+  window.setTimeout(() => {
+    void simulateBotTurn();
+  }, delay);
+}
+
+function localOpponents() {
+  return state.localGame?.opponents || [];
+}
+
+function localOpponentById(id) {
+  return localOpponents().find((opponent) => opponent.id === id) || null;
+}
+
+function localNextSide(side) {
+  const turnOrder = state.localGame?.turnOrder || ["one", "bot-top"];
+  const currentIndex = turnOrder.indexOf(side);
+  if (currentIndex < 0) return turnOrder[0];
+  return turnOrder[(currentIndex + 1) % turnOrder.length];
+}
+
+function currentLocalOpponentName() {
+  return localOpponentById(state.game?.turn)?.name || "IA adversaria";
 }
 
 function buildDeck() {
@@ -663,9 +772,9 @@ function ensureLocalDrawPile() {
   state.localGame.drawPile = shuffle(recycled);
 }
 
-function chooseBotCard() {
-  if (!state.localGame) return null;
-  return [...state.localGame.botHand]
+function chooseBotCard(opponent) {
+  if (!opponent) return null;
+  return [...opponent.hand]
     .filter((card) => canPlayLocal(card))
     .sort((left, right) => botCardWeight(right) - botCardWeight(left))[0] || null;
 }
@@ -687,10 +796,10 @@ function botCardWeight(card) {
   return Number.parseInt(card.value, 10) || 10;
 }
 
-function chooseBotColor() {
-  if (!state.localGame) return "red";
+function chooseBotColor(opponent) {
+  if (!opponent) return "red";
   const counts = Object.fromEntries(playColors.map((color) => [color, 0]));
-  for (const card of state.localGame.botHand) {
+  for (const card of opponent.hand) {
     if (counts[card.color] !== undefined) counts[card.color] += 1;
   }
 
@@ -700,19 +809,19 @@ function chooseBotColor() {
 }
 
 async function nextLocalTurnAfter(card, side) {
-  const other = side === "one" ? "two" : "one";
+  const next = localNextSide(side);
   if (card.value === "+2") {
-    await drawLocalCardsWithMotion(other, 2);
-    return side;
+    await drawLocalCardsWithMotion(next, 2);
+    return localNextSide(next);
   }
 
   if (card.value === "+4") {
-    await drawLocalCardsWithMotion(other, 4);
-    return side;
+    await drawLocalCardsWithMotion(next, 4);
+    return localNextSide(next);
   }
 
-  if (card.value === "Pula") return side;
-  return other;
+  if (card.value === "Pula") return localNextSide(next);
+  return next;
 }
 
 function drawLocalCards(side, count) {
@@ -722,7 +831,7 @@ function drawLocalCards(side, count) {
     if (side === "one") {
       state.game.hand.push(card);
     } else {
-      state.localGame.botHand.push(card);
+      localOpponentById(side)?.hand.push(card);
     }
   }
 }
@@ -734,7 +843,7 @@ async function drawLocalCardsWithMotion(side, count) {
 
     state.animating = true;
     try {
-      await animateDrawTo(side === "one" ? handEl : opponentCardsEl);
+      await animateDrawTo(side === "one" ? handEl : getOpponentCardsEl(side));
     } finally {
       state.animating = false;
     }
@@ -742,7 +851,7 @@ async function drawLocalCardsWithMotion(side, count) {
     if (side === "one") {
       state.game.hand.push(card);
     } else {
-      state.localGame.botHand.push(card);
+      localOpponentById(side)?.hand.push(card);
     }
 
     syncLocalPublicState();
@@ -752,20 +861,27 @@ async function drawLocalCardsWithMotion(side, count) {
 
 function finishLocalRoundIfNeeded(side) {
   if (!state.game || !state.localGame) return;
+  const winnerOpponent = side === "one" ? null : localOpponentById(side);
   const winnerHandCount = side === "one"
     ? state.game.hand.length
-    : state.localGame.botHand.length;
+    : winnerOpponent?.hand.length;
 
   if (winnerHandCount > 0) return;
 
   state.game.roundWinner = side;
   state.game.turn = side;
   if (side === "one") {
-    state.game.oneScore += state.localGame.botHand.reduce((total, card) => total + cardPoints(card), 0);
+    state.game.oneScore += localOpponents()
+      .flatMap((opponent) => opponent.hand)
+      .reduce((total, card) => total + cardPoints(card), 0);
     showToast("Voce venceu a rodada.");
   } else {
-    state.game.twoScore += state.game.hand.reduce((total, card) => total + cardPoints(card), 0);
-    showToast("IA adversaria venceu a rodada.");
+    const remainingOpponentCards = localOpponents()
+      .filter((opponent) => opponent.id !== side)
+      .flatMap((opponent) => opponent.hand);
+    state.game.twoScore += [...state.game.hand, ...remainingOpponentCards]
+      .reduce((total, card) => total + cardPoints(card), 0);
+    showToast(`${winnerOpponent?.name || "IA adversaria"} venceu a rodada.`);
   }
 }
 
@@ -779,7 +895,12 @@ function cardPoints(card) {
 function syncLocalPublicState() {
   if (!state.game || !state.localGame) return;
   state.game.drawCount = state.localGame.drawPile.length;
-  state.game.opponentCount = state.localGame.botHand.length;
+  state.game.opponentCount = state.localGame.opponents[0]?.hand.length || 0;
+  state.game.opponents = state.localGame.opponents.map((opponent) => ({
+    id: opponent.id,
+    name: opponent.name,
+    count: opponent.hand.length
+  }));
   state.game.topCard = state.localGame.discardPile.at(-1);
 }
 
@@ -825,11 +946,11 @@ function getStatus() {
   if (state.game.matchWinner) return state.game.matchWinner === state.playerSide ? "Voce venceu a partida!" : "Adversario venceu a partida.";
   if (state.game.roundWinner) {
     if (state.game.roundWinner === state.playerSide) return "Voce venceu a rodada.";
-    return state.simulated ? "IA adversaria venceu a rodada." : "Adversario venceu a rodada.";
+    return state.simulated ? `${localOpponentById(state.game.roundWinner)?.name || "IA adversaria"} venceu a rodada.` : "Adversario venceu a rodada.";
   }
   if (state.pendingColorCardId) return "Escolha uma cor para jogar essa carta.";
   if (state.game.turn === state.playerSide) return "Sua vez.";
-  if (state.simulated) return "Vez da IA adversaria.";
+  if (state.simulated) return `Vez da ${currentLocalOpponentName()}.`;
   return "Vez do adversario.";
 }
 
@@ -845,6 +966,10 @@ function setMessage(text) {
 function setControlsEnabled(enabled) {
   createRoomEl.disabled = !enabled;
   randomRoomEl.disabled = !enabled;
+  simulateTableEl.disabled = !enabled;
+  botCountButtons.forEach((button) => {
+    button.disabled = !enabled;
+  });
   joinCodeEl.disabled = !enabled;
   roomCodeEl.disabled = !enabled;
 }
@@ -878,9 +1003,23 @@ function showToast(text) {
   window.setTimeout(() => toast.remove(), 3200);
 }
 
+function setLocalOpponentCount(count) {
+  state.localOpponentCount = Math.min(3, Math.max(1, count));
+  botCountButtons.forEach((button) => {
+    const selected = Number.parseInt(button.dataset.botCount, 10) === state.localOpponentCount;
+    button.classList.toggle("selected", selected);
+    button.setAttribute("aria-pressed", selected ? "true" : "false");
+  });
+}
+
 createRoomEl.addEventListener("click", createRoom);
 randomRoomEl.addEventListener("click", findRandomRoom);
 simulateTableEl.addEventListener("click", simulateTable);
+botCountButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setLocalOpponentCount(Number.parseInt(button.dataset.botCount, 10));
+  });
+});
 joinCodeEl.addEventListener("click", joinRoomByCode);
 roomCodeEl.addEventListener("input", () => {
   roomCodeEl.value = roomCodeEl.value.toUpperCase();
@@ -908,4 +1047,5 @@ document.addEventListener("keydown", (event) => {
   render();
 });
 
+setLocalOpponentCount(state.localOpponentCount);
 restoreSession();

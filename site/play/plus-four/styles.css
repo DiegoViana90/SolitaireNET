@@ -102,6 +102,7 @@ h1 {
 }
 
 .lobby > button,
+.bot-options,
 .join-code,
 .room-info,
 .table,
@@ -128,8 +129,43 @@ h1 {
 }
 
 .lobby span,
+.bot-options span,
 .room-info {
   color: var(--muted);
+}
+
+.bot-options {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+}
+
+.bot-options > span {
+  font-weight: 900;
+}
+
+.bot-count-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.bot-count-tabs button {
+  width: 38px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(16, 23, 19, 0.72);
+  color: var(--text);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.bot-count-tabs button.selected {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #20160b;
 }
 
 .join-code {
@@ -257,8 +293,43 @@ h1 {
 .side-seat {
   min-height: 150px;
   display: grid;
+  gap: 6px;
   place-items: center;
+  padding: 8px;
   opacity: 0.5;
+}
+
+.side-seat.active-opponent {
+  opacity: 1;
+}
+
+.side-seat.active-opponent > span {
+  color: var(--text);
+  writing-mode: horizontal-tb;
+}
+
+.side-seat.current-turn,
+.top-player.current-turn {
+  box-shadow: inset 0 0 0 2px rgba(217, 185, 85, 0.44);
+}
+
+.side-seat strong {
+  color: var(--gold);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.side-cards {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 22px;
+}
+
+.side-cards .card-back {
+  margin-left: -22px;
+  transform: rotate(90deg);
 }
 
 .left-seat {
@@ -587,7 +658,19 @@ button.card:disabled {
 
   .side-seat {
     min-height: 96px;
+  }
+
+  .side-seat:not(.active-opponent) {
     writing-mode: vertical-rl;
+  }
+
+  .side-cards {
+    min-height: 46px;
+    padding-left: 16px;
+  }
+
+  .side-cards .card-back {
+    margin-left: -20px;
   }
 
   .scorebar {
