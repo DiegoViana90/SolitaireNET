@@ -309,7 +309,7 @@ function render() {
 function pieceEl(piece, square, movesByFrom) {
   const el = document.createElement("span");
   el.className = `piece ${piece.side}-piece`;
-  el.textContent = pieceSymbols[`${piece.side}-${piece.type}`];
+  el.dataset.symbol = pieceSymbols[`${piece.side}-${piece.type}`];
   el.setAttribute("aria-label", `${pieceLabel(piece.type)} ${players[piece.side].label}`);
   if (canPlay() && piece.side === state.playerSide && movesByFrom.has(square)) {
     el.classList.add("playable");
