@@ -397,8 +397,9 @@ h1 {
 .hand {
   display: flex;
   justify-content: safe center;
+  gap: 7px;
   overflow-x: auto;
-  padding: 12px 18px 8px 28px;
+  padding: 12px 18px 8px;
   scroll-snap-type: x proximity;
 }
 
@@ -406,7 +407,7 @@ h1 {
   flex: 0 0 38px;
   width: 38px;
   height: 56px;
-  margin-left: -14px;
+  margin-left: 0;
   border: 2px solid #fff6e5;
   border-radius: 8px;
   color: #111713;
@@ -595,12 +596,13 @@ button.card:disabled {
     flex-basis: 38px;
     width: 38px;
     height: 56px;
-    margin-left: -14px;
+    margin-left: 0;
     padding: 4px;
   }
 
   .hand {
-    padding-left: 28px;
+    gap: 7px;
+    padding-left: 18px;
     padding-right: 18px;
   }
 

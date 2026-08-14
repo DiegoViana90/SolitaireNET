@@ -423,6 +423,7 @@ function applySimulatedAction(action) {
     state.game.hand.push(sampleCard(`p${Date.now()}`, "green", "7", null));
     state.game.turn = "two";
     render();
+    window.setTimeout(simulateBotTurn, 700);
     return;
   }
 
@@ -440,7 +441,17 @@ function applySimulatedAction(action) {
 }
 
 function simulateBotTurn() {
-  if (!state.simulated || !state.game) return;
+  if (!state.simulated || !state.game || state.game.turn !== "two") return;
+
+  const botShouldDraw = state.game.drawCount > 0 && Math.random() < 0.35;
+  if (botShouldDraw) {
+    state.game.drawCount = Math.max(0, state.game.drawCount - 1);
+    state.game.opponentCount += 1;
+    state.game.turn = "one";
+    showToast("Bot comprou uma carta.");
+    render();
+    return;
+  }
 
   state.game.opponentCount = Math.max(1, state.game.opponentCount - 1);
   state.game.topCard = sampleCard(`bot${Date.now()}`, state.game.currentColor, "3", null);
