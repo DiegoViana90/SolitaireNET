@@ -265,7 +265,10 @@ h1 {
   grid-area: top;
   justify-self: center;
   width: min(520px, 100%);
+  height: 116px;
   text-align: center;
+  align-content: center;
+  overflow: hidden;
 }
 
 .top-player strong {
@@ -273,10 +276,11 @@ h1 {
 }
 
 .opponent-cards {
-  min-height: 58px;
+  height: 58px;
   display: flex;
   justify-content: center;
   padding-left: 14px;
+  overflow: hidden;
 }
 
 .card-back {
@@ -291,12 +295,14 @@ h1 {
 }
 
 .side-seat {
-  min-height: 190px;
+  height: 190px;
   display: grid;
+  grid-template-rows: auto 1fr auto;
   gap: 6px;
   place-items: center;
   padding: 8px;
   opacity: 0.5;
+  overflow: hidden;
 }
 
 .side-seat.active-opponent {
@@ -321,12 +327,13 @@ h1 {
 
 .side-cards {
   width: 58px;
-  min-height: 132px;
+  height: 132px;
   display: flex;
   flex-direction: column-reverse;
   align-items: center;
   justify-content: center;
   padding-top: 28px;
+  overflow: hidden;
 }
 
 .side-cards .card-back {
@@ -665,7 +672,7 @@ button.card:disabled {
   }
 
   .side-seat {
-    min-height: 138px;
+    height: 138px;
     padding: 6px;
   }
 
@@ -681,7 +688,7 @@ button.card:disabled {
 
   .side-cards {
     width: 44px;
-    min-height: 92px;
+    height: 92px;
     padding-top: 20px;
   }
 
@@ -721,10 +728,11 @@ button.card:disabled {
 
   .top-player {
     width: min(340px, 100%);
+    height: 108px;
   }
 
   .opponent-cards {
-    min-height: 48px;
+    height: 48px;
   }
 
   .card-back {
