@@ -95,7 +95,8 @@ h1 {
 .lobby[hidden],
 .table[hidden],
 .room-info[hidden],
-.next-round[hidden] {
+.next-round[hidden],
+.color-picker[hidden] {
   display: none;
 }
 
@@ -198,7 +199,7 @@ h1 {
 }
 
 .playmat {
-  min-height: min(70dvh, 620px);
+  min-height: min(66dvh, 560px);
   display: grid;
   grid-template-columns: minmax(54px, 84px) 1fr minmax(54px, 84px);
   grid-template-rows: auto 1fr auto auto;
@@ -236,17 +237,17 @@ h1 {
 }
 
 .opponent-cards {
-  min-height: 72px;
+  min-height: 58px;
   display: flex;
   justify-content: center;
-  padding-left: 18px;
+  padding-left: 14px;
 }
 
 .card-back {
-  width: 46px;
-  height: 68px;
-  margin-left: -18px;
-  border: 3px solid rgba(255, 246, 229, 0.82);
+  width: 38px;
+  height: 56px;
+  margin-left: -14px;
+  border: 2px solid rgba(255, 246, 229, 0.82);
   border-radius: 8px;
   background:
     linear-gradient(135deg, #d94343 0 34%, #2f80ed 34% 58%, #27ae60 58% 78%, #f2c94c 78%);
@@ -271,7 +272,7 @@ h1 {
 .center-table {
   grid-area: center;
   display: grid;
-  grid-template-columns: minmax(92px, 140px) minmax(92px, 140px);
+  grid-template-columns: minmax(74px, 96px) minmax(74px, 96px);
   justify-content: center;
   gap: clamp(18px, 8vw, 80px);
   align-items: center;
@@ -279,9 +280,9 @@ h1 {
 }
 
 .draw-pile {
-  min-height: 178px;
-  border: 4px solid rgba(255, 246, 229, 0.86);
-  border-radius: 10px;
+  min-height: 126px;
+  border: 3px solid rgba(255, 246, 229, 0.86);
+  border-radius: 8px;
   background:
     linear-gradient(135deg, #d94343 0 34%, #2f80ed 34% 58%, #27ae60 58% 78%, #f2c94c 78%);
   color: #111713;
@@ -314,20 +315,21 @@ h1 {
   grid-area: colors;
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 7px;
+  align-items: center;
 }
 
 .color-picker button {
-  width: 42px;
-  height: 42px;
-  border: 3px solid transparent;
+  width: 28px;
+  height: 28px;
+  border: 2px solid transparent;
   border-radius: 999px;
   cursor: pointer;
 }
 
 .color-picker .selected {
   border-color: #fff6e5;
-  box-shadow: 0 0 0 3px rgba(217, 185, 85, 0.42);
+  box-shadow: 0 0 0 2px rgba(217, 185, 85, 0.42);
 }
 
 .red,
@@ -379,22 +381,22 @@ h1 {
 .hand {
   display: flex;
   overflow-x: auto;
-  padding: 4px 2px 14px 26px;
+  padding: 4px 2px 14px 14px;
   scroll-snap-type: x proximity;
 }
 
 .card {
-  flex: 0 0 96px;
-  width: 96px;
-  height: 140px;
-  margin-left: -26px;
-  border: 4px solid #fff6e5;
-  border-radius: 10px;
+  flex: 0 0 58px;
+  width: 58px;
+  height: 84px;
+  margin-left: -14px;
+  border: 2px solid #fff6e5;
+  border-radius: 8px;
   color: #111713;
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: 10px;
-  padding: 10px;
+  gap: 5px;
+  padding: 6px;
   font-weight: 950;
   box-shadow: 0 14px 26px rgba(0, 0, 0, 0.28);
   scroll-snap-align: start;
@@ -409,13 +411,19 @@ button.card:disabled {
   cursor: default;
 }
 
+.card.pending-color {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+  transform: translateY(-8px);
+}
+
 .hand .card:first-child {
   margin-left: 0;
 }
 
 .hand .card:not(:disabled):hover,
 .hand .card:not(:disabled):focus-visible {
-  transform: translateY(-10px);
+  transform: translateY(-8px);
 }
 
 .card span {
@@ -423,24 +431,25 @@ button.card:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.78rem;
+  font-size: 0.58rem;
 }
 
 .card strong {
   place-self: center;
   border-radius: 999px;
   background: #fff6e5;
-  padding: 8px;
-  min-width: 54px;
-  min-height: 54px;
+  padding: 5px;
+  min-width: 32px;
+  min-height: 32px;
   display: grid;
   place-items: center;
-  font-size: 1.45rem;
+  font-size: 0.95rem;
 }
 
 .discard-card .card {
-  width: 112px;
-  height: 162px;
+  width: 72px;
+  height: 106px;
+  margin-left: 0;
 }
 
 .next-round {
@@ -478,7 +487,7 @@ button.card:disabled {
   }
 
   .playmat {
-    min-height: 68dvh;
+    min-height: 62dvh;
     grid-template-columns: 42px 1fr 42px;
     gap: 10px;
   }
@@ -486,17 +495,6 @@ button.card:disabled {
   .side-seat {
     min-height: 116px;
     writing-mode: vertical-rl;
-  }
-
-  .opponent-cards {
-    min-height: 58px;
-    padding-left: 14px;
-  }
-
-  .card-back {
-    width: 36px;
-    height: 54px;
-    margin-left: -14px;
   }
 
   .scorebar {
@@ -513,29 +511,29 @@ button.card:disabled {
   }
 
   .draw-pile {
-    min-height: 142px;
+    min-height: 104px;
   }
 
   .card {
-    flex-basis: 82px;
-    width: 82px;
-    height: 122px;
-    margin-left: -30px;
-    padding: 8px;
+    flex-basis: 52px;
+    width: 52px;
+    height: 76px;
+    margin-left: -16px;
+    padding: 5px;
   }
 
   .hand {
-    padding-left: 30px;
+    padding-left: 16px;
   }
 
   .discard-card .card {
-    width: 92px;
-    height: 138px;
+    width: 64px;
+    height: 96px;
   }
 
   .card strong {
-    min-width: 46px;
-    min-height: 46px;
-    font-size: 1.2rem;
+    min-width: 28px;
+    min-height: 28px;
+    font-size: 0.84rem;
   }
 }

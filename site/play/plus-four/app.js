@@ -15,6 +15,8 @@ const state = {
   playerSide: null,
   game: null,
   selectedColor: "red",
+  pendingColorCardId: null,
+  simulated: false,
   busy: false,
   pollTimer: null,
   message: ""
@@ -26,6 +28,7 @@ const roomInfoEl = document.querySelector("#room-info");
 const statusEl = document.querySelector("#status");
 const createRoomEl = document.querySelector("#create-room");
 const randomRoomEl = document.querySelector("#random-room");
+const simulateTableEl = document.querySelector("#simulate-table");
 const roomCodeEl = document.querySelector("#room-code");
 const joinCodeEl = document.querySelector("#join-code");
 const leaveRoomEl = document.querySelector("#leave-room");
@@ -188,7 +191,13 @@ function render() {
   if (!inRoom) return;
 
   const game = state.game;
-  roomInfoEl.textContent = `Sala ${state.roomCode} | Voce e Jogador ${state.playerSide === "one" ? "1" : "2"}`;
+  if (state.pendingColorCardId && !game.hand.some((card) => card.id === state.pendingColorCardId)) {
+    state.pendingColorCardId = null;
+  }
+
+  roomInfoEl.textContent = state.simulated
+    ? "Simulacao local | Bot visual"
+    : `Sala ${state.roomCode} | Voce e Jogador ${state.playerSide === "one" ? "1" : "2"}`;
   drawCountEl.textContent = game.drawCount;
   opponentCountEl.textContent = `${game.opponentCount} carta${game.opponentCount === 1 ? "" : "s"}`;
   myScoreEl.textContent = state.playerSide === "one" ? game.oneScore : game.twoScore;
@@ -201,6 +210,7 @@ function render() {
   handEl.replaceChildren(...game.hand.map((card) => cardEl(card)));
   opponentCardsEl.replaceChildren(...Array.from({ length: game.opponentCount }, () => cardBackEl()));
 
+  colorPickerEl.hidden = !state.pendingColorCardId;
   colorPickerEl.querySelectorAll("button").forEach((button) => {
     button.classList.toggle("selected", button.dataset.color === state.selectedColor);
   });
@@ -217,6 +227,7 @@ function cardEl(card, options = {}) {
   const el = document.createElement(options.large ? "div" : "button");
   el.className = `card ${card.color}`;
   if (card.playedColor) el.classList.add(`chosen-${card.playedColor}`);
+  if (card.id === state.pendingColorCardId) el.classList.add("pending-color");
   el.dataset.color = card.color;
   el.dataset.value = card.value;
   el.innerHTML = `<span>${label(card)}</span><strong>${card.value}</strong>`;
@@ -232,21 +243,78 @@ function cardEl(card, options = {}) {
 
 async function playCard(card) {
   if (!canAct() || !canPlay(card)) return;
-  if (card.color === "wild" && !state.selectedColor) {
-    setMessage("Escolha uma cor para essa carta.");
+  if (card.color === "wild") {
+    state.pendingColorCardId = card.id;
+    setMessage("Escolha a cor para jogar essa carta.");
     render();
     return;
   }
 
+  state.pendingColorCardId = null;
   await sendAction({
     type: "play",
     cardId: card.id,
-    color: card.color === "wild" ? state.selectedColor : null
+    color: null
   });
+}
+
+async function playPendingColorCard(color) {
+  const card = state.game?.hand.find((item) => item.id === state.pendingColorCardId);
+  if (!card || card.color !== "wild" || !canAct() || !canPlay(card)) {
+    state.pendingColorCardId = null;
+    render();
+    return;
+  }
+
+  state.selectedColor = color;
+  state.pendingColorCardId = null;
+  await sendAction({
+    type: "play",
+    cardId: card.id,
+    color
+  });
+}
+
+function simulateTable() {
+  stopPolling();
+  state.simulated = true;
+  state.roomCode = "BOT";
+  state.playerId = "simulated-player";
+  state.playerSide = "one";
+  state.message = "";
+  state.game = {
+    ready: true,
+    canceled: false,
+    turn: "one",
+    currentColor: "yellow",
+    round: 3,
+    oneScore: 35,
+    twoScore: 28,
+    roundWinner: null,
+    matchWinner: null,
+    drawCount: 64,
+    topCard: sampleCard("top", "yellow", "5", null),
+    hand: [
+      sampleCard("p1", "yellow", "+2", null),
+      sampleCard("p2", "red", "4", null),
+      sampleCard("p3", "yellow", "8", null),
+      sampleCard("p4", "yellow", "2", null),
+      sampleCard("p5", "blue", "1", null),
+      sampleCard("p6", "wild", "+4", null)
+    ],
+    opponentCount: 7,
+    lastEvent: null
+  };
+  render();
+}
+
+function sampleCard(id, color, value, playedColor) {
+  return { id, color, value, playedColor };
 }
 
 async function drawCard() {
   if (!canAct()) return;
+  state.pendingColorCardId = null;
   await sendAction({ type: "draw" });
 }
 
@@ -256,6 +324,11 @@ async function nextRound() {
 }
 
 async function sendAction(action) {
+  if (state.simulated) {
+    applySimulatedAction(action);
+    return;
+  }
+
   if (state.busy) return;
 
   state.busy = true;
@@ -272,6 +345,40 @@ async function sendAction(action) {
   } finally {
     state.busy = false;
   }
+}
+
+function applySimulatedAction(action) {
+  if (!state.game) return;
+
+  if (action.type === "draw") {
+    state.game.drawCount = Math.max(0, state.game.drawCount - 1);
+    state.game.hand.push(sampleCard(`p${Date.now()}`, "green", "7", null));
+    state.game.turn = "two";
+    render();
+    return;
+  }
+
+  if (action.type === "play") {
+    const card = state.game.hand.find((item) => item.id === action.cardId);
+    if (!card) return;
+
+    state.game.hand = state.game.hand.filter((item) => item.id !== action.cardId);
+    state.game.topCard = { ...card, playedColor: action.color || card.playedColor };
+    state.game.currentColor = action.color || card.color;
+    state.game.turn = "two";
+    render();
+    window.setTimeout(simulateBotTurn, 700);
+  }
+}
+
+function simulateBotTurn() {
+  if (!state.simulated || !state.game) return;
+
+  state.game.opponentCount = Math.max(1, state.game.opponentCount - 1);
+  state.game.topCard = sampleCard(`bot${Date.now()}`, state.game.currentColor, "3", null);
+  state.game.turn = "one";
+  showToast("Bot jogou uma carta.");
+  render();
 }
 
 async function leaveRoom() {
@@ -314,6 +421,7 @@ function getStatus() {
   if (!state.game.ready) return `${state.message || "Aguardando outro jogador entrar."} Codigo: ${state.roomCode}`;
   if (state.game.matchWinner) return state.game.matchWinner === state.playerSide ? "Voce venceu a partida!" : "Adversario venceu a partida.";
   if (state.game.roundWinner) return state.game.roundWinner === state.playerSide ? "Voce venceu a rodada." : "Adversario venceu a rodada.";
+  if (state.pendingColorCardId) return "Escolha uma cor para jogar essa carta.";
   if (state.game.turn === state.playerSide) return "Sua vez.";
   return "Vez do adversario.";
 }
@@ -341,6 +449,8 @@ function clearSession() {
   state.playerSide = null;
   state.game = null;
   state.message = "";
+  state.pendingColorCardId = null;
+  state.simulated = false;
 }
 
 function showEventToast(event) {
@@ -360,6 +470,7 @@ function showToast(text) {
 
 createRoomEl.addEventListener("click", createRoom);
 randomRoomEl.addEventListener("click", findRandomRoom);
+simulateTableEl.addEventListener("click", simulateTable);
 joinCodeEl.addEventListener("click", joinRoomByCode);
 roomCodeEl.addEventListener("input", () => {
   roomCodeEl.value = roomCodeEl.value.toUpperCase();
@@ -373,8 +484,7 @@ leaveRoomEl.addEventListener("click", leaveRoom);
 colorPickerEl.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-color]");
   if (!button) return;
-  state.selectedColor = button.dataset.color;
-  render();
+  playPendingColorCard(button.dataset.color);
 });
 
 restoreSession();
