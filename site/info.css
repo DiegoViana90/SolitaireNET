@@ -108,6 +108,34 @@ ol {
   padding-left: 22px;
 }
 
+.guide-steps {
+  display: grid;
+  gap: 8px;
+}
+
+.piece-rules {
+  counter-reset: piece-rule;
+  display: grid;
+  gap: 7px;
+  margin-top: 9px;
+  padding-left: 0;
+  list-style: none;
+}
+
+.piece-rules li {
+  position: relative;
+  padding-left: 38px;
+}
+
+.piece-rules li::before {
+  counter-increment: piece-rule;
+  content: "1." counter(piece-rule);
+  position: absolute;
+  left: 0;
+  color: var(--gold);
+  font-weight: 900;
+}
+
 li + li {
   margin-top: 7px;
 }
