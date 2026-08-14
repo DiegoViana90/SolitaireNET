@@ -104,7 +104,8 @@ h1 {
 .room-info,
 .table,
 .scorebar,
-.opponent-hand {
+.player-area,
+.side-seat {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(23, 36, 29, 0.86);
@@ -125,8 +126,7 @@ h1 {
 }
 
 .lobby span,
-.room-info,
-.opponent-hand span {
+.room-info {
   color: var(--muted);
 }
 
@@ -170,6 +170,9 @@ h1 {
   display: grid;
   gap: 16px;
   padding: 16px;
+  background:
+    radial-gradient(circle at center, rgba(217, 185, 85, 0.12), transparent 22rem),
+    rgba(23, 36, 29, 0.86);
 }
 
 .scorebar {
@@ -194,7 +197,79 @@ h1 {
   font-size: 1.3rem;
 }
 
+.playmat {
+  min-height: min(70dvh, 620px);
+  display: grid;
+  grid-template-columns: minmax(54px, 84px) 1fr minmax(54px, 84px);
+  grid-template-rows: auto 1fr auto auto;
+  grid-template-areas:
+    ". top ."
+    "left center right"
+    ". colors ."
+    "mine mine mine";
+  gap: 14px;
+  align-items: center;
+}
+
+.player-area {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.player-area > span,
+.side-seat span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.top-player {
+  grid-area: top;
+  justify-self: center;
+  width: min(520px, 100%);
+  text-align: center;
+}
+
+.top-player strong {
+  color: var(--gold);
+}
+
+.opponent-cards {
+  min-height: 72px;
+  display: flex;
+  justify-content: center;
+  padding-left: 18px;
+}
+
+.card-back {
+  width: 46px;
+  height: 68px;
+  margin-left: -18px;
+  border: 3px solid rgba(255, 246, 229, 0.82);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, #d94343 0 34%, #2f80ed 34% 58%, #27ae60 58% 78%, #f2c94c 78%);
+  box-shadow: 0 8px 14px rgba(0, 0, 0, 0.28);
+}
+
+.side-seat {
+  min-height: 150px;
+  display: grid;
+  place-items: center;
+  opacity: 0.5;
+}
+
+.left-seat {
+  grid-area: left;
+}
+
+.right-seat {
+  grid-area: right;
+}
+
 .center-table {
+  grid-area: center;
   display: grid;
   grid-template-columns: minmax(92px, 140px) minmax(92px, 140px);
   justify-content: center;
@@ -236,6 +311,7 @@ h1 {
 }
 
 .color-picker {
+  grid-area: colors;
   display: flex;
   justify-content: center;
   gap: 10px;
@@ -295,24 +371,15 @@ h1 {
   outline-color: var(--yellow);
 }
 
-.opponent-hand {
-  min-height: 54px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 12px;
-}
-
-.opponent-hand strong {
-  color: var(--gold);
+.my-area {
+  grid-area: mine;
+  padding-bottom: 14px;
 }
 
 .hand {
   display: flex;
-  gap: 10px;
   overflow-x: auto;
-  padding: 4px 2px 10px;
+  padding: 4px 2px 14px 26px;
   scroll-snap-type: x proximity;
 }
 
@@ -320,6 +387,7 @@ h1 {
   flex: 0 0 96px;
   width: 96px;
   height: 140px;
+  margin-left: -26px;
   border: 4px solid #fff6e5;
   border-radius: 10px;
   color: #111713;
@@ -339,6 +407,15 @@ button.card {
 button.card:disabled {
   opacity: 0.42;
   cursor: default;
+}
+
+.hand .card:first-child {
+  margin-left: 0;
+}
+
+.hand .card:not(:disabled):hover,
+.hand .card:not(:disabled):focus-visible {
+  transform: translateY(-10px);
 }
 
 .card span {
@@ -400,6 +477,28 @@ button.card:disabled {
     padding: 10px;
   }
 
+  .playmat {
+    min-height: 68dvh;
+    grid-template-columns: 42px 1fr 42px;
+    gap: 10px;
+  }
+
+  .side-seat {
+    min-height: 116px;
+    writing-mode: vertical-rl;
+  }
+
+  .opponent-cards {
+    min-height: 58px;
+    padding-left: 14px;
+  }
+
+  .card-back {
+    width: 36px;
+    height: 54px;
+    margin-left: -14px;
+  }
+
   .scorebar {
     grid-template-columns: 1fr 1fr;
   }
@@ -421,7 +520,12 @@ button.card:disabled {
     flex-basis: 82px;
     width: 82px;
     height: 122px;
+    margin-left: -30px;
     padding: 8px;
+  }
+
+  .hand {
+    padding-left: 30px;
   }
 
   .discard-card .card {

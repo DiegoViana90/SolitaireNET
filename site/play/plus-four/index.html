@@ -8,7 +8,7 @@
   <meta name="description" content="+4, um jogo original de cartas por cores e numeros no paciencia . net.">
   <link rel="canonical" href="https://paciencia.net.br/play/plus-four/">
   <link rel="icon" href="../../appicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=2">
+  <link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
   <main class="game-shell" aria-label="+4">
@@ -54,28 +54,42 @@
         </div>
       </div>
 
-      <div class="center-table">
-        <button class="draw-pile" id="draw-card" type="button">
-          <span>Comprar</span>
-          <strong id="draw-count">0</strong>
-        </button>
+      <div class="playmat">
+        <div class="player-area opponent top-player" aria-label="Cartas do adversario principal">
+          <span>Adversario</span>
+          <div class="opponent-cards" id="opponent-cards"></div>
+          <strong id="opponent-count">0 cartas</strong>
+        </div>
 
-        <div class="discard-card" id="discard-card" aria-label="Carta no descarte"></div>
+        <div class="side-seat left-seat" aria-label="Jogador lateral esquerdo">
+          <span>Vazio</span>
+        </div>
+
+        <div class="center-table">
+          <button class="draw-pile" id="draw-card" type="button">
+            <span>Monte</span>
+            <strong id="draw-count">0</strong>
+          </button>
+
+          <div class="discard-card" id="discard-card" aria-label="Carta no descarte"></div>
+        </div>
+
+        <div class="side-seat right-seat" aria-label="Jogador lateral direito">
+          <span>Vazio</span>
+        </div>
+
+        <div class="color-picker" id="color-picker" aria-label="Escolha a cor">
+          <button class="red" type="button" data-color="red" aria-label="Vermelho"></button>
+          <button class="blue" type="button" data-color="blue" aria-label="Azul"></button>
+          <button class="green" type="button" data-color="green" aria-label="Verde"></button>
+          <button class="yellow" type="button" data-color="yellow" aria-label="Amarelo"></button>
+        </div>
+
+        <div class="player-area my-area" aria-label="Suas cartas">
+          <span>Voce</span>
+          <div class="hand" id="hand" aria-label="Sua mao"></div>
+        </div>
       </div>
-
-      <div class="color-picker" id="color-picker" aria-label="Escolha a cor">
-        <button class="red" type="button" data-color="red" aria-label="Vermelho"></button>
-        <button class="blue" type="button" data-color="blue" aria-label="Azul"></button>
-        <button class="green" type="button" data-color="green" aria-label="Verde"></button>
-        <button class="yellow" type="button" data-color="yellow" aria-label="Amarelo"></button>
-      </div>
-
-      <div class="opponent-hand" aria-label="Cartas do adversario">
-        <span>Adversario</span>
-        <strong id="opponent-count">0 cartas</strong>
-      </div>
-
-      <div class="hand" id="hand" aria-label="Sua mao"></div>
 
       <button class="next-round" id="next-round" type="button" hidden>Proxima rodada</button>
     </section>
@@ -83,6 +97,6 @@
 
   <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
 
-  <script type="module" src="app.js?v=1"></script>
+  <script type="module" src="app.js?v=2"></script>
 </body>
 </html>

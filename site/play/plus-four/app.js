@@ -33,6 +33,7 @@ const drawCardEl = document.querySelector("#draw-card");
 const drawCountEl = document.querySelector("#draw-count");
 const discardCardEl = document.querySelector("#discard-card");
 const handEl = document.querySelector("#hand");
+const opponentCardsEl = document.querySelector("#opponent-cards");
 const opponentCountEl = document.querySelector("#opponent-count");
 const myScoreEl = document.querySelector("#my-score");
 const opponentScoreEl = document.querySelector("#opponent-score");
@@ -198,10 +199,18 @@ function render() {
 
   discardCardEl.replaceChildren(cardEl(game.topCard, { large: true }));
   handEl.replaceChildren(...game.hand.map((card) => cardEl(card)));
+  opponentCardsEl.replaceChildren(...Array.from({ length: game.opponentCount }, () => cardBackEl()));
 
   colorPickerEl.querySelectorAll("button").forEach((button) => {
     button.classList.toggle("selected", button.dataset.color === state.selectedColor);
   });
+}
+
+function cardBackEl() {
+  const el = document.createElement("div");
+  el.className = "card-back";
+  el.setAttribute("aria-hidden", "true");
+  return el;
 }
 
 function cardEl(card, options = {}) {
