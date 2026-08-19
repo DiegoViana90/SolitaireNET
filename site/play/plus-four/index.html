@@ -18,6 +18,7 @@
         <h1>+4</h1>
         <p id="status">Crie uma sala ou procure uma partida.</p>
       </div>
+      <button class="how-to-play" id="how-to-play" type="button">Como jogar</button>
       <button id="leave-room" type="button" hidden>Sair</button>
     </header>
 
@@ -51,21 +52,6 @@
     <p class="room-info" id="room-info" hidden></p>
 
     <section class="table" id="table" aria-label="Mesa do +4" hidden>
-      <div class="scorebar" aria-label="Placar">
-        <div>
-          <span>Voce</span>
-          <strong id="my-score">0</strong>
-        </div>
-        <div>
-          <span id="opponent-score-label">Adversario</span>
-          <strong id="opponent-score">0</strong>
-        </div>
-        <div>
-          <span>Rodada</span>
-          <strong id="round-number">1</strong>
-        </div>
-      </div>
-
       <div class="playmat">
         <div class="player-area opponent top-player" aria-label="Cartas do adversario principal">
           <span id="top-opponent-label">Adversario</span>
@@ -93,7 +79,7 @@
           <strong id="right-opponent-count"></strong>
         </div>
 
-        <div class="player-area my-area" aria-label="Suas cartas">
+        <div class="player-area my-area" id="my-area" aria-label="Suas cartas">
           <span>Voce</span>
           <div class="hand" id="hand" aria-label="Sua mao"></div>
         </div>
@@ -117,10 +103,45 @@
     </div>
   </div>
 
+  <div class="rules-modal" id="rules-modal" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title" hidden>
+    <div class="rules-modal-panel">
+      <button class="modal-close" id="rules-modal-close" type="button" aria-label="Fechar">x</button>
+      <h2 id="rules-modal-title">Como jogar Plus Four (+4)</h2>
+      <p>Jogue uma carta da mesma cor ou do mesmo valor da carta no descarte.</p>
+      <ul>
+        <li><strong>Pula:</strong> o próximo jogador perde a vez.</li>
+        <li><strong>Inverte:</strong> muda a direção da partida.</li>
+        <li><strong>+2:</strong> o próximo jogador compra duas cartas; a penalidade pode acumular.</li>
+        <li><strong>+4:</strong> escolha a próxima cor; a penalidade de quatro cartas pode acumular.</li>
+        <li>Cartas de ação só acumulam com outra ação do mesmo tipo.</li>
+        <li>Durante um corte, quem tiver a carta idêntica pode tentar jogar; o primeiro comando aceito pelo servidor vence.</li>
+      </ul>
+      <p class="rules-note">O jogador que puder cortar verá um alerta e sua carta ficará destacada durante a janela de corte.</p>
+    </div>
+  </div>
+
   <div class="build-version" data-build-version>Versão: desenvolvimento local</div>
   <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
 
   <script src="../../build-info.js?v=__BUILD_ASSET_VERSION__"></script>
   <script type="module" src="app.js?v=18"></script>
+  <script>
+    const rulesModal = document.querySelector("#rules-modal");
+    const openRules = document.querySelector("#how-to-play");
+    const closeRules = document.querySelector("#rules-modal-close");
+
+    const setRulesOpen = (open) => {
+      rulesModal.hidden = !open;
+    };
+
+    openRules.addEventListener("click", () => setRulesOpen(true));
+    closeRules.addEventListener("click", () => setRulesOpen(false));
+    rulesModal.addEventListener("click", (event) => {
+      if (event.target === rulesModal) setRulesOpen(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setRulesOpen(false);
+    });
+  </script>
 </body>
 </html>
