@@ -920,21 +920,21 @@ button.card:disabled {
 
   .playmat {
     min-height: auto;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto;
-    grid-template-areas: none;
+    grid-template-columns: 82px minmax(0, 1fr) 82px;
+    grid-template-rows: auto auto auto;
+    grid-template-areas: "top top top" "left center right" "mine mine mine";
     gap: 6px;
   }
 
-  .top-player { grid-column: 1 / -1; grid-row: 1; }
-  .center-table { grid-column: 1 / -1; grid-row: 2; }
-  .left-seat { grid-column: 1; grid-row: 3; }
-  .right-seat { grid-column: 2; grid-row: 3; }
-  .my-area { grid-column: 1 / -1; grid-row: 4; }
+  .top-player { grid-area: top; }
+  .center-table { grid-area: center; }
+  .left-seat { grid-area: left; }
+  .right-seat { grid-area: right; }
+  .my-area { grid-area: mine; }
 
   .side-seat {
     width: 100%;
-    height: 116px;
+    height: 132px;
     grid-template-rows: 16px 1fr 15px;
     gap: 4px;
     padding: 6px;
@@ -983,6 +983,31 @@ button.card:disabled {
   .side-seat strong {
     font-size: 0.64rem;
     line-height: 1;
+  }
+
+  .side-seat .add-ai-seat,
+  .side-seat .ai-seat-control {
+    font-size: .62rem;
+    padding-inline: 2px;
+  }
+
+  .center-table {
+    grid-template-columns: 52px 52px;
+    gap: 12px;
+  }
+
+  .center-table .draw-pile,
+  .center-table .discard-card .card {
+    width: 52px;
+    height: 78px;
+  }
+
+  .center-table .draw-pile strong,
+  .center-table .discard-card .card strong {
+    min-width: 20px;
+    min-height: 20px;
+    padding: 2px;
+    font-size: .62rem;
   }
 
   .scorebar {
