@@ -167,6 +167,25 @@ sealed class RankingStore
         }
     }
 
+    public bool RecordLoadTestWin(string uid)
+    {
+        lock (gate)
+        {
+            using DbConnection connection = OpenConnection();
+            using DbCommand command = connection.CreateCommand();
+            command.CommandText = """
+                UPDATE ranking_players
+                SET games_started = games_started + 1,
+                    wins = wins + 1,
+                    updated_at = @updatedAt
+                WHERE uid = @uid;
+                """;
+            AddParameter(command, "@uid", uid);
+            AddParameter(command, "@updatedAt", DateTimeOffset.UtcNow.ToString("O"));
+            return command.ExecuteNonQuery() > 0;
+        }
+    }
+
     void EnsureDatabase()
     {
         lock (gate)

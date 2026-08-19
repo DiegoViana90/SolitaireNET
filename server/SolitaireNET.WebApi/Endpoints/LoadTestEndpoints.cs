@@ -15,10 +15,9 @@ public static class LoadTestEndpoints
 
         app.MapPost("/api/loadtest/users/{uid}/win", (string uid, RankingStore ranking) =>
         {
-            if (ranking.GetPlayer(uid) == null)
+            if (!ranking.RecordLoadTestWin(uid))
                 return Results.NotFound();
 
-            ranking.RecordWin(uid);
             return Results.Ok(new { uid, winAdded = true });
         });
     }
