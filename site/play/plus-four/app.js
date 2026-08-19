@@ -442,12 +442,12 @@ async function animateCardToDiscard(color, sourceEl, options = {}) {
   ghost.removeAttribute("disabled");
   if (color) ghost.classList.add(`chosen-${color}`);
 
-  Object.assign(ghost.style, {
-    left: `${flightFrom.left}px`,
-    top: `${flightFrom.top}px`,
-    width: `${flightFrom.width}px`,
-    height: `${flightFrom.height}px`
-  });
+  ghost.style.left = `${flightFrom.left}px`;
+  ghost.style.top = `${flightFrom.top}px`;
+  ghost.style.setProperty("width", `${flightFrom.width}px`, "important");
+  ghost.style.setProperty("height", `${flightFrom.height}px`, "important");
+  ghost.style.setProperty("min-width", `${flightFrom.width}px`, "important");
+  ghost.style.setProperty("min-height", `${flightFrom.height}px`, "important");
 
   document.body.append(ghost);
 
