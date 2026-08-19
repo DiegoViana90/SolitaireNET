@@ -471,12 +471,21 @@ h1 {
   font-size: .72rem;
   font-weight: 900;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .add-ai-seat:disabled { opacity: .72; cursor: default; }
 .remove-ai-seat { border-color: var(--line); color: var(--muted); background: rgba(0,0,0,.12); }
 .side-cards.ai-removing,
 .opponent-cards.ai-removing { opacity: .38; filter: grayscale(1); }
+
+.side-seat .add-ai-seat {
+  width: 100%;
+  min-width: 88px;
+  white-space: normal;
+  writing-mode: horizontal-tb;
+  transform: none;
+}
 
 .side-seat strong {
   color: var(--gold);
@@ -892,7 +901,7 @@ button.card:disabled {
 
   .playmat {
     min-height: auto;
-    grid-template-columns: 64px minmax(120px, 1fr) 64px;
+    grid-template-columns: 112px minmax(120px, 1fr) 112px;
     grid-template-rows: auto auto auto;
     gap: 6px;
   }

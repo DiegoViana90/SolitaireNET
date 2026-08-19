@@ -239,7 +239,7 @@ sealed class PlusFourSession
 
             string type = (action.Type ?? string.Empty).Trim().ToLowerInvariant();
             if (type is "add-ai" or "remove-ai")
-                return ConfigureAi(side, action.AiSide, type == "add-ai");
+                return ConfigureAi(action.PlayerId, action.AiSide, type == "add-ai");
 
             if (!IsReady)
                 return PlusFourJoinResult.Fail(Code, "Aguardando outro jogador.");
