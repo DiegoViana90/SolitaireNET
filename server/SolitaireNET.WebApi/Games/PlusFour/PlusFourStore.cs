@@ -145,6 +145,7 @@ sealed class PlusFourSession
     readonly HashSet<string> aiSides = new();
     readonly HashSet<string> pendingAiAdds = new();
     readonly HashSet<string> pendingAiRemoves = new();
+    readonly Queue<string> queuedPlayers = new();
     string? creatorId;
     bool advancingAi;
     int direction = 1;
@@ -194,7 +195,9 @@ sealed class PlusFourSession
                 return ToJoinResult(players[side]!);
             }
 
-            return PlusFourJoinResult.Fail(Code, "Sala cheia.");
+            string queuedPlayer = Guid.NewGuid().ToString("N");
+            queuedPlayers.Enqueue(queuedPlayer);
+            return new PlusFourJoinResult(Code, queuedPlayer, null, true, null, ToPublicState(null));
         }
     }
 
@@ -203,12 +206,12 @@ sealed class PlusFourSession
         lock (gate)
         {
             string? side = SideForPlayer(playerId);
-            if (side == null)
+            if (side == null && !queuedPlayers.Contains(playerId))
                 return PlusFourJoinResult.Fail(Code, "Jogador nao encontrado nesta sala.");
 
             if (IsReady && !RoundOver)
                 AdvanceAiTurns();
-            return new PlusFourJoinResult(Code, playerId, side, !IsReady, null, ToPublicState(side));
+            return new PlusFourJoinResult(Code, playerId, side, side == null || !IsReady, null, ToPublicState(side));
         }
     }
 
@@ -219,17 +222,21 @@ sealed class PlusFourSession
             Touch();
             string? side = SideForPlayer(action.PlayerId);
             if (side == null)
+            {
+                if (queuedPlayers.Contains(action.PlayerId))
+                    return PlusFourJoinResult.Fail(Code, "Voce entrara na proxima rodada. Aguarde a vaga liberar.");
                 return PlusFourJoinResult.Fail(Code, "Jogador nao encontrado nesta sala.");
+            }
 
             if (IsCanceled)
                 return PlusFourJoinResult.Fail(Code, "Sala encerrada.");
 
-            if (!IsReady)
-                return PlusFourJoinResult.Fail(Code, "Aguardando outro jogador.");
-
             string type = (action.Type ?? string.Empty).Trim().ToLowerInvariant();
             if (type is "add-ai" or "remove-ai")
                 return ConfigureAi(side, action.AiSide, type == "add-ai");
+
+            if (!IsReady)
+                return PlusFourJoinResult.Fail(Code, "Aguardando outro jogador.");
             if (type == "next-round")
                 return StartNextRound(side);
 
@@ -267,7 +274,15 @@ sealed class PlusFourSession
             if (aiSides.Contains(aiSide) || pendingAiAdds.Contains(aiSide))
                 return PlusFourJoinResult.Fail(Code, "A IA ja esta ativa ou sera adicionada.");
             pendingAiRemoves.Remove(aiSide);
-            pendingAiAdds.Add(aiSide);
+            if (!IsReady)
+            {
+                aiSides.Add(aiSide);
+                players[aiSide] = $"ai-{aiSide}";
+            }
+            else
+            {
+                pendingAiAdds.Add(aiSide);
+            }
         }
         else
         {
@@ -426,6 +441,12 @@ sealed class PlusFourSession
         }
         pendingAiAdds.Clear();
         pendingAiRemoves.Clear();
+        while (queuedPlayers.Count > 0)
+        {
+            string? freeSide = Sides.FirstOrDefault(side => players[side] == null && !aiSides.Contains(side));
+            if (freeSide == null) break;
+            players[freeSide] = queuedPlayers.Dequeue();
+        }
     }
 
     void FinishRound(string winner, PlusFourCard card)
@@ -535,9 +556,12 @@ sealed class PlusFourSession
         }
     }
 
-    PlusFourPublicState ToPublicState(string viewerSide)
+    PlusFourPublicState ToPublicState(string? viewerSide)
     {
         PlusFourCard top = discardPile[^1];
+        List<PlusFourPublicCard> viewerHand = viewerSide != null && hands.TryGetValue(viewerSide, out List<PlusFourCard>? hand)
+            ? hand.Select(card => card.ToPublic()).ToList()
+            : [];
         return new PlusFourPublicState(
             Code,
             IsReady,
@@ -552,12 +576,12 @@ sealed class PlusFourSession
             MatchWinner,
             drawPile.Count,
             top.ToPublic(),
-            hands[viewerSide].Select(card => card.ToPublic()).ToList(),
+            viewerHand,
             hands.Where(pair => pair.Key != viewerSide && players[pair.Key] != null).Sum(pair => pair.Value.Count),
             direction == 1 ? "normal" : "inverted",
             pendingDraw,
             pendingAction,
-            cutOpen && (hands[viewerSide].Any(card => CanCut(card))),
+            viewerSide != null && cutOpen && hands[viewerSide].Any(card => CanCut(card)),
             Sides.Select(slot => new PlusFourSeat(slot, players[slot] != null, aiSides.Contains(slot), pendingAiAdds.Contains(slot), pendingAiRemoves.Contains(slot), players[slot] == creatorId)).ToList(),
             LastEvent);
     }
