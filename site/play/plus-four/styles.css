@@ -157,6 +157,13 @@ h1 {
   gap: 12px;
 }
 
+.lobby-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
 .lobby[hidden],
 .table[hidden],
 .room-info[hidden],
@@ -167,6 +174,7 @@ h1 {
 }
 
 .lobby > button,
+.lobby-row > button,
 .bot-options,
 .join-code,
 .room-info,
@@ -187,6 +195,22 @@ h1 {
   padding: 16px;
   color: inherit;
   cursor: pointer;
+}
+
+.lobby-row > button {
+  min-height: 82px;
+  display: grid;
+  justify-items: start;
+  gap: 5px;
+  padding: 16px;
+  color: inherit;
+  cursor: pointer;
+}
+
+.lobby-row .join-code,
+.lobby-row .bot-options {
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .lobby strong {
@@ -238,6 +262,16 @@ h1 {
   grid-template-columns: 1fr auto;
   gap: 10px;
   padding: 12px;
+}
+
+.lobby-row-ai .bot-options {
+  grid-template-columns: 1fr auto;
+}
+
+@media (max-width: 620px) {
+  .lobby-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .join-code input {

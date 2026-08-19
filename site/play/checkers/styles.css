@@ -103,7 +103,10 @@ button {
   display: none;
 }
 
+.lobby-row { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 1fr); gap: 10px; }
+
 .lobby > button,
+.lobby-row > button,
 .join-code {
   min-height: 78px;
   border: 1px solid var(--line);
@@ -111,6 +114,9 @@ button {
   background: rgba(23, 36, 29, 0.84);
   color: var(--text);
 }
+
+.lobby-row > button { display: grid; align-content: center; justify-items: start; gap: 4px; padding: 12px; cursor: pointer; }
+.lobby-row .join-code { grid-column: auto; height: auto; }
 
 .lobby > button {
   display: grid;
@@ -174,6 +180,8 @@ button {
   opacity: 0.58;
   cursor: wait;
 }
+
+@media (max-width: 620px) { .lobby { grid-template-columns: 1fr; } .lobby-row { grid-template-columns: 1fr; } }
 
 .room-info {
   min-height: 28px;

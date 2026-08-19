@@ -23,29 +23,33 @@
     </header>
 
     <section class="lobby" id="lobby" aria-label="Entrada da partida">
-      <button id="create-room" type="button">
-        <strong>Criar sala</strong>
-        <span>Gera um codigo para outro jogador entrar.</span>
-      </button>
+      <div class="lobby-row lobby-row-online">
+        <button id="create-room" type="button">
+          <strong>Criar sala</strong>
+          <span>Gera um codigo para outro jogador entrar.</span>
+        </button>
+        <div class="join-code">
+          <input id="room-code" type="text" maxlength="4" autocomplete="off" placeholder="CODIGO DA SALA" aria-label="Codigo da sala">
+          <button id="join-code" type="button">Entrar</button>
+        </div>
+      </div>
       <button id="random-room" type="button">
         <strong>Procurar sala aleatoria</strong>
         <span>Se nao houver outro jogador, voce fica aguardando.</span>
       </button>
-      <button id="simulate-table" type="button">
-        <strong>Jogar contra IA</strong>
-        <span>Cria uma partida local com baralho embaralhado e IA adversaria.</span>
-      </button>
-      <div class="bot-options" aria-label="Quantidade de adversarios da IA">
-        <span>Adversarios IA</span>
-        <div class="bot-count-tabs">
-          <button class="selected" type="button" data-bot-count="1" aria-pressed="true">1</button>
-          <button type="button" data-bot-count="2" aria-pressed="false">2</button>
-          <button type="button" data-bot-count="3" aria-pressed="false">3</button>
+      <div class="lobby-row lobby-row-ai">
+        <button id="simulate-table" type="button">
+          <strong>Jogar contra IA</strong>
+          <span>Cria uma partida local com baralho embaralhado e IA adversaria.</span>
+        </button>
+        <div class="bot-options" aria-label="Quantidade de adversarios da IA">
+          <span>Adversarios IA</span>
+          <div class="bot-count-tabs">
+            <button class="selected" type="button" data-bot-count="1" aria-pressed="true">1</button>
+            <button type="button" data-bot-count="2" aria-pressed="false">2</button>
+            <button type="button" data-bot-count="3" aria-pressed="false">3</button>
+          </div>
         </div>
-      </div>
-      <div class="join-code">
-        <input id="room-code" type="text" maxlength="4" autocomplete="off" placeholder="CODIGO" aria-label="Codigo da sala">
-        <button id="join-code" type="button">Entrar</button>
       </div>
     </section>
 
