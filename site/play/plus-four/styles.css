@@ -49,6 +49,18 @@ input {
   align-items: center;
 }
 
+.topbar #leave-room {
+  grid-column: 4;
+  grid-row: 1;
+  min-width: 64px;
+}
+
+.topbar .how-to-play {
+  grid-column: 3;
+  grid-row: 1;
+  white-space: nowrap;
+}
+
 .how-to-play {
   min-height: 38px;
   display: inline-grid;
@@ -837,6 +849,10 @@ button.card:disabled {
     width: min(100% - 16px, 520px);
     padding: 14px 0 42px;
   }
+
+  .topbar { grid-template-columns: 38px minmax(0, 1fr) auto; }
+  .topbar #leave-room { grid-column: 3; grid-row: 2; }
+  .topbar .how-to-play { grid-column: 3; grid-row: 1; }
 
   .table {
     gap: 10px;
