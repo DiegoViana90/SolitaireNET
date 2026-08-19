@@ -185,25 +185,7 @@ app.MapGet("/api/usage", (GameStore games, UsageMetrics metrics, PlayerPresenceS
 app.MapGet("/api/ranking", (RankingStore ranking) =>
     Results.Ok(ranking.Snapshot()));
 
-if (loadTestEnabled)
-{
-    app.MapPost("/api/loadtest/users", (LoadTestUserRequest request, RankingStore ranking) =>
-    {
-        if (!ranking.CreateLoadTestUser(request))
-            return Results.Conflict(new { error = "User already exists." });
-
-        return Results.Created($"/api/loadtest/users/{request.Uid}", request);
-    });
-
-    app.MapPost("/api/loadtest/users/{uid}/win", (string uid, RankingStore ranking) =>
-    {
-        if (ranking.GetPlayer(uid) == null)
-            return Results.NotFound();
-
-        ranking.RecordWin(uid);
-        return Results.Ok(new { uid, winAdded = true });
-    });
-}
+app.MapLoadTestEndpoints(loadTestEnabled);
 
 app.MapPost("/api/checkers/rooms", (CheckersStore store) =>
     Results.Ok(store.CreatePrivateRoom()));
