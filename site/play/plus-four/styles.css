@@ -475,6 +475,8 @@ h1 {
 
 .add-ai-seat:disabled { opacity: .72; cursor: default; }
 .remove-ai-seat { border-color: var(--line); color: var(--muted); background: rgba(0,0,0,.12); }
+.side-cards.ai-removing,
+.opponent-cards.ai-removing { opacity: .38; filter: grayscale(1); }
 
 .side-seat strong {
   color: var(--gold);

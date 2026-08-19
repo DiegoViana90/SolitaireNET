@@ -306,9 +306,11 @@ function renderServerOpponent(seat, elements) {
     remove.textContent = seat.removePending ? "Sera removida na proxima rodada" : "Remover IA";
     remove.disabled = seat.removePending;
     remove.addEventListener("click", () => sendAction({ type: "remove-ai", aiSide: seat.side }));
-    elements.cards.replaceChildren(remove);
+    elements.cards.replaceChildren(...cardBacks(7), remove);
+    elements.cards.classList.toggle("ai-removing", seat.removePending);
   } else {
     elements.cards.replaceChildren(...cardBacks(active ? (seat.isAi ? 7 : 0) : 0));
+    elements.cards.classList.remove("ai-removing");
   }
   elements.count.textContent = seat?.removePending ? "Sera removida na proxima rodada" : "";
 }

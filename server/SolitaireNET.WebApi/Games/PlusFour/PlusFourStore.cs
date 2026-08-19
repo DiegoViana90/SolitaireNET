@@ -186,7 +186,7 @@ sealed class PlusFourSession
             if (IsCanceled)
                 return PlusFourJoinResult.Fail(Code, "Sala encerrada.");
 
-            string? side = Sides.FirstOrDefault(item => players[item] == null);
+            string? side = Sides.FirstOrDefault(item => players[item] == null && !pendingAiAdds.Contains(item));
             if (side != null)
             {
                 players[side] = Guid.NewGuid().ToString("N");
