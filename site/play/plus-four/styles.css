@@ -295,6 +295,9 @@ h1 {
   }
 }
 
+/* Lobby layout shared with the other games. */
+.game-shell { width: min(760px, calc(100% - 24px)); min-height: 100dvh; align-content: center; padding: clamp(16px, 3vw, 28px) 0; }
+
 .join-code input {
   min-width: 0;
   border: 1px solid var(--line);
