@@ -664,12 +664,16 @@ async function sendAction(action) {
 
   state.busy = true;
   try {
+    const previousEventId = state.game?.lastEvent?.id;
     const result = await request(`/plus-four/rooms/${encodeURIComponent(state.roomCode)}/actions`, {
       method: "POST",
       body: JSON.stringify({ playerId: state.playerId, ...action })
     });
     state.game = result.state;
     render();
+    if (state.game?.lastEvent?.id && state.game.lastEvent.id !== previousEventId) {
+      showEventToast(state.game.lastEvent);
+    }
   } catch (error) {
     setMessage(error.message);
     render();
