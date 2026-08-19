@@ -192,6 +192,8 @@ sealed class PlusFourSession
             {
                 players[side] = Guid.NewGuid().ToString("N");
                 creatorId ??= players[side];
+                if (IsReady && hands.Where(pair => players[pair.Key] != null).All(pair => pair.Value.Count == 0))
+                    DealRound("one");
                 return ToJoinResult(players[side]!);
             }
 
@@ -284,6 +286,8 @@ sealed class PlusFourSession
             {
                 aiSides.Add(aiSide);
                 players[aiSide] = $"ai-{aiSide}";
+                if (IsReady && hands.Where(pair => players[pair.Key] != null).All(pair => pair.Value.Count == 0))
+                    DealRound("one");
             }
             else
             {
