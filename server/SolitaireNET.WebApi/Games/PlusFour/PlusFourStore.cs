@@ -148,6 +148,7 @@ sealed class PlusFourSession
     readonly Queue<string> queuedPlayers = new();
     string? creatorId;
     bool advancingAi;
+    DateTimeOffset? aiNextActionAt;
     int direction = 1;
     int pendingDraw;
     string? pendingAction;
@@ -221,7 +222,7 @@ sealed class PlusFourSession
             if (side == null && !queuedPlayers.Contains(playerId))
                 return PlusFourJoinResult.Fail(Code, "Jogador nao encontrado nesta sala.");
 
-            if (IsReady && !RoundOver)
+            if (IsReady && !RoundOver && (aiNextActionAt is null || aiNextActionAt <= DateTimeOffset.UtcNow))
                 AdvanceAiTurns();
             return new PlusFourJoinResult(Code, playerId, side, side == null || !IsReady, null, ToPublicState(side));
         }
@@ -254,8 +255,6 @@ sealed class PlusFourSession
 
             if (RoundOver)
                 return PlusFourJoinResult.Fail(Code, "A rodada ja terminou.");
-
-            AdvanceAiTurns();
 
             bool isCut = cutOpen && side != Turn && type == "play";
             if (!isCut && side != Turn)
@@ -315,6 +314,9 @@ sealed class PlusFourSession
 
     void AdvanceAiTurns()
     {
+        if (aiNextActionAt is DateTimeOffset scheduledAt && scheduledAt > DateTimeOffset.UtcNow)
+            return;
+        aiNextActionAt = null;
         if (advancingAi) return;
         advancingAi = true;
         try
@@ -338,7 +340,17 @@ sealed class PlusFourSession
         finally
         {
             advancingAi = false;
+            if (IsReady && !RoundOver && aiSides.Contains(Turn))
+                aiNextActionAt = DateTimeOffset.UtcNow.AddMilliseconds(900);
         }
+    }
+
+    void ScheduleAiTurn()
+    {
+        if (IsReady && !RoundOver && aiSides.Contains(Turn))
+            aiNextActionAt = DateTimeOffset.UtcNow.AddMilliseconds(900);
+        else
+            aiNextActionAt = null;
     }
 
     public PlusFourJoinResult Leave(string playerId)
@@ -366,7 +378,7 @@ sealed class PlusFourSession
             pendingAction = null;
             Turn = NextSide(side);
             LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), side, "draw-penalty", null, null, Turn, $"{SideLabel(side)} comprou a penalidade.");
-            AdvanceAiTurns();
+            ScheduleAiTurn();
             return ToJoinResult(PlayerIdForSide(side)!);
         }
         EnsureDrawPile();
@@ -378,7 +390,7 @@ sealed class PlusFourSession
         hands[side].Add(card);
             Turn = NextSide(side);
             LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), side, "draw", null, null, Turn, null);
-            AdvanceAiTurns();
+            ScheduleAiTurn();
             return ToJoinResult(PlayerIdForSide(side)!);
     }
 
@@ -424,7 +436,7 @@ sealed class PlusFourSession
         string next = NextTurnAfter(card, side);
         Turn = next;
         LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), side, isCut ? "cut" : "play", card.ToPublic(), color, next, isCut ? $"{SideLabel(side)} cortou a jogada." : null);
-        AdvanceAiTurns();
+        ScheduleAiTurn();
         return ToJoinResult(PlayerIdForSide(side)!);
     }
 
