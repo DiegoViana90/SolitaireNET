@@ -68,6 +68,9 @@ const colorModalEl = document.querySelector("#color-modal");
 const colorModalCardEl = document.querySelector("#color-modal-card");
 const colorModalCloseEl = document.querySelector("#color-modal-close");
 const toastStackEl = document.querySelector("#toast-stack");
+const rulesModalEl = document.querySelector("#rules-modal");
+const howToPlayEl = document.querySelector("#how-to-play");
+const rulesModalCloseEl = document.querySelector("#rules-modal-close");
 
 async function request(path, options = {}) {
   const response = await fetch(`${apiBase}${path}`, {
@@ -1189,7 +1192,17 @@ colorModalCloseEl.addEventListener("click", () => {
   colorModalEl.hidden = true;
   render();
 });
+howToPlayEl.addEventListener("click", () => {
+  rulesModalEl.hidden = false;
+});
+rulesModalCloseEl.addEventListener("click", () => {
+  rulesModalEl.hidden = true;
+});
+rulesModalEl.addEventListener("click", (event) => {
+  if (event.target === rulesModalEl) rulesModalEl.hidden = true;
+});
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !rulesModalEl.hidden) rulesModalEl.hidden = true;
   if (event.key !== "Escape" || colorModalEl.hidden) return;
   state.pendingColorCardId = null;
   colorModalEl.hidden = true;

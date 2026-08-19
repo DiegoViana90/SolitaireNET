@@ -124,24 +124,6 @@
   <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
 
   <script src="../../build-info.js?v=__BUILD_ASSET_VERSION__"></script>
-  <script type="module" src="app.js?v=18"></script>
-  <script>
-    const rulesModal = document.querySelector("#rules-modal");
-    const openRules = document.querySelector("#how-to-play");
-    const closeRules = document.querySelector("#rules-modal-close");
-
-    const setRulesOpen = (open) => {
-      rulesModal.hidden = !open;
-    };
-
-    openRules.addEventListener("click", () => setRulesOpen(true));
-    closeRules.addEventListener("click", () => setRulesOpen(false));
-    rulesModal.addEventListener("click", (event) => {
-      if (event.target === rulesModal) setRulesOpen(false);
-    });
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") setRulesOpen(false);
-    });
-  </script>
+  <script type="module" src="app.js?v=19"></script>
 </body>
 </html>
