@@ -461,6 +461,21 @@ h1 {
     0 0 18px rgba(74, 222, 128, 0.18);
 }
 
+.add-ai-seat {
+  min-height: 42px;
+  border: 1px dashed var(--gold);
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: rgba(217, 185, 85, 0.12);
+  color: var(--gold);
+  font-size: .72rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.add-ai-seat:disabled { opacity: .72; cursor: default; }
+.remove-ai-seat { border-color: var(--line); color: var(--muted); background: rgba(0,0,0,.12); }
+
 .side-seat strong {
   color: var(--gold);
   font-size: 0.8rem;

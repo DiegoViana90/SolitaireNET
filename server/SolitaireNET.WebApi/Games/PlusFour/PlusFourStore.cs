@@ -142,6 +142,11 @@ sealed class PlusFourSession
     static readonly string[] Sides = ["one", "two", "three", "four"];
     readonly Dictionary<string, List<PlusFourCard>> hands = Sides.ToDictionary(side => side, _ => new List<PlusFourCard>());
     readonly Dictionary<string, string?> players = Sides.ToDictionary(side => side, _ => (string?)null);
+    readonly HashSet<string> aiSides = new();
+    readonly HashSet<string> pendingAiAdds = new();
+    readonly HashSet<string> pendingAiRemoves = new();
+    string? creatorId;
+    bool advancingAi;
     int direction = 1;
     int pendingDraw;
     string? pendingAction;
@@ -185,6 +190,7 @@ sealed class PlusFourSession
             if (side != null)
             {
                 players[side] = Guid.NewGuid().ToString("N");
+                creatorId ??= players[side];
                 return ToJoinResult(players[side]!);
             }
 
@@ -200,6 +206,8 @@ sealed class PlusFourSession
             if (side == null)
                 return PlusFourJoinResult.Fail(Code, "Jogador nao encontrado nesta sala.");
 
+            if (IsReady && !RoundOver)
+                AdvanceAiTurns();
             return new PlusFourJoinResult(Code, playerId, side, !IsReady, null, ToPublicState(side));
         }
     }
@@ -220,11 +228,15 @@ sealed class PlusFourSession
                 return PlusFourJoinResult.Fail(Code, "Aguardando outro jogador.");
 
             string type = (action.Type ?? string.Empty).Trim().ToLowerInvariant();
+            if (type is "add-ai" or "remove-ai")
+                return ConfigureAi(side, action.AiSide, type == "add-ai");
             if (type == "next-round")
                 return StartNextRound(side);
 
             if (RoundOver)
                 return PlusFourJoinResult.Fail(Code, "A rodada ja terminou.");
+
+            AdvanceAiTurns();
 
             bool isCut = cutOpen && side != Turn && type == "play";
             if (!isCut && side != Turn)
@@ -236,6 +248,67 @@ sealed class PlusFourSession
                 "play" => Play(side, action.CardIds ?? (action.CardId == null ? [] : [action.CardId]), action.Color, isCut),
                 _ => PlusFourJoinResult.Fail(Code, "Acao invalida.")
             };
+        }
+    }
+
+    PlusFourJoinResult ConfigureAi(string requester, string? requestedSide, bool add)
+    {
+        if (requester != creatorId)
+            return PlusFourJoinResult.Fail(Code, "Somente o criador da sala pode controlar a IA.");
+
+        string? aiSide = requestedSide != null && Sides.Contains(requestedSide)
+            ? requestedSide
+            : Sides.FirstOrDefault(side => players[side] == null && !aiSides.Contains(side));
+        if (aiSide == null)
+            return PlusFourJoinResult.Fail(Code, "Nao ha lugar disponivel para a IA.");
+
+        if (add)
+        {
+            if (aiSides.Contains(aiSide) || pendingAiAdds.Contains(aiSide))
+                return PlusFourJoinResult.Fail(Code, "A IA ja esta ativa ou sera adicionada.");
+            pendingAiRemoves.Remove(aiSide);
+            pendingAiAdds.Add(aiSide);
+        }
+        else
+        {
+            if (!aiSides.Contains(aiSide))
+                return PlusFourJoinResult.Fail(Code, "Nao ha IA ativa nesse lugar.");
+            pendingAiAdds.Remove(aiSide);
+            pendingAiRemoves.Add(aiSide);
+        }
+
+        string message = add
+            ? $"{SideLabel(aiSide)} sera adicionado na proxima rodada."
+            : $"{SideLabel(aiSide)} sera removido na proxima rodada.";
+        LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), requester, add ? "ai-add-pending" : "ai-remove-pending", null, null, Turn, message);
+        return ToJoinResult(requester);
+    }
+
+    void AdvanceAiTurns()
+    {
+        if (advancingAi) return;
+        advancingAi = true;
+        try
+        {
+        for (int count = 0; count < 8 && aiSides.Contains(Turn) && !RoundOver; count++)
+        {
+            string aiSide = Turn;
+            PlusFourCard? card = hands[aiSide].FirstOrDefault(CanPlay);
+            if (card == null)
+            {
+                Draw(aiSide);
+                continue;
+            }
+
+            string? color = card.Color == "wild" || card.Value == "Inverte"
+                ? Colors.OrderBy(candidate => hands[aiSide].Count(item => item.Color == candidate)).First()
+                : null;
+            Play(aiSide, [card.Id], color, false);
+        }
+        }
+        finally
+        {
+            advancingAi = false;
         }
     }
 
@@ -331,10 +404,28 @@ sealed class PlusFourSession
         if (MatchWinner != null)
             return PlusFourJoinResult.Fail(Code, "A partida ja terminou.");
 
+        ApplyPendingAiChanges();
         Round++;
         DealRound(startingSide: NextSide(RoundWinner!));
             LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), side, "next-round", null, null, Turn, null);
         return ToJoinResult(PlayerIdForSide(side)!);
+    }
+
+    void ApplyPendingAiChanges()
+    {
+        foreach (string side in pendingAiRemoves)
+        {
+            aiSides.Remove(side);
+            players[side] = null;
+            hands[side].Clear();
+        }
+        foreach (string side in pendingAiAdds)
+        {
+            aiSides.Add(side);
+            players[side] = $"ai-{side}";
+        }
+        pendingAiAdds.Clear();
+        pendingAiRemoves.Clear();
     }
 
     void FinishRound(string winner, PlusFourCard card)
@@ -467,6 +558,7 @@ sealed class PlusFourSession
             pendingDraw,
             pendingAction,
             cutOpen && (hands[viewerSide].Any(card => CanCut(card))),
+            Sides.Select(slot => new PlusFourSeat(slot, players[slot] != null, aiSides.Contains(slot), pendingAiAdds.Contains(slot), pendingAiRemoves.Contains(slot), players[slot] == creatorId)).ToList(),
             LastEvent);
     }
 
@@ -565,7 +657,10 @@ sealed record PlusFourPublicState(
     int PendingDraw,
     string? PendingAction,
     bool CanCut,
+    List<PlusFourSeat> Seats,
     PlusFourEvent? LastEvent);
+
+sealed record PlusFourSeat(string Side, bool Occupied, bool IsAi, bool AddPending, bool RemovePending, bool IsCreator);
 
 sealed record PlusFourCard(string Id, string Color, string Value, string? PlayedColor)
 {
@@ -573,6 +668,6 @@ sealed record PlusFourCard(string Id, string Color, string Value, string? Played
 }
 
 sealed record PlusFourPublicCard(string Id, string Color, string Value, string? PlayedColor);
-sealed record PlusFourAction(string PlayerId, string Type, string? CardId, string? Color, List<string>? CardIds = null);
+sealed record PlusFourAction(string PlayerId, string Type, string? CardId, string? Color, List<string>? CardIds = null, string? AiSide = null);
 sealed record PlusFourLeaveAction(string PlayerId);
 sealed record PlusFourEvent(string Id, string PlayerSide, string Type, PlusFourPublicCard? Card, string? Color, string? NextTurn, string? Message);

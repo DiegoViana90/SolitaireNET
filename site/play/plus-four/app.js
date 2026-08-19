@@ -250,17 +250,18 @@ function render() {
 
 function renderOpponents() {
   if (!state.simulated) {
-    topOpponentLabelEl.textContent = "Adversario";
-    opponentCountEl.textContent = `${state.game.opponentCount} carta${state.game.opponentCount === 1 ? "" : "s"}`;
-    opponentCardsEl.replaceChildren(...cardBacks(state.game.opponentCount));
-    topOpponentSeatEl.classList.toggle("current-turn", state.game.turn !== state.playerSide);
-    renderSideOpponent(null, {
+    const seats = state.game.seats || [];
+    const top = seats.find(seat => seat.side === "two");
+    const left = seats.find(seat => seat.side === "three");
+    const right = seats.find(seat => seat.side === "four");
+    renderServerOpponent(top, { seat: topOpponentSeatEl, label: topOpponentLabelEl, cards: opponentCardsEl, count: opponentCountEl });
+    renderServerOpponent(left, {
       seat: leftSeatEl,
       label: leftSeatLabelEl,
       cards: leftOpponentCardsEl,
       count: leftOpponentCountEl
     });
-    renderSideOpponent(null, {
+    renderServerOpponent(right, {
       seat: rightSeatEl,
       label: rightSeatLabelEl,
       cards: rightOpponentCardsEl,
@@ -283,6 +284,33 @@ function renderOpponents() {
     cards: rightOpponentCardsEl,
     count: rightOpponentCountEl
   });
+}
+
+function renderServerOpponent(seat, elements) {
+  const active = seat?.occupied;
+  elements.seat.classList.toggle("active-opponent", Boolean(active));
+  elements.seat.classList.toggle("current-turn", state.game?.turn === seat?.side);
+  elements.label.textContent = seat?.isAi ? `IA ${seat.side === "two" ? "1" : seat.side === "three" ? "2" : "3"}` : active ? "Jogador" : "Vazio";
+  if (!active && state.playerSide === "one") {
+    const add = document.createElement("button");
+    add.className = "add-ai-seat";
+    add.type = "button";
+    add.textContent = seat.addPending ? "IA sera adicionada na proxima rodada" : "+ Adicionar IA";
+    add.disabled = seat.addPending;
+    add.addEventListener("click", () => sendAction({ type: "add-ai", aiSide: seat.side }));
+    elements.cards.replaceChildren(add);
+  } else if (active && seat.isAi && state.playerSide === "one") {
+    const remove = document.createElement("button");
+    remove.className = "add-ai-seat remove-ai-seat";
+    remove.type = "button";
+    remove.textContent = seat.removePending ? "Sera removida na proxima rodada" : "Remover IA";
+    remove.disabled = seat.removePending;
+    remove.addEventListener("click", () => sendAction({ type: "remove-ai", aiSide: seat.side }));
+    elements.cards.replaceChildren(remove);
+  } else {
+    elements.cards.replaceChildren(...cardBacks(active ? (seat.isAi ? 7 : 0) : 0));
+  }
+  elements.count.textContent = seat?.removePending ? "Sera removida na proxima rodada" : "";
 }
 
 function renderTopOpponent(opponent) {
