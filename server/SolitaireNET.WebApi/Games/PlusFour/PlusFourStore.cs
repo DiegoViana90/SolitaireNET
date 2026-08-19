@@ -362,6 +362,7 @@ sealed class PlusFourSession
             pendingAction = null;
             Turn = NextSide(side);
             LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), side, "draw-penalty", null, null, Turn, $"{SideLabel(side)} comprou a penalidade.");
+            AdvanceAiTurns();
             return ToJoinResult(PlayerIdForSide(side)!);
         }
         EnsureDrawPile();
@@ -371,9 +372,10 @@ sealed class PlusFourSession
         PlusFourCard card = drawPile[^1];
         drawPile.RemoveAt(drawPile.Count - 1);
         hands[side].Add(card);
-        Turn = NextSide(side);
-        LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), side, "draw", null, null, Turn, null);
-        return ToJoinResult(PlayerIdForSide(side)!);
+            Turn = NextSide(side);
+            LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), side, "draw", null, null, Turn, null);
+            AdvanceAiTurns();
+            return ToJoinResult(PlayerIdForSide(side)!);
     }
 
     PlusFourJoinResult Play(string side, IReadOnlyList<string> cardIds, string? chosenColor, bool isCut)
@@ -418,6 +420,7 @@ sealed class PlusFourSession
         string next = NextTurnAfter(card, side);
         Turn = next;
         LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), side, isCut ? "cut" : "play", card.ToPublic(), color, next, isCut ? $"{SideLabel(side)} cortou a jogada." : null);
+        AdvanceAiTurns();
         return ToJoinResult(PlayerIdForSide(side)!);
     }
 
