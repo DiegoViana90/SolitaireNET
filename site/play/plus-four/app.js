@@ -289,6 +289,7 @@ function renderOpponents() {
 }
 
 function renderServerOpponent(seat, elements) {
+  elements.seat.querySelectorAll(".ai-seat-control").forEach(control => control.remove());
   const active = seat?.occupied;
   elements.seat.classList.toggle("active-opponent", Boolean(active));
   elements.seat.classList.toggle("current-turn", state.game?.turn === seat?.side);
@@ -303,18 +304,23 @@ function renderServerOpponent(seat, elements) {
     elements.cards.replaceChildren(add);
   } else if (active && seat.isAi && state.playerSide === "one") {
     const remove = document.createElement("button");
-    remove.className = "add-ai-seat remove-ai-seat";
+    remove.className = "add-ai-seat remove-ai-seat ai-seat-control";
     remove.type = "button";
     remove.textContent = seat.removePending ? "Sera removida na proxima rodada" : "Remover IA";
     remove.disabled = seat.removePending;
     remove.addEventListener("click", () => sendAction({ type: "remove-ai", aiSide: seat.side }));
-    elements.cards.replaceChildren(...cardBacks(7), remove);
+    elements.cards.replaceChildren(...cardBacks(7));
+    elements.seat.append(remove);
     elements.cards.classList.toggle("ai-removing", seat.removePending);
   } else {
     elements.cards.replaceChildren(...cardBacks(active ? (seat.isAi ? 7 : 0) : 0));
     elements.cards.classList.remove("ai-removing");
   }
-  elements.count.textContent = seat?.removePending ? "Sera removida na proxima rodada" : "";
+  elements.count.textContent = seat?.removePending
+    ? "Sera removida na proxima rodada"
+    : seat?.isAi
+      ? "7 cartas"
+      : "";
 }
 
 function renderTopOpponent(opponent) {
