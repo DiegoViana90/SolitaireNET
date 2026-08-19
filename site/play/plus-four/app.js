@@ -131,7 +131,9 @@ function applyJoinResult(result, options = {}) {
   state.game = result.state;
 
   if (result.waiting) {
-    setMessage("Aguardando outro jogador entrar.");
+    setMessage(result.playerSide
+      ? "Aguardando outro jogador entrar."
+      : "Voce entrara na proxima rodada. Aguarde uma vaga liberar.");
   } else if (options.restored) {
     setMessage("Voce voltou para a sala.");
   } else {
