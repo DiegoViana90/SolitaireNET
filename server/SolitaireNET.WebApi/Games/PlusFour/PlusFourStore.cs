@@ -371,7 +371,9 @@ sealed class PlusFourSession
 
         discardPile.Add(first.Value == "Inverte" ? first with { PlayedColor = first.Color } : first);
         CurrentColor = first.Color;
-        Turn = players[startingSide] == null ? Sides.First(side => players[side] != null) : startingSide;
+        Turn = players.Values.Any(player => player != null) && players[startingSide] == null
+            ? Sides.First(side => players[side] != null)
+            : startingSide;
         direction = 1;
         pendingDraw = 0;
         pendingAction = null;
