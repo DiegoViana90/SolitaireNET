@@ -1151,6 +1151,9 @@ function showEventToast(event) {
 }
 
 function showToast(text) {
+  const currentToasts = Array.from(toastStackEl.children);
+  if (currentToasts.at(-1)?.textContent === text) return;
+  while (toastStackEl.children.length >= 3) toastStackEl.firstElementChild.remove();
   const toast = document.createElement("div");
   toast.className = "toast";
   toast.textContent = text;
