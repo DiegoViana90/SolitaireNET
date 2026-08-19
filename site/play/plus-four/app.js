@@ -1186,11 +1186,33 @@ function clearSession() {
 
 function showEventToast(event) {
   if (event.playerSide === state.playerSide) return;
+  if (event.type === "play" && event.card) {
+    const opponentId = opponentDomId(event.playerSide);
+    const opponent = localOpponentSlots.find(item => item.id === opponentId);
+    showToast(`${opponent?.shortName || sideLabel(event.playerSide)} jogou ${event.card.value}.`);
+    flashOpponentSeat(opponentId);
+    window.setTimeout(() => {
+      void animateOpponentCardToDiscard(opponentId, event.card, event.color);
+    }, 30);
+    return;
+  }
   if (event.message) showToast(event.message);
   if (event.type === "cut") showToast("Um jogador cortou a jogada antes de voce.");
   if (event.type === "play") showToast("Adversario jogou uma carta.");
   if (event.type === "draw") showToast("Adversario comprou uma carta.");
   if (event.type === "round-win") showToast("Rodada encerrada.");
+}
+
+function opponentDomId(side) {
+  return ({ two: "bot-top", three: "bot-left", four: "bot-right" })[side] || "bot-top";
+}
+
+function flashOpponentSeat(opponentId) {
+  const seat = opponentId === "bot-top" ? topOpponentSeatEl : opponentId === "bot-left" ? leftSeatEl : rightSeatEl;
+  seat.classList.remove("ai-acted");
+  void seat.offsetWidth;
+  seat.classList.add("ai-acted");
+  window.setTimeout(() => seat.classList.remove("ai-acted"), 1500);
 }
 
 function showToast(text) {
