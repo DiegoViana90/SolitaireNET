@@ -482,7 +482,7 @@ h1 {
 .side-seat .add-ai-seat {
   width: 100%;
   min-width: 88px;
-  white-space: normal;
+  white-space: nowrap;
   writing-mode: horizontal-tb;
   transform: none;
 }

@@ -297,7 +297,7 @@ function renderServerOpponent(seat, elements) {
     const add = document.createElement("button");
     add.className = "add-ai-seat";
     add.type = "button";
-    add.textContent = seat.addPending ? "IA sera adicionada na proxima rodada" : "+ Adicionar IA";
+    add.textContent = seat.addPending ? "IA na proxima rodada" : "+ Add IA";
     add.disabled = seat.addPending;
     add.addEventListener("click", () => sendAction({ type: "add-ai", aiSide: seat.side }));
     elements.cards.replaceChildren(add);
