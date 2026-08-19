@@ -430,10 +430,12 @@ async function animateCardToDiscard(color, sourceEl, options = {}) {
   const to = discardCardEl.getBoundingClientRect();
   if (!from.width || !to.width) return;
   const hasKnownCard = Boolean(options.card);
-  const flightFrom = hasKnownCard ? getDiscardSizedFlightRect(from, to) : getFlightRect(sourceEl, from, options);
+  // A carta deve sair com o mesmo tamanho visual da origem. Antes, as cartas
+  // conhecidas (principalmente as da IA) iniciavam com o tamanho do descarte.
+  const flightFrom = from;
 
   const ghost = options.card
-    ? cardEl({ ...options.card, playedColor: color || options.card.playedColor }, { large: true })
+    ? cardEl({ ...options.card, playedColor: color || options.card.playedColor })
     : sourceEl.cloneNode(true);
   ghost.classList.add("flying-card");
   ghost.classList.remove("playable", "pending-color");
@@ -451,7 +453,7 @@ async function animateCardToDiscard(color, sourceEl, options = {}) {
 
   const deltaX = to.left + (to.width / 2) - (flightFrom.left + (flightFrom.width / 2));
   const deltaY = to.top + (to.height / 2) - (flightFrom.top + (flightFrom.height / 2));
-  const scale = hasKnownCard ? 1 : Math.min(1.65, Math.max(1.08, to.height / flightFrom.height));
+  const scale = 1;
 
   try {
     await ghost.animate([
