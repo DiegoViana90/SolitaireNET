@@ -422,8 +422,10 @@ h1 {
   padding: 4px 8px;
 }
 
+.top-player .opponent-cards { justify-content: center; align-items: center; padding-left: 0; }
+
 .side-seat .ai-seat-control {
-  grid-row: 3;
+  grid-row: 4;
   width: auto;
   min-width: 0;
   min-height: 26px;
@@ -920,7 +922,7 @@ button.card:disabled {
 
   .playmat {
     min-height: auto;
-    grid-template-columns: 82px minmax(0, 1fr) 82px;
+    grid-template-columns: 76px minmax(0, 1fr) 76px;
     grid-template-rows: auto auto auto;
     grid-template-areas: "top top top" "left center right" "mine mine mine";
     gap: 6px;
@@ -934,8 +936,8 @@ button.card:disabled {
 
   .side-seat {
     width: 100%;
-    height: 132px;
-    grid-template-rows: 16px 1fr 15px;
+    height: 124px;
+    grid-template-rows: 16px 1fr 14px 24px;
     gap: 4px;
     padding: 6px;
   }
@@ -970,8 +972,8 @@ button.card:disabled {
   }
 
   .side-cards .card-back {
-    width: 24px;
-    height: 34px;
+    width: 20px;
+    height: 30px;
     margin-top: 0;
     margin-left: -14px;
   }
@@ -987,8 +989,9 @@ button.card:disabled {
 
   .side-seat .add-ai-seat,
   .side-seat .ai-seat-control {
-    font-size: .62rem;
-    padding-inline: 2px;
+    min-width: 0;
+    font-size: .55rem;
+    padding: 2px;
   }
 
   .center-table {
