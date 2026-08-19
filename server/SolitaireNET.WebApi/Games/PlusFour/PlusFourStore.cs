@@ -197,6 +197,12 @@ sealed class PlusFourSession
 
             string queuedPlayer = Guid.NewGuid().ToString("N");
             queuedPlayers.Enqueue(queuedPlayer);
+            string? replaceableAi = aiSides
+                .Where(aiSide => !pendingAiRemoves.Contains(aiSide))
+                .OrderBy(_ => Random.Shared.Next())
+                .FirstOrDefault();
+            if (replaceableAi != null)
+                pendingAiRemoves.Add(replaceableAi);
             return new PlusFourJoinResult(Code, queuedPlayer, null, true, null, ToPublicState(null));
         }
     }
