@@ -430,9 +430,10 @@ async function animateCardToDiscard(color, sourceEl, options = {}) {
   const to = discardCardEl.getBoundingClientRect();
   if (!from.width || !to.width) return;
   const hasKnownCard = Boolean(options.card);
-  // A carta deve sair com o mesmo tamanho visual da origem. Antes, as cartas
-  // conhecidas (principalmente as da IA) iniciavam com o tamanho do descarte.
-  const flightFrom = from;
+  // A origem da IA e um card-back empilhado; o retangulo dele pode incluir a
+  // area visual da pilha. Para a carta revelada, use sempre o tamanho real de
+  // uma carta, sem herdar a dimensao do descarte ou da pilha.
+  const flightFrom = hasKnownCard ? getFlightRect(sourceEl, from, options) : from;
 
   const ghost = options.card
     ? cardEl({ ...options.card, playedColor: color || options.card.playedColor })
