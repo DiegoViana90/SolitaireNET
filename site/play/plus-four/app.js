@@ -30,6 +30,7 @@ const state = {
   localOpponentCount: 1,
   animating: false,
   busy: false,
+  localBotBusy: false,
   pollTimer: null,
   message: ""
 };
@@ -711,7 +712,8 @@ async function applySimulatedAction(action) {
 }
 
 async function simulateBotTurn() {
-  if (!state.simulated || !state.game || !state.localGame || state.game.turn === "one") return;
+  if (!state.simulated || !state.game || !state.localGame || state.game.turn === "one" || state.localBotBusy) return;
+  state.localBotBusy = true;
 
   const opponent = localOpponentById(state.game.turn);
   if (!opponent) return;
@@ -740,6 +742,7 @@ async function simulateBotTurn() {
     state.game.turn = localNextSide(opponent.id);
     syncLocalPublicState();
     render();
+    state.localBotBusy = false;
     scheduleLocalBotTurn();
     return;
   }
@@ -768,6 +771,7 @@ async function simulateBotTurn() {
   render();
 
   await tryLocalCut();
+  state.localBotBusy = false;
   scheduleLocalBotTurn();
 }
 
@@ -1137,6 +1141,7 @@ function clearSession() {
   state.pendingColorCardId = null;
   state.simulated = false;
   state.localGame = null;
+  state.localBotBusy = false;
   state.animating = false;
   colorModalEl.hidden = true;
 }
