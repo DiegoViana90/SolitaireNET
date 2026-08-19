@@ -206,6 +206,11 @@ async function refreshRoom() {
     render();
   } catch (error) {
     setMessage(error.message);
+    if (error.message.toLowerCase().includes("sala nao encontrada") ||
+        error.message.toLowerCase().includes("sala não encontrada")) {
+      stopPolling();
+      showToast("A sala foi encerrada ou o servidor foi reiniciado.");
+    }
     render();
   }
 }

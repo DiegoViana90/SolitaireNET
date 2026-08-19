@@ -213,6 +213,10 @@ sealed class PlusFourSession
     {
         lock (gate)
         {
+            // O polling do cliente também representa uma sala ativa. Sem isso,
+            // uma partida parada por alguns minutos poderia ser removida pelo
+            // CleanupService mesmo com os jogadores ainda conectados.
+            Touch();
             string? side = SideForPlayer(playerId);
             if (side == null && !queuedPlayers.Contains(playerId))
                 return PlusFourJoinResult.Fail(Code, "Jogador nao encontrado nesta sala.");
