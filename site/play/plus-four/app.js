@@ -1153,12 +1153,13 @@ function showEventToast(event) {
 function showToast(text) {
   const currentToasts = Array.from(toastStackEl.children);
   if (currentToasts.at(-1)?.textContent === text) return;
+  // Mantem apenas as tres mensagens mais recentes; a nova sempre fica visivel.
   while (toastStackEl.children.length >= 3) toastStackEl.firstElementChild.remove();
   const toast = document.createElement("div");
   toast.className = "toast";
   toast.textContent = text;
   toastStackEl.append(toast);
-  window.setTimeout(() => toast.remove(), 3200);
+  window.setTimeout(() => toast.remove(), 2200);
 }
 
 function setLocalOpponentCount(count) {
