@@ -194,6 +194,15 @@ if (loadTestEnabled)
 
         return Results.Created($"/api/loadtest/users/{request.Uid}", request);
     });
+
+    app.MapPost("/api/loadtest/users/{uid}/win", (string uid, RankingStore ranking) =>
+    {
+        if (ranking.GetPlayer(uid) == null)
+            return Results.NotFound();
+
+        ranking.RecordWin(uid);
+        return Results.Ok(new { uid, winAdded = true });
+    });
 }
 
 app.MapPost("/api/checkers/rooms", (CheckersStore store) =>
