@@ -357,7 +357,24 @@ sealed class PlusFourSession
     void ScheduleAiTurn()
     {
         if (IsReady && !RoundOver && aiSides.Contains(Turn))
+        {
             aiNextActionAt = DateTimeOffset.UtcNow.AddMilliseconds(900);
+            DateTimeOffset scheduledAt = aiNextActionAt.Value;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(920));
+                    lock (gate)
+                    {
+                        if (aiNextActionAt == scheduledAt &&
+                            IsReady && !RoundOver && aiSides.Contains(Turn))
+                            AdvanceAiTurns();
+                    }
+                }
+                catch (ObjectDisposedException) { }
+            });
+        }
         else
             aiNextActionAt = null;
     }

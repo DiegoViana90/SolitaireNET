@@ -232,6 +232,10 @@ function applyRoomUpdate(result) {
   if (!result?.state) return;
   state.game = result.state;
   state.playerSide = result.playerSide;
+  if (state.game.lastEvent?.playerSide && state.game.lastEvent.playerSide !== state.playerSide) {
+    state.busy = false;
+    state.animating = false;
+  }
   if (state.game?.lastEvent?.id && state.game.lastEvent.id !== previousEvent) {
     showEventToast(state.game.lastEvent);
   }
