@@ -124,6 +124,7 @@ async function joinFromResult(promise) {
   } finally {
     state.busy = false;
     setControlsEnabled(true);
+    render();
   }
 }
 
@@ -716,6 +717,7 @@ async function sendAction(action) {
     render();
   } finally {
     state.busy = false;
+    render();
   }
 }
 
