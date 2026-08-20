@@ -180,35 +180,8 @@ async function restoreSession() {
 
 function startPolling() {
   stopPolling();
-  const eventsUrl = `${apiBase}/plus-four/rooms/${encodeURIComponent(state.roomCode)}/events?playerId=${encodeURIComponent(state.playerId)}`;
-  state.eventSource = new EventSource(eventsUrl);
-  state.eventWatchdog = window.setTimeout(() => {
-    if (state.eventSource && !state.usingPollingFallback) {
-      state.eventSource.close();
-      state.eventSource = null;
-      state.usingPollingFallback = true;
-      state.pollTimer = window.setInterval(refreshRoom, 1200);
-    }
-  }, 5000);
-  state.eventSource.onmessage = (event) => {
-    if (state.eventWatchdog) {
-      window.clearTimeout(state.eventWatchdog);
-      state.eventWatchdog = null;
-    }
-    try {
-      applyRoomUpdate(JSON.parse(event.data));
-    } catch {
-      // Aguarda a próxima atualização válida.
-    }
-  };
-  state.eventSource.onerror = () => {
-    if (state.eventSource) state.eventSource.close();
-    state.eventSource = null;
-    if (!state.usingPollingFallback) {
-      state.usingPollingFallback = true;
-      state.pollTimer = window.setInterval(refreshRoom, 1200);
-    }
-  };
+  state.usingPollingFallback = true;
+  state.pollTimer = window.setInterval(refreshRoom, 1200);
 }
 
 function stopPolling() {
