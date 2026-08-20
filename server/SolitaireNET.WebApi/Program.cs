@@ -302,7 +302,9 @@ app.MapGet("/api/plus-four/rooms/{code}/events", async (string code, string play
         string payload = System.Text.Json.JsonSerializer.Serialize(result);
         await context.Response.WriteAsync($"data: {payload}\n\n", context.RequestAborted);
         await context.Response.Body.FlushAsync(context.RequestAborted);
-        if (!await store.WaitForChange(code, playerId, context.RequestAborted))
+        Task<bool> changeTask = store.WaitForChange(code, playerId, context.RequestAborted);
+        Task completed = await Task.WhenAny(changeTask, Task.Delay(TimeSpan.FromSeconds(2), context.RequestAborted));
+        if (completed == changeTask && !await changeTask)
             break;
     }
 });
