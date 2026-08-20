@@ -378,7 +378,7 @@ h1 {
 .playmat {
   min-height: min(66dvh, 560px);
   display: grid;
-  grid-template-columns: minmax(54px, 84px) 1fr minmax(54px, 84px);
+  grid-template-columns: minmax(112px, 128px) 1fr minmax(112px, 128px);
   grid-template-rows: auto 1fr auto;
   grid-template-areas:
     ". top ."
@@ -513,7 +513,9 @@ h1 {
 
 .side-seat .add-ai-seat {
   width: 100%;
-  min-width: 88px;
+  min-width: 0;
+  box-sizing: border-box;
+  font-size: .68rem;
   white-space: nowrap;
   writing-mode: horizontal-tb;
   transform: none;
@@ -635,8 +637,7 @@ h1 {
   background: var(--yellow);
 }
 
-.card.wild,
-.card.color-action {
+.card.wild {
   background:
     linear-gradient(135deg, #d94343 0 34%, #2f80ed 34% 58%, #27ae60 58% 78%, #f2c94c 78%);
 }
