@@ -235,7 +235,7 @@ function render() {
     ? `Partida local | ${localOpponents().length} IA${localOpponents().length === 1 ? "" : "s"} adversaria${localOpponents().length === 1 ? "" : "s"}`
     : `Sala ${state.roomCode} | Voce e ${sideLabel(state.playerSide)}`;
   drawCountEl.textContent = game.drawCount;
-  const isMyTurn = game.turn === state.playerSide;
+  const isMyTurn = game.ready && game.turn === state.playerSide;
   tableEl.classList.toggle("current-turn", isMyTurn);
   myAreaEl.classList.toggle("current-turn", isMyTurn);
   nextRoundEl.hidden = !game.roundWinner || game.matchWinner;
@@ -318,14 +318,15 @@ function renderServerOpponent(seat, elements) {
     elements.seat.append(remove);
     elements.cards.classList.toggle("ai-removing", seat.removePending);
   } else {
-    elements.cards.replaceChildren(...cardBacks(active ? (seat.isAi ? 7 : 0) : 0));
+    elements.cards.replaceChildren(...cardBacks(active ? (seat.handCount ?? (seat.isAi ? 7 : 0)) : 0));
     elements.cards.classList.remove("ai-removing");
   }
   elements.count.textContent = seat?.removePending
     ? "Sera removida na proxima rodada"
-    : seat?.isAi
-      ? "7 cartas"
+    : active
+      ? `${seat.handCount ?? (seat.isAi ? 7 : 0)} carta${(seat.handCount ?? (seat.isAi ? 7 : 0)) === 1 ? "" : "s"}`
       : "";
+  elements.seat.classList.toggle("current-turn", Boolean(state.game?.ready && state.game?.turn === seat?.side));
 }
 
 function renderTopOpponent(opponent) {
@@ -1204,6 +1205,13 @@ function showEventToast(event) {
       void animateOpponentCardToDiscard(opponentId, event.card, event.color);
     }, 30);
     return;
+  }
+  if (event.type === "draw" || event.type === "draw-penalty") {
+    const opponentId = opponentDomId(event.playerSide);
+    flashOpponentSeat(opponentId);
+    window.setTimeout(() => {
+      void animateDrawTo(getOpponentCardsEl(opponentId));
+    }, 30);
   }
   if (event.message) showToast(event.message);
   if (event.type === "cut") showToast("Um jogador cortou a jogada antes de voce.");

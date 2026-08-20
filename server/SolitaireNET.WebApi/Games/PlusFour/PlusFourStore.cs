@@ -611,7 +611,7 @@ sealed class PlusFourSession
             pendingDraw,
             pendingAction,
             viewerSide != null && cutOpen && hands[viewerSide].Any(card => CanCut(card)),
-            Sides.Select(slot => new PlusFourSeat(slot, players[slot] != null, aiSides.Contains(slot), pendingAiAdds.Contains(slot), pendingAiRemoves.Contains(slot), players[slot] == creatorId)).ToList(),
+            Sides.Select(slot => new PlusFourSeat(slot, players[slot] != null, aiSides.Contains(slot), pendingAiAdds.Contains(slot), pendingAiRemoves.Contains(slot), players[slot] == creatorId, hands[slot].Count)).ToList(),
             LastEvent);
     }
 
@@ -713,7 +713,7 @@ sealed record PlusFourPublicState(
     List<PlusFourSeat> Seats,
     PlusFourEvent? LastEvent);
 
-sealed record PlusFourSeat(string Side, bool Occupied, bool IsAi, bool AddPending, bool RemovePending, bool IsCreator);
+sealed record PlusFourSeat(string Side, bool Occupied, bool IsAi, bool AddPending, bool RemovePending, bool IsCreator, int HandCount);
 
 sealed record PlusFourCard(string Id, string Color, string Value, string? PlayedColor)
 {
