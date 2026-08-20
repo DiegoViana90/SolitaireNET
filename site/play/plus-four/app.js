@@ -34,6 +34,7 @@ const state = {
   pollTimer: null,
   eventSource: null,
   usingPollingFallback: false,
+  eventWatchdog: null,
   message: ""
 };
 
@@ -181,7 +182,19 @@ function startPolling() {
   stopPolling();
   const eventsUrl = `${apiBase}/plus-four/rooms/${encodeURIComponent(state.roomCode)}/events?playerId=${encodeURIComponent(state.playerId)}`;
   state.eventSource = new EventSource(eventsUrl);
+  state.eventWatchdog = window.setTimeout(() => {
+    if (state.eventSource && !state.usingPollingFallback) {
+      state.eventSource.close();
+      state.eventSource = null;
+      state.usingPollingFallback = true;
+      state.pollTimer = window.setInterval(refreshRoom, 1200);
+    }
+  }, 5000);
   state.eventSource.onmessage = (event) => {
+    if (state.eventWatchdog) {
+      window.clearTimeout(state.eventWatchdog);
+      state.eventWatchdog = null;
+    }
     try {
       applyRoomUpdate(JSON.parse(event.data));
     } catch {
@@ -208,6 +221,10 @@ function stopPolling() {
     state.pollTimer = null;
   }
   state.usingPollingFallback = false;
+  if (state.eventWatchdog) {
+    window.clearTimeout(state.eventWatchdog);
+    state.eventWatchdog = null;
+  }
 }
 
 function applyRoomUpdate(result) {

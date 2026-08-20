@@ -290,6 +290,8 @@ app.MapGet("/api/plus-four/rooms/{code}/events", async (string code, string play
     context.Response.ContentType = "text/event-stream";
     context.Response.Headers.CacheControl = "no-cache";
     context.Response.Headers.Connection = "keep-alive";
+    context.Response.Headers["X-Accel-Buffering"] = "no";
+    await context.Response.StartAsync(context.RequestAborted);
 
     while (!context.RequestAborted.IsCancellationRequested)
     {
