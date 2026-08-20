@@ -679,6 +679,10 @@ async function sendAction(action) {
     render();
     if (state.game?.lastEvent?.id && state.game.lastEvent.id !== previousEventId) {
       showEventToast(state.game.lastEvent);
+      if ((state.game.lastEvent.type === "draw" || state.game.lastEvent.type === "draw-penalty") &&
+          state.game.lastEvent.playerSide === state.playerSide) {
+        await animateDrawTo(handEl);
+      }
     }
   } catch (error) {
     setMessage(error.message);
