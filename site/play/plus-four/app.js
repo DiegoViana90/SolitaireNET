@@ -32,6 +32,8 @@ const state = {
   busy: false,
   localBotBusy: false,
   pollTimer: null,
+  eventSource: null,
+  usingPollingFallback: false,
   message: ""
 };
 
@@ -176,35 +178,58 @@ async function restoreSession() {
 
 function startPolling() {
   stopPolling();
-  state.pollTimer = window.setInterval(refreshRoom, 1200);
+  const eventsUrl = `${apiBase}/plus-four/rooms/${encodeURIComponent(state.roomCode)}/events?playerId=${encodeURIComponent(state.playerId)}`;
+  state.eventSource = new EventSource(eventsUrl);
+  state.eventSource.onmessage = (event) => {
+    try {
+      applyRoomUpdate(JSON.parse(event.data));
+    } catch {
+      // Aguarda a próxima atualização válida.
+    }
+  };
+  state.eventSource.onerror = () => {
+    if (state.eventSource) state.eventSource.close();
+    state.eventSource = null;
+    if (!state.usingPollingFallback) {
+      state.usingPollingFallback = true;
+      state.pollTimer = window.setInterval(refreshRoom, 1200);
+    }
+  };
 }
 
 function stopPolling() {
+  if (state.eventSource) {
+    state.eventSource.close();
+    state.eventSource = null;
+  }
   if (state.pollTimer) {
     window.clearInterval(state.pollTimer);
     state.pollTimer = null;
   }
+  state.usingPollingFallback = false;
+}
+
+function applyRoomUpdate(result) {
+  const previousEvent = state.game?.lastEvent?.id;
+  if (!result?.state) return;
+  state.game = result.state;
+  state.playerSide = result.playerSide;
+  if (state.game?.lastEvent?.id && state.game.lastEvent.id !== previousEvent) {
+    showEventToast(state.game.lastEvent);
+  }
+  if (state.game?.canceled) {
+    clearSession();
+    stopPolling();
+  }
+  render();
 }
 
 async function refreshRoom() {
   if (!state.roomCode || !state.playerId || state.busy) return;
 
   try {
-    const previousEvent = state.game?.lastEvent?.id;
     const result = await request(`/plus-four/rooms/${encodeURIComponent(state.roomCode)}?playerId=${encodeURIComponent(state.playerId)}`);
-    state.game = result.state;
-    state.playerSide = result.playerSide;
-
-    if (state.game?.lastEvent?.id && state.game.lastEvent.id !== previousEvent) {
-      showEventToast(state.game.lastEvent);
-    }
-
-    if (state.game?.canceled) {
-      clearSession();
-      stopPolling();
-    }
-
-    render();
+    applyRoomUpdate(result);
   } catch (error) {
     setMessage(error.message);
     if (error.message.toLowerCase().includes("sala nao encontrada") ||

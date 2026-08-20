@@ -57,6 +57,11 @@ sealed class PlusFourStore
         return room.ToJoinResult(playerId);
     }
 
+    public Task<bool> WaitForChange(string code, string playerId, CancellationToken cancellationToken) =>
+        rooms.TryGetValue(NormalizeCode(code), out PlusFourSession? room)
+            ? room.WaitForChange(playerId, cancellationToken)
+            : Task.FromResult(false);
+
     public PlusFourJoinResult ApplyAction(string code, PlusFourAction action)
     {
         code = NormalizeCode(code);
@@ -137,6 +142,7 @@ sealed class PlusFourSession
     const int MatchTarget = 100;
     static readonly string[] Colors = ["red", "blue", "green", "yellow"];
     readonly object gate = new();
+    readonly List<SemaphoreSlim> watchers = new();
     readonly List<PlusFourCard> drawPile = new();
     readonly List<PlusFourCard> discardPile = new();
     static readonly string[] Sides = ["one", "two", "three", "four"];
@@ -195,6 +201,7 @@ sealed class PlusFourSession
                 creatorId ??= players[side];
                 if (IsReady && hands.Where(pair => players[pair.Key] != null).All(pair => pair.Value.Count == 0))
                     DealRound("one");
+                SignalChanged();
                 return ToJoinResult(players[side]!);
             }
 
@@ -206,6 +213,7 @@ sealed class PlusFourSession
                 .FirstOrDefault();
             if (replaceableAi != null)
                 pendingAiRemoves.Add(replaceableAi);
+            SignalChanged();
             return new PlusFourJoinResult(Code, queuedPlayer, null, true, null, ToPublicState(null));
         }
     }
@@ -308,7 +316,8 @@ sealed class PlusFourSession
         string message = add
             ? $"{SideLabel(aiSide)} sera adicionado na proxima rodada."
             : $"{SideLabel(aiSide)} sera removido na proxima rodada.";
-        LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), requester, add ? "ai-add-pending" : "ai-remove-pending", null, null, Turn, message);
+            LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), requester, add ? "ai-add-pending" : "ai-remove-pending", null, null, Turn, message);
+            SignalChanged();
         return ToJoinResult(requester);
     }
 
@@ -363,6 +372,7 @@ sealed class PlusFourSession
 
             CanceledBy = side;
             LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), side, "leave", null, null, null, null);
+            SignalChanged();
             Touch();
             return ToJoinResult(playerId);
         }
@@ -378,6 +388,7 @@ sealed class PlusFourSession
             pendingAction = null;
             Turn = NextSide(side);
             LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), side, "draw-penalty", null, null, Turn, $"{SideLabel(side)} comprou a penalidade.");
+            SignalChanged();
             ScheduleAiTurn();
             return ToJoinResult(PlayerIdForSide(side)!);
         }
@@ -390,6 +401,7 @@ sealed class PlusFourSession
         hands[side].Add(card);
             Turn = NextSide(side);
             LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), side, "draw", null, null, Turn, null);
+            SignalChanged();
             ScheduleAiTurn();
             return ToJoinResult(PlayerIdForSide(side)!);
     }
@@ -436,6 +448,7 @@ sealed class PlusFourSession
         string next = NextTurnAfter(card, side);
         Turn = next;
         LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), side, isCut ? "cut" : "play", card.ToPublic(), color, next, isCut ? $"{SideLabel(side)} cortou a jogada." : null);
+        SignalChanged();
         ScheduleAiTurn();
         return ToJoinResult(PlayerIdForSide(side)!);
     }
@@ -452,6 +465,7 @@ sealed class PlusFourSession
         Round++;
         DealRound(startingSide: NextSide(RoundWinner!));
             LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), side, "next-round", null, null, Turn, null);
+            SignalChanged();
         return ToJoinResult(PlayerIdForSide(side)!);
     }
 
@@ -488,6 +502,42 @@ sealed class PlusFourSession
         MatchWinner = OneScore >= MatchTarget ? "one" : TwoScore >= MatchTarget ? "two" : null;
         Turn = winner;
         LastEvent = new PlusFourEvent(Guid.NewGuid().ToString("N"), winner, "round-win", card.ToPublic(), CurrentColor, null, null);
+        SignalChanged();
+    }
+
+    public async Task<bool> WaitForChange(string playerId, CancellationToken cancellationToken)
+    {
+        SemaphoreSlim watcher = new(0, 1);
+        lock (gate)
+        {
+            if (SideForPlayer(playerId) == null)
+                return false;
+            watchers.Add(watcher);
+        }
+
+        try
+        {
+            await watcher.WaitAsync(cancellationToken);
+            return true;
+        }
+        finally
+        {
+            lock (gate)
+                watchers.Remove(watcher);
+            watcher.Dispose();
+        }
+    }
+
+    void SignalChanged()
+    {
+        lock (gate)
+        {
+            foreach (SemaphoreSlim watcher in watchers.ToArray())
+            {
+                if (watcher.CurrentCount == 0)
+                    watcher.Release();
+            }
+        }
     }
 
     void DealRound(string startingSide)

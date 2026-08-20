@@ -285,6 +285,26 @@ app.MapGet("/api/plus-four/rooms/{code}", (string code, string playerId, PlusFou
         : Results.NotFound(new { error = result.Error });
 });
 
+app.MapGet("/api/plus-four/rooms/{code}/events", async (string code, string playerId, HttpContext context, PlusFourStore store) =>
+{
+    context.Response.ContentType = "text/event-stream";
+    context.Response.Headers.CacheControl = "no-cache";
+    context.Response.Headers.Connection = "keep-alive";
+
+    while (!context.RequestAborted.IsCancellationRequested)
+    {
+        PlusFourJoinResult result = store.GetRoom(code, playerId);
+        if (result.Error != null)
+            break;
+
+        string payload = System.Text.Json.JsonSerializer.Serialize(result);
+        await context.Response.WriteAsync($"data: {payload}\n\n", context.RequestAborted);
+        await context.Response.Body.FlushAsync(context.RequestAborted);
+        if (!await store.WaitForChange(code, playerId, context.RequestAborted))
+            break;
+    }
+});
+
 app.MapPost("/api/plus-four/rooms/{code}/actions", (string code, PlusFourAction action, PlusFourStore store) =>
 {
     PlusFourJoinResult result = store.ApplyAction(code, action);
