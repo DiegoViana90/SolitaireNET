@@ -51,6 +51,7 @@ const drawCardEl = document.querySelector("#draw-card");
 const drawCountEl = document.querySelector("#draw-count");
 const discardCardEl = document.querySelector("#discard-card");
 const handEl = document.querySelector("#hand");
+const myCardCountEl = document.querySelector("#my-card-count");
 const opponentCardsEl = document.querySelector("#opponent-cards");
 const opponentCountEl = document.querySelector("#opponent-count");
 const topOpponentLabelEl = document.querySelector("#top-opponent-label");
@@ -243,6 +244,7 @@ function render() {
 
   discardCardEl.replaceChildren(cardEl(game.topCard, { large: true }));
   handEl.replaceChildren(...game.hand.map((card) => cardEl(card)));
+  myCardCountEl.textContent = `${game.hand.length} carta${game.hand.length === 1 ? "" : "s"}`;
   renderOpponents();
 
   colorModalEl.hidden = !state.pendingColorCardId;
@@ -1206,7 +1208,8 @@ function showEventToast(event) {
     showToast(`${opponent?.shortName || sideLabel(event.playerSide)} jogou ${event.card.value}.`);
     flashOpponentSeat(opponentId);
     window.setTimeout(() => {
-      void animateOpponentCardToDiscard(opponentId, event.card, event.color);
+      void animateOpponentCardToDiscard(opponentId, event.card, event.color)
+        .finally(() => clearOpponentSeat(opponentId));
     }, 30);
     return;
   }
@@ -1214,7 +1217,8 @@ function showEventToast(event) {
     const opponentId = opponentDomId(event.playerSide);
     flashOpponentSeat(opponentId);
     window.setTimeout(() => {
-      void animateDrawTo(getOpponentCardsEl(opponentId));
+      void animateDrawTo(getOpponentCardsEl(opponentId))
+        .finally(() => clearOpponentSeat(opponentId));
     }, 30);
   }
   if (event.message) showToast(event.message);
@@ -1234,6 +1238,11 @@ function flashOpponentSeat(opponentId) {
   void seat.offsetWidth;
   seat.classList.add("ai-acted");
   window.setTimeout(() => seat.classList.remove("ai-acted"), 1500);
+}
+
+function clearOpponentSeat(opponentId) {
+  const seat = opponentId === "bot-top" ? topOpponentSeatEl : opponentId === "bot-left" ? leftSeatEl : rightSeatEl;
+  seat.classList.remove("ai-acted");
 }
 
 function showToast(text) {
