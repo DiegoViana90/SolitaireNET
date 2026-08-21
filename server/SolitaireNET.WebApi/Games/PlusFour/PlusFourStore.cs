@@ -340,7 +340,7 @@ sealed class PlusFourSession
                 continue;
             }
 
-            string? color = card.Color == "wild" || card.Value == "Inverte"
+            string? color = card.Color == "wild"
                 ? Colors.OrderBy(candidate => hands[aiSide].Count(item => item.Color == candidate)).First()
                 : null;
             Play(aiSide, [card.Id], color, false);
@@ -442,7 +442,7 @@ sealed class PlusFourSession
         if (selected.Skip(1).Any(item => !AreIdentical(card, item)))
             return PlusFourJoinResult.Fail(Code, "So e permitido jogar cartas identicas juntas.");
 
-        string color = card.Color == "wild" || card.Value == "Inverte"
+        string color = card.Color == "wild"
             ? NormalizeColor(chosenColor) ?? ""
             : card.Color;
         if (string.IsNullOrEmpty(color))

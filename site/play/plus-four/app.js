@@ -50,6 +50,9 @@ const botCountButtons = Array.from(document.querySelectorAll("[data-bot-count]")
 const roomCodeEl = document.querySelector("#room-code");
 const joinCodeEl = document.querySelector("#join-code");
 const leaveRoomEl = document.querySelector("#leave-room");
+const aiLobbyControlEl = document.querySelector("#ai-lobby-control");
+const addAiEl = document.querySelector("#add-ai");
+const aiSeatCountEl = document.querySelector("#ai-seat-count");
 const drawCardEl = document.querySelector("#draw-card");
 const drawCountEl = document.querySelector("#draw-count");
 const discardCardEl = document.querySelector("#discard-card");
@@ -242,6 +245,13 @@ function render() {
   tableEl.hidden = !inRoom;
   roomInfoEl.hidden = !inRoom;
   leaveRoomEl.hidden = !inRoom;
+  aiLobbyControlEl.hidden = !inRoom || state.simulated || state.playerSide !== "one";
+  if (!aiLobbyControlEl.hidden) {
+    const seats = state.game?.seats || [];
+    const occupied = seats.filter(seat => seat.side !== "one" && seat.occupied).length;
+    aiSeatCountEl.textContent = `Assentos ${occupied}/3`;
+    addAiEl.disabled = occupied >= 3 || seats.some(seat => seat.side !== "one" && seat.addPending);
+  }
   statusEl.textContent = getStatus();
 
   if (!inRoom) return;
@@ -321,15 +331,7 @@ function renderServerOpponent(seat, elements) {
   elements.seat.classList.toggle("active-opponent", Boolean(active));
   elements.seat.classList.toggle("current-turn", state.game?.turn === seat?.side);
   elements.label.textContent = seat?.isAi ? `IA ${seat.side === "two" ? "1" : seat.side === "three" ? "2" : "3"}` : active ? "Jogador" : "Vazio";
-  if (!active && state.playerSide === "one") {
-    const add = document.createElement("button");
-    add.className = "add-ai-seat";
-    add.type = "button";
-    add.textContent = seat.addPending ? "IA na proxima rodada" : "+ Add IA";
-    add.disabled = seat.addPending;
-    add.addEventListener("click", () => sendAction({ type: "add-ai", aiSide: seat.side }));
-    elements.cards.replaceChildren(add);
-  } else if (active && seat.isAi && state.playerSide === "one") {
+  if (active && seat.isAi && state.playerSide === "one") {
     const remove = document.createElement("button");
     remove.className = "add-ai-seat remove-ai-seat ai-seat-control";
     remove.type = "button";
@@ -487,7 +489,7 @@ function findHandCardEl(cardId) {
 }
 
 function needsColorChoice(card) {
-  return card.color === "wild" || card.value === "Inverte";
+  return card.color === "wild";
 }
 
 async function animateCardToDiscard(color, sourceEl, options = {}) {
@@ -1305,6 +1307,7 @@ roomCodeEl.addEventListener("keydown", (event) => {
 drawCardEl.addEventListener("click", drawCard);
 nextRoundEl.addEventListener("click", nextRound);
 leaveRoomEl.addEventListener("click", leaveRoom);
+addAiEl.addEventListener("click", () => sendAction({ type: "add-ai" }));
 colorPickerEl.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-color]");
   if (!button) return;

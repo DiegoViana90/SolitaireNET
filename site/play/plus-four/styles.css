@@ -44,16 +44,39 @@ input {
 
 .topbar {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto auto;
+  grid-template-columns: 42px minmax(0, 1fr) auto auto auto;
   gap: 12px;
   align-items: center;
 }
 
 .topbar #leave-room {
-  grid-column: 4;
+  grid-column: 5;
   grid-row: 1;
   min-width: 64px;
 }
+
+.ai-lobby-control {
+  grid-column: 4;
+  grid-row: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-lobby-control button {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #10291b;
+  color: var(--text);
+  font-size: .78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ai-lobby-control button:disabled { opacity: .45; cursor: default; }
+.ai-lobby-control span { color: var(--gold); font-size: .76rem; font-weight: 800; white-space: nowrap; }
 
 .topbar .how-to-play {
   grid-column: 3;
