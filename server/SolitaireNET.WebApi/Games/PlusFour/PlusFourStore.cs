@@ -284,7 +284,8 @@ sealed class PlusFourSession
 
         string? aiSide = requestedSide != null && Sides.Contains(requestedSide)
             ? requestedSide
-            : Sides.FirstOrDefault(side => players[side] == null && !aiSides.Contains(side));
+            : Sides.FirstOrDefault(side => players[side] == null &&
+                !aiSides.Contains(side) && !pendingAiAdds.Contains(side));
         if (aiSide == null)
             return PlusFourJoinResult.Fail(Code, "Nao ha lugar disponivel para a IA.");
 

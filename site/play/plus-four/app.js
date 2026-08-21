@@ -248,9 +248,9 @@ function render() {
   aiLobbyControlEl.hidden = !inRoom || state.simulated || state.playerSide !== "one";
   if (!aiLobbyControlEl.hidden) {
     const seats = state.game?.seats || [];
-    const occupied = seats.filter(seat => seat.side !== "one" && seat.occupied).length;
-    aiSeatCountEl.textContent = `Assentos ${occupied}/3`;
-    addAiEl.disabled = occupied >= 3 || seats.some(seat => seat.side !== "one" && seat.addPending);
+    const occupied = seats.filter(seat => seat.side !== "one" && (seat.occupied || seat.addPending)).length;
+    aiSeatCountEl.textContent = `IA ${occupied}/4`;
+    addAiEl.disabled = occupied >= 3;
   }
   statusEl.textContent = getStatus();
 
