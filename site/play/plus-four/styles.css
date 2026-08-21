@@ -935,6 +935,14 @@ button.card:disabled {
   .topbar { grid-template-columns: 38px minmax(0, 1fr) auto; }
   .topbar #leave-room { grid-column: 3; grid-row: 2; }
   .topbar .how-to-play { grid-column: 3; grid-row: 1; }
+  .topbar .ai-lobby-control {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    min-width: 0;
+  }
+  .ai-lobby-control button { padding: 0 8px; font-size: .72rem; }
+  .ai-lobby-control span { font-size: .7rem; }
 
   .table {
     gap: 10px;
