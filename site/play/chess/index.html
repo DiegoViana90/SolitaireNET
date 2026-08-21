@@ -27,16 +27,7 @@
       <button id="new-game" type="button">Novo</button>
     </header>
 
-    <section class="lobby" id="lobby" aria-label="Entrada da partida">
-      <div class="lobby-row">
-        <button id="create-room" type="button"><strong>Criar sala</strong><span>Gera um codigo para outro jogador entrar.</span></button>
-        <div class="join-code"><input id="room-code" type="text" maxlength="4" autocomplete="off" placeholder="CODIGO DA SALA" aria-label="Codigo da sala"><button id="join-code" type="button">Entrar</button></div>
-      </div>
-      <button id="random-room" type="button">
-        <strong>Procurar sala aleatoria</strong>
-        <span>Se nao houver outro jogador, voce fica aguardando.</span>
-      </button>
-    </section>
+    <section class="lobby" id="lobby" data-pre-room aria-label="Entrada da partida"></section>
 
     <p class="room-info" id="room-info" hidden></p>
 
@@ -61,6 +52,7 @@
   <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
   <div class="build-version" data-build-version>Versão: desenvolvimento local</div>
 
+  <script src="../pre-room.js?v=1"></script>
   <script src="../../build-info.js?v=__BUILD_ASSET_VERSION__"></script>
   <script type="module" src="app.js?v=3"></script>
 </body>
