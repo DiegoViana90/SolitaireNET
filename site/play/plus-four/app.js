@@ -52,7 +52,7 @@ const joinCodeEl = document.querySelector("#join-code");
 const leaveRoomEl = document.querySelector("#leave-room");
 const aiLobbyControlEl = document.querySelector("#ai-lobby-control");
 const addAiEl = document.querySelector("#add-ai");
-const aiSeatCountEl = document.querySelector("#ai-seat-count");
+const seatStatusEl = document.querySelector("#seat-status");
 const drawCardEl = document.querySelector("#draw-card");
 const drawCountEl = document.querySelector("#draw-count");
 const discardCardEl = document.querySelector("#discard-card");
@@ -245,12 +245,13 @@ function render() {
   tableEl.hidden = !inRoom;
   roomInfoEl.hidden = !inRoom;
   leaveRoomEl.hidden = !inRoom;
+  seatStatusEl.hidden = !inRoom || state.simulated;
   aiLobbyControlEl.hidden = !inRoom || state.simulated || state.playerSide !== "one";
-  if (!aiLobbyControlEl.hidden) {
+  if (inRoom && !state.simulated) {
     const seats = state.game?.seats || [];
-    const occupied = seats.filter(seat => seat.side !== "one" && (seat.occupied || seat.addPending)).length;
-    aiSeatCountEl.textContent = `IA ${occupied}/4`;
-    addAiEl.disabled = occupied >= 3;
+    const occupied = seats.filter(seat => seat.occupied || seat.addPending).length;
+    seatStatusEl.textContent = `Assentos ${occupied}/4`;
+    addAiEl.disabled = occupied >= 4;
   }
   statusEl.textContent = getStatus();
 
