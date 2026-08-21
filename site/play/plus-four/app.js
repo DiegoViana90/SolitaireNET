@@ -291,8 +291,8 @@ function render() {
 function renderOpponents() {
   if (!state.simulated) {
     const seats = state.game.seats || [];
-    const top = seats.find(seat => seat.side === "two");
-    const left = seats.find(seat => seat.side === "three");
+    const top = seats.find(seat => seat.side === "three");
+    const left = seats.find(seat => seat.side === "two");
     const right = seats.find(seat => seat.side === "four");
     renderServerOpponent(top, { seat: topOpponentSeatEl, label: topOpponentLabelEl, cards: opponentCardsEl, count: opponentCountEl });
     renderServerOpponent(left, {
