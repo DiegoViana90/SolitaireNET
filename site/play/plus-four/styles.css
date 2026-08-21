@@ -63,6 +63,8 @@ input {
   gap: 8px;
 }
 
+.ai-lobby-control[hidden] { display: none; }
+
 .ai-lobby-control button {
   min-height: 38px;
   padding: 0 10px;
