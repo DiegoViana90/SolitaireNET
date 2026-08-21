@@ -339,7 +339,7 @@ function renderServerOpponent(seat, elements) {
     remove.textContent = seat.removePending ? "Sera removida na proxima rodada" : "Remover IA";
     remove.disabled = seat.removePending;
     remove.addEventListener("click", () => sendAction({ type: "remove-ai", aiSide: seat.side }));
-    elements.cards.replaceChildren(...cardBacks(7));
+    elements.cards.replaceChildren(...cardBacks(seat.handCount ?? 7));
     elements.seat.append(remove);
     elements.cards.classList.toggle("ai-removing", seat.removePending);
   } else {
