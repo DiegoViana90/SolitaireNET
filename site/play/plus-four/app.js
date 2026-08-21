@@ -1253,7 +1253,7 @@ function showEventToast(event) {
 }
 
 function opponentDomId(side) {
-  return ({ two: "bot-top", three: "bot-left", four: "bot-right" })[side] || "bot-top";
+  return ({ two: "bot-left", three: "bot-top", four: "bot-right" })[side] || "bot-top";
 }
 
 function flashOpponentSeat(opponentId) {
