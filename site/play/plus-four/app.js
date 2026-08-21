@@ -861,7 +861,7 @@ async function animateOpponentCardToDiscard(opponentId, card, color) {
 function findOpponentCardEl(opponentId) {
   const container = getOpponentCardsEl(opponentId);
   const cards = Array.from(container.querySelectorAll(".card-back"));
-  return cards.at(-1) || container;
+  return cards.at(-1) || null;
 }
 
 function getOpponentCardsEl(opponentId) {
