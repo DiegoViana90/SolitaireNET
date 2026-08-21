@@ -27,7 +27,6 @@ https://paciencia.net.br/play/ranking/
 - `site/play/solitaire/`: browser Solitaire game.
 - `site/play/checkers/`: browser checkers game.
 - `site/play/chess/`: browser chess game.
-- `site/play/plus-four/`: experimental `+4` game, currently marked noindex.
 - `site/play/ranking/`: public ranking UI.
 - `server/SolitaireNET.WebApi/`: ASP.NET Core API for web game sessions,
   multiplayer rooms, ranking, presence, usage metrics, and Firebase auth.
@@ -110,7 +109,7 @@ Useful endpoints:
 - `GET /api/ranking`: public ranking snapshot.
 - `GET /api/auth/me`: validates Firebase ID token when Firebase is configured.
 - `/api/games/*`: server-authoritative Solitaire sessions.
-- `/api/checkers/*`, `/api/chess/*`, `/api/plus-four/*`: online room APIs.
+- `/api/checkers/*`, `/api/chess/*`: online room APIs.
 
 ## Ranking Storage
 

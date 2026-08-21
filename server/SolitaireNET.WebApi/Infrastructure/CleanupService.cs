@@ -7,7 +7,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using Chess;
-sealed class CleanupService(GameStore games, CheckersStore checkers, ChessStore chess, PlusFourStore plusFour, PlayerPresenceStore players) : BackgroundService
+sealed class CleanupService(GameStore games, CheckersStore checkers, ChessStore chess, PlayerPresenceStore players) : BackgroundService
 {
     static readonly TimeSpan Interval = TimeSpan.FromSeconds(15);
 
@@ -20,7 +20,6 @@ sealed class CleanupService(GameStore games, CheckersStore checkers, ChessStore 
             games.RemoveExpired(now);
             checkers.RemoveExpired(now);
             chess.RemoveExpired(now);
-            plusFour.RemoveExpired(now);
             players.RemoveExpired(now);
         }
     }

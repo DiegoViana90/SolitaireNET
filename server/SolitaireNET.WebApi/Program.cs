@@ -33,7 +33,6 @@ if (firebaseAuthEnabled)
 builder.Services.AddSingleton<GameStore>();
 builder.Services.AddSingleton<CheckersStore>();
 builder.Services.AddSingleton<ChessStore>();
-builder.Services.AddSingleton<PlusFourStore>();
 builder.Services.AddSingleton<UsageMetrics>();
 builder.Services.AddSingleton<PlayerPresenceStore>();
 builder.Services.AddSingleton<RankingStore>();
@@ -258,68 +257,6 @@ app.MapPost("/api/chess/rooms/{code}/actions", (string code, ChessMoveAction act
 app.MapPost("/api/chess/rooms/{code}/leave", (string code, ChessLeaveAction action, ChessStore store) =>
 {
     ChessJoinResult result = store.LeaveRoom(code, action.PlayerId);
-    return result.Error == null
-        ? Results.Ok(result)
-        : Results.BadRequest(new { error = result.Error });
-});
-
-app.MapPost("/api/plus-four/rooms", (PlusFourStore store) =>
-    Results.Ok(store.CreatePrivateRoom()));
-
-app.MapPost("/api/plus-four/rooms/{code}/join", (string code, PlusFourStore store) =>
-{
-    PlusFourJoinResult result = store.JoinRoom(code);
-    return result.Error == null
-        ? Results.Ok(result)
-        : Results.BadRequest(new { error = result.Error });
-});
-
-app.MapPost("/api/plus-four/matchmaking", (PlusFourStore store) =>
-    Results.Ok(store.JoinRandomRoom()));
-
-app.MapGet("/api/plus-four/rooms/{code}", (string code, string playerId, PlusFourStore store) =>
-{
-    PlusFourJoinResult result = store.GetRoom(code, playerId);
-    return result.Error == null
-        ? Results.Ok(result)
-        : Results.NotFound(new { error = result.Error });
-});
-
-app.MapGet("/api/plus-four/rooms/{code}/events", async (string code, string playerId, HttpContext context, PlusFourStore store) =>
-{
-    context.Response.ContentType = "text/event-stream";
-    context.Response.Headers.CacheControl = "no-cache";
-    context.Response.Headers.Connection = "keep-alive";
-    context.Response.Headers["X-Accel-Buffering"] = "no";
-    await context.Response.StartAsync(context.RequestAborted);
-
-    while (!context.RequestAborted.IsCancellationRequested)
-    {
-        PlusFourJoinResult result = store.GetRoom(code, playerId);
-        if (result.Error != null)
-            break;
-
-        string payload = System.Text.Json.JsonSerializer.Serialize(result);
-        await context.Response.WriteAsync($"data: {payload}\n\n", context.RequestAborted);
-        await context.Response.Body.FlushAsync(context.RequestAborted);
-        Task<bool> changeTask = store.WaitForChange(code, playerId, context.RequestAborted);
-        Task completed = await Task.WhenAny(changeTask, Task.Delay(TimeSpan.FromSeconds(2), context.RequestAborted));
-        if (completed == changeTask && !await changeTask)
-            break;
-    }
-});
-
-app.MapPost("/api/plus-four/rooms/{code}/actions", (string code, PlusFourAction action, PlusFourStore store) =>
-{
-    PlusFourJoinResult result = store.ApplyAction(code, action);
-    return result.Error == null
-        ? Results.Ok(result)
-        : Results.BadRequest(new { error = result.Error });
-});
-
-app.MapPost("/api/plus-four/rooms/{code}/leave", (string code, PlusFourLeaveAction action, PlusFourStore store) =>
-{
-    PlusFourJoinResult result = store.LeaveRoom(code, action.PlayerId);
     return result.Error == null
         ? Results.Ok(result)
         : Results.BadRequest(new { error = result.Error });
