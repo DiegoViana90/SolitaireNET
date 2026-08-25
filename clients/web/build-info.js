@@ -19,5 +19,6 @@
 
   document.querySelectorAll("[data-build-version]").forEach((element) => {
     element.textContent = text;
+    window.setTimeout(() => element.classList.add("is-hidden"), 4500);
   });
 })();

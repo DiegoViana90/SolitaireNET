@@ -45,6 +45,14 @@ const victoryMenuEl = document.querySelector("#victory-menu");
 const victoryNewGameEl = document.querySelector("#victory-new-game");
 const victoryMenuButtonEl = document.querySelector("#victory-menu-button");
 const foundationEls = [...document.querySelectorAll("[data-foundation]")];
+let roomInfoTimer = null;
+
+function hideRoomInfoAfterEntry() {
+  window.clearTimeout(roomInfoTimer);
+  roomInfoTimer = window.setTimeout(() => {
+    document.querySelector(".game-shell")?.classList.add("room-info-hidden");
+  }, 10000);
+}
 
 async function request(path, options = {}) {
   const authToken = await getCurrentUserToken();
@@ -114,6 +122,7 @@ async function loadGame() {
   if (params.get("new") === "1") {
     window.history.replaceState({}, "", window.location.pathname);
     await startNewGame();
+    hideRoomInfoAfterEntry();
     return;
   }
 
@@ -131,6 +140,7 @@ async function loadGame() {
       }
 
       render();
+      hideRoomInfoAfterEntry();
       return;
     } catch {
       localStorage.removeItem(saveKey);
@@ -138,6 +148,7 @@ async function loadGame() {
   }
 
   await startNewGame();
+  hideRoomInfoAfterEntry();
 }
 
 function deleteSavedGame(gameId) {
@@ -575,10 +586,6 @@ async function moveToFoundation(index) {
 async function moveTo(target) {
   if (!state.selected || state.busy) return false;
 
-  if (!canMoveLocally(target)) {
-    return false;
-  }
-
   const action = {
     type: "move",
     source: {
@@ -663,45 +670,6 @@ function removeLocalCards(source) {
   }
 
   return [];
-}
-
-function canMoveLocally(target) {
-  const moving = state.selected?.cards || [];
-  if (!state.game || moving.length === 0) return false;
-
-  const card = moving[0];
-  if (!card.faceUp) return false;
-
-  if (target.kind === "tableau") {
-    if (state.selected.source === "tableau" && state.selected.index === target.index) {
-      return false;
-    }
-
-    const pile = state.game.tableau[target.index];
-    const targetTop = topCard(pile);
-
-    if (!targetTop) {
-      return card.rank === 13;
-    }
-
-    return targetTop.faceUp &&
-      isRed(targetTop) !== isRed(card) &&
-      card.rank === targetTop.rank - 1;
-  }
-
-  if (target.kind === "foundation") {
-    if (moving.length !== 1) return false;
-
-    const targetTop = state.game.foundations[target.index];
-    if (!targetTop) {
-      return card.rank === 1;
-    }
-
-    return targetTop.suit === card.suit &&
-      card.rank === targetTop.rank + 1;
-  }
-
-  return false;
 }
 
 async function autoMove(card, meta) {

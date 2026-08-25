@@ -38,7 +38,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Compile Remove="server\**\*.cs" />
+		<Compile Remove="..\..\server\**\*.cs" />
 	</ItemGroup>
 
 </Project>

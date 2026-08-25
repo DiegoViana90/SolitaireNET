@@ -144,13 +144,11 @@ public sealed class RemoteSolitaireGame : IDrawable
 
         RemoteGameAction? action = null;
 
-        if (TryFindFoundationTarget(p, out int foundationIndex) &&
-            CanMoveToFoundation(foundationIndex))
+        if (TryFindFoundationTarget(p, out int foundationIndex))
         {
             action = MoveAction("foundation", foundationIndex);
         }
-        else if (TryFindTableauTarget(p, out int tableauIndex) &&
-                 CanMoveToTableau(tableauIndex))
+        else if (TryFindTableauTarget(p, out int tableauIndex))
         {
             action = MoveAction("tableau", tableauIndex);
         }

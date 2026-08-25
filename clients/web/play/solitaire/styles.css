@@ -8,8 +8,8 @@
   --line: rgba(255, 255, 255, 0.28);
   --viewport-w: 100vw;
   --pad: clamp(8px, 2vw, 30px);
-  --gap: clamp(5px, 1.15vw, 18px);
-  --cw: min(82px, calc((var(--viewport-w) - (2 * var(--pad)) - (6 * var(--gap))) / 7));
+  --gap: clamp(5px, 0.75vw, 11px);
+  --cw: min(76px, calc((var(--viewport-w) - (2 * var(--pad)) - (6 * var(--gap))) / 7));
   --ch: calc(var(--cw) * 1.42);
   --down: clamp(24px, 3vw, 34px);
 }
@@ -50,7 +50,7 @@ button {
 .account-chip {
   position: fixed;
   right: 8px;
-  bottom: 8px;
+  bottom: 90px;
   z-index: 10;
   min-height: 32px;
   max-width: min(190px, calc(100vw - 112px));
@@ -265,7 +265,7 @@ button {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: 66px;
   z-index: 18;
   min-height: 32px;
   display: grid;
@@ -276,8 +276,17 @@ button {
   color: rgba(255, 255, 255, 0.72);
   font-size: 11px;
   font-weight: 600;
-  text-align: right;
+  text-align: center;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  opacity: 1;
+  transition: opacity 280ms ease, visibility 0s linear 0s;
+}
+
+.build-version.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 280ms ease, visibility 0s linear 280ms;
 }
 
 .control-button {
@@ -481,6 +490,13 @@ button {
   text-align: center;
 }
 
+.game-shell.room-info-hidden .transient-room-info {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 280ms ease, visibility 0s linear 280ms;
+}
+
 .ad-slot { display: none; position: fixed; z-index: 12; align-items: center; justify-content: center; color: rgba(255,255,255,.72); font-size: 11px; pointer-events: none; }
 .ad-slot-visible { display: flex; pointer-events: auto; }
 .ad-slot-top, .ad-slot-bottom { left: 50%; width: min(728px, calc(100% - 32px)); min-height: 90px; transform: translateX(-50%); background: rgba(11,37,22,.86); border: 1px solid rgba(255,255,255,.16); border-radius: 8px; }
@@ -535,8 +551,12 @@ button {
     --viewport-w: 100dvw;
     --pad: 6px;
     --gap: 4px;
+    --cw: min(82px, calc((var(--viewport-w) - (2 * var(--pad)) - (6 * var(--gap))) / 7));
     --down: clamp(24px, 5.6vw, 32px);
   }
+
+  .account-chip { bottom: 84px; }
+  .build-version { bottom: 64px; }
 }
 
 @media (max-width: 420px) {
