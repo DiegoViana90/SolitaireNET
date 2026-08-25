@@ -1,5 +1,12 @@
 # SolitaireNET / paciencia.net.br
 
+> Plataforma de jogos casuais multiplataforma, com aplicativo .NET MAUI, site
+> estático e API ASP.NET Core para partidas online e ranking.
+
+Este repositório é um bom exemplo de produto full-stack em .NET: a mesma visão
+de jogo atende Android, Windows e navegador, enquanto a API mantém as partidas
+online de forma autoritativa.
+
 SolitaireNET is a .NET 9 project with a MAUI app, a static public web site, and
 a small ASP.NET Core API for online game state, ranking, presence, and Firebase
 login validation.
@@ -20,19 +27,33 @@ https://paciencia.net.br/play/ranking/
 
 ## Project Shape
 
-- `SolitaireNET.csproj`: .NET MAUI app targeting Android and Windows.
-- `Games/`: native game engines and MAUI pages for Solitaire, Blackjack,
+- `clients/maui/SolitaireNET.csproj`: .NET MAUI app targeting Android and Windows.
+- `clients/maui/Games/`: native game engines and MAUI pages for Solitaire, Blackjack,
   Domino, Poker, and related UI.
-- `site/`: static web site served publicly at `paciencia.net.br`.
-- `site/play/solitaire/`: browser Solitaire game.
-- `site/play/checkers/`: browser checkers game.
-- `site/play/chess/`: browser chess game.
-- `site/play/ranking/`: public ranking UI.
-- `server/SolitaireNET.WebApi/`: ASP.NET Core API for web game sessions,
+- `clients/web/`: static web frontend served publicly at `paciencia.net.br`.
+- `clients/web/play/solitaire/`: browser Solitaire game.
+- `clients/web/play/checkers/`: browser checkers game.
+- `clients/web/play/chess/`: browser chess game.
+- `clients/web/play/ranking/`: public ranking UI.
+- `server/api/SolitaireNET.WebApi/`: ASP.NET Core API for web game sessions,
   multiplayer rooms, ranking, presence, usage metrics, and Firebase auth.
 - `scripts/`: manual publish scripts for the static site and API.
 - `.github/workflows/deploy.yml`: production deployment workflow.
 - `docs/`: project notes and planning documents.
+
+A explicação completa das camadas, decisões e fluxos está disponível em:
+
+- [`ARCHITECTURE_PT-BR.md`](ARCHITECTURE_PT-BR.md)
+- [`ARCHITECTURE_EN.md`](ARCHITECTURE_EN.md)
+
+### Princípios de manutenção
+
+- regras de negócio ficam em `Domain`/`Engine`;
+- para Solitaire online, a API é a única autoridade das regras e do estado;
+- páginas MAUI cuidam de navegação, eventos e renderização;
+- comunicação externa fica em clientes/adaptadores;
+- site e API têm publicação independente;
+- mudanças em partidas devem incluir testes de regra e contrato JSON.
 
 ## Requirements
 
@@ -48,20 +69,20 @@ https://paciencia.net.br/play/ranking/
 Android:
 
 ```powershell
-dotnet build -t:Run -f net9.0-android
+dotnet build .\clients\maui\SolitaireNET.csproj -t:Run -f net9.0-android
 ```
 
 Windows:
 
 ```powershell
-dotnet clean -f net9.0-windows10.0.19041.0
-dotnet build -f net9.0-windows10.0.19041.0
-dotnet run -f net9.0-windows10.0.19041.0
+dotnet clean .\clients\maui\SolitaireNET.csproj -f net9.0-windows10.0.19041.0
+dotnet build .\clients\maui\SolitaireNET.csproj -f net9.0-windows10.0.19041.0
+dotnet run --project .\clients\maui\SolitaireNET.csproj -f net9.0-windows10.0.19041.0
 ```
 
 ## Static Web Site
 
-The public static site lives in `site/`. It includes SEO pages, game routes,
+The public static site lives in `clients/web/`. It includes SEO pages, game routes,
 privacy/contact pages, sitemap, robots.txt, Firebase browser config, and the web
 game frontends.
 
@@ -87,19 +108,19 @@ node .\scripts\local-site-server.mjs
 The API project is:
 
 ```text
-server/SolitaireNET.WebApi/SolitaireNET.WebApi.csproj
+server/api/SolitaireNET.WebApi/SolitaireNET.WebApi.csproj
 ```
 
 Build it locally:
 
 ```powershell
-dotnet build .\server\SolitaireNET.WebApi\SolitaireNET.WebApi.csproj
+dotnet build .\server\api\SolitaireNET.WebApi\SolitaireNET.WebApi.csproj
 ```
 
 Run it locally:
 
 ```powershell
-dotnet run --project .\server\SolitaireNET.WebApi\SolitaireNET.WebApi.csproj --urls http://127.0.0.1:5010
+dotnet run --project .\server\api\SolitaireNET.WebApi\SolitaireNET.WebApi.csproj --urls http://127.0.0.1:5010
 ```
 
 Useful endpoints:
@@ -136,7 +157,7 @@ of a separate login route.
 To enable Firebase login:
 
 1. Create or open a Firebase project.
-2. Add a Web app and copy the config into `site/firebase-config.js`.
+2. Add a Web app and copy the config into `clients/web/firebase-config.js`.
 3. Enable the Google provider in Firebase Authentication.
 4. Add `paciencia.net.br` and local dev hosts to Authorized domains.
 5. Set `Firebase__ProjectId` for `SolitaireNET.WebApi` in production.
@@ -144,26 +165,26 @@ To enable Firebase login:
    token.
 
 The GitHub Actions deployment can also inject the public Firebase web config
-into `site/firebase-config.js` from environment secrets.
+into `clients/web/firebase-config.js` from environment secrets.
 
 ## Manual Publish
 
 Publish the static site to the server:
 
 ```powershell
-.\scripts\Publish-Downloads.ps1 -Server REDACTED_SSH_TARGET
+.\scripts\Publish-Downloads.ps1 -Server <USER>@<HOST>
 ```
 
 Publish the server-authoritative API:
 
 ```powershell
-.\scripts\Publish-Api.ps1 -Server REDACTED_SSH_TARGET
+.\scripts\Publish-Api.ps1 -Server <USER>@<HOST>
 ```
 
 Optional Firebase project during manual API publish:
 
 ```powershell
-.\scripts\Publish-Api.ps1 -Server REDACTED_SSH_TARGET -FirebaseProjectId SEU_PROJETO
+.\scripts\Publish-Api.ps1 -Server <USER>@<HOST> -FirebaseProjectId <PROJECT_ID>
 ```
 
 ## Automatic Production Deployment
@@ -175,16 +196,18 @@ from the GitHub Actions page.
 Create a GitHub environment named `production` and add these environment
 secrets:
 
-- `SSH_HOST`: server hostname or IP address, for example `REDACTED_HOST`.
-- `SSH_USER`: SSH user allowed to update the application and restart the
-  service, currently `root`.
+- `SSH_HOST`: hostname or IP address do servidor de produção.
+- `SSH_USER`: usuário SSH autorizado a atualizar a aplicação e reiniciar o
+  serviço.
 - `SSH_PRIVATE_KEY`: private key used only for deployment.
-- `SSH_KNOWN_HOSTS`: trusted host-key line produced locally with
-  `ssh-keyscan -H REDACTED_HOST` after verifying the fingerprint.
+- `SSH_KNOWN_HOSTS`: linha de host key gerada com `ssh-keyscan -H <HOST>` após
+  conferir a impressão digital do servidor.
 - `FIREBASE_WEB_API_KEY`: Firebase Web app API key.
 - `FIREBASE_AUTH_DOMAIN`: Firebase auth domain.
 - `FIREBASE_PROJECT_ID`: Firebase project ID. Also becomes
   `Firebase__ProjectId` for the API service.
+- `FIREBASE_STORAGE_BUCKET`: Firebase Storage bucket.
+- `FIREBASE_MESSAGING_SENDER_ID`: Firebase Cloud Messaging sender ID.
 - `FIREBASE_APP_ID`: Firebase Web app ID.
 
 The matching public key must be present in the deployment user's
@@ -210,7 +233,7 @@ The first monetization target is AdSense for the web site, not the MAUI app.
 The conservative approach is:
 
 - Approve the domain with the current content pages first.
-- Add `site/ads.txt` only after the real AdSense publisher ID is known.
+- Add `clients/web/ads.txt` only after the real AdSense publisher ID is known.
 - Keep ads away from the Solitaire board, card drag areas, and `Novo` buttons.
 - Start with manual placements on content/support pages and below game content.
 - Avoid aggressive Auto Ads, anchors, and vignettes until the account has clean

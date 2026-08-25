@@ -165,14 +165,14 @@ Pendencias:
 Manual:
 
 ```powershell
-.\scripts\Publish-Downloads.ps1 -Server REDACTED_SSH_TARGET
-.\scripts\Publish-Api.ps1 -Server REDACTED_SSH_TARGET
+.\scripts\Publish-Downloads.ps1 -Server <USER>@<HOST>
+.\scripts\Publish-Api.ps1 -Server <USER>@<HOST>
 ```
 
 GitHub Actions:
 
 - Criar ambiente `production`.
-- Configurar `SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY` e `SSH_KNOWN_HOSTS`.
+- Configurar `SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY` e `SSH_KNOWN_HOSTS` como secrets.
 - Conferir chave publica em `~/.ssh/authorized_keys` no servidor.
 - Rodar workflow manual uma vez antes de depender apenas do push em `main`.
 - Conferir health check publico:
