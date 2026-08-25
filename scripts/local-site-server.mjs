@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const siteRoot = path.resolve(__dirname, "..", "site");
+const siteRoot = path.resolve(__dirname, "..", "clients", "web");
 const host = process.env.LOCAL_SITE_HOST || "localhost";
 const port = Number(process.env.LOCAL_SITE_PORT || 8080);
 const apiTarget = process.env.LOCAL_API_TARGET || "http://localhost:5010";

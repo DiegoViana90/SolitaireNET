@@ -9,7 +9,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $Root = Split-Path -Parent $PSScriptRoot
-$SiteDir = Join-Path $Root "site"
+$SiteDir = Join-Path $Root "clients\web"
 
 ssh $Server "mkdir -p '$RemotePath'"
 scp -r (Join-Path $SiteDir "*") "${Server}:$RemotePath/"

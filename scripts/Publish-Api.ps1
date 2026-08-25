@@ -15,7 +15,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $Root = Split-Path -Parent $PSScriptRoot
-$Project = Join-Path $Root "server\SolitaireNET.WebApi\SolitaireNET.WebApi.csproj"
+$Project = Join-Path $Root "server\api\SolitaireNET.WebApi\SolitaireNET.WebApi.csproj"
 $PublishDir = Join-Path $Root "artifacts\solitairenet-api-linux-x64"
 
 dotnet publish $Project `
