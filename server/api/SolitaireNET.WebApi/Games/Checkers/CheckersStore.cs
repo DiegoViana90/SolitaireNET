@@ -20,6 +20,12 @@ sealed class CheckersStore
         CheckersSession room = CreateRoom();
         return room.AddPlayer();
     }
+    public CheckersJoinResult CreateBotRoom(string difficulty)
+    {
+        var room = CreateRoom(difficulty); var player = room.AddPlayer(); room.AddPlayer();
+        return player;
+    }
+    public CheckersJoinResult ApplyBotMove(string code) => rooms.TryGetValue(NormalizeCode(code), out var room) ? room.ApplyBotMove() : CheckersJoinResult.Fail(code, "Sala nao encontrada.");
 
     public CheckersJoinResult JoinRoom(string code)
     {
@@ -106,7 +112,7 @@ sealed class CheckersStore
         }
     }
 
-    CheckersSession CreateRoom()
+    CheckersSession CreateRoom(string difficulty = "medium")
     {
         string code;
         do
@@ -114,7 +120,7 @@ sealed class CheckersStore
             code = CreateCode();
         } while (rooms.ContainsKey(code));
 
-        var room = CheckersSession.New(code);
+        var room = CheckersSession.New(code, difficulty);
         rooms[code] = room;
         return room;
     }
@@ -137,14 +143,16 @@ sealed class CheckersSession
     static readonly TimeSpan DisconnectGracePeriod = TimeSpan.FromMinutes(1);
     readonly object gate = new();
     readonly CheckersPiece?[,] board = new CheckersPiece?[8, 8];
+    readonly string difficulty;
     DateTimeOffset? lightDisconnectedAt;
     DateTimeOffset? darkDisconnectedAt;
     TimeSpan lightDisconnectRemaining = DisconnectGracePeriod;
     TimeSpan darkDisconnectRemaining = DisconnectGracePeriod;
 
-    CheckersSession(string code)
+    CheckersSession(string code, string difficulty = "medium")
     {
         Code = code;
+        this.difficulty = difficulty;
         Deal();
     }
 
@@ -160,7 +168,7 @@ sealed class CheckersSession
     public bool IsCanceled => CanceledBy != null;
     public bool IsWaiting => !IsCanceled && LightPlayerId != null && DarkPlayerId == null && lightDisconnectedAt == null;
 
-    public static CheckersSession New(string code) => new(code);
+    public static CheckersSession New(string code, string difficulty = "medium") => new(code, difficulty);
 
     public CheckersJoinResult AddPlayer()
     {
@@ -279,6 +287,14 @@ sealed class CheckersSession
             return BuildJoinResult(action.PlayerId, side, now);
         }
     }
+    public CheckersJoinResult ApplyBotMove()
+    {
+        var moves = GetMovesByPiece("dark").SelectMany(x => x.Value).ToList();
+        if (moves.Count == 0) return ToJoinResult(LightPlayerId!);
+        var move = difficulty == "easy" ? moves[Random.Shared.Next(moves.Count)] : moves.OrderByDescending(m => m.Captured != null ? 2 : 0).ThenBy(_ => Random.Shared.Next()).First();
+        return ApplyMove(new CheckersMoveAction(BotId, move.From, move.To));
+    }
+    string BotId => DarkPlayerId!;
 
     public void ExpireDisconnects(DateTimeOffset now)
     {

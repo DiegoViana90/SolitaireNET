@@ -188,6 +188,8 @@ app.MapLoadTestEndpoints(loadTestEnabled);
 
 app.MapPost("/api/checkers/rooms", (CheckersStore store) =>
     Results.Ok(store.CreatePrivateRoom()));
+app.MapPost("/api/checkers/bot/rooms", (string? difficulty, CheckersStore store) => { var r = store.CreateBotRoom(difficulty ?? "medium"); return Results.Ok(new { r.RoomCode, r.PlayerId, r.PlayerSide, r.Waiting, r.Error, r.State, bot = true }); });
+app.MapPost("/api/checkers/bot/rooms/{code}/move", (string code, CheckersStore store) => Results.Ok(store.ApplyBotMove(code)));
 
 app.MapPost("/api/checkers/rooms/{code}/join", (string code, CheckersStore store) =>
 {
@@ -226,6 +228,8 @@ app.MapPost("/api/checkers/rooms/{code}/leave", (string code, CheckersLeaveActio
 
 app.MapPost("/api/chess/rooms", (ChessStore store) =>
     Results.Ok(store.CreatePrivateRoom()));
+app.MapPost("/api/chess/bot/rooms", (string? difficulty, ChessStore store) => { var r = store.CreateBotRoom(difficulty ?? "medium"); return Results.Ok(new { r.RoomCode, r.PlayerId, r.PlayerSide, r.Waiting, r.Error, r.State, bot = true }); });
+app.MapPost("/api/chess/bot/rooms/{code}/move", (string code, ChessStore store) => Results.Ok(store.ApplyBotMove(code)));
 
 app.MapPost("/api/chess/rooms/{code}/join", (string code, ChessStore store) =>
 {

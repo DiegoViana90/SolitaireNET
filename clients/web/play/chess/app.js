@@ -42,6 +42,8 @@ const createRoomEl = document.querySelector("#create-room");
 const randomRoomEl = document.querySelector("#random-room");
 const roomCodeEl = document.querySelector("#room-code");
 const joinCodeEl = document.querySelector("#join-code");
+const botRoomEl = document.querySelector("#bot-room");
+const botDifficultyEl = document.querySelector("#bot-difficulty");
 const boardEl = document.querySelector("#board");
 const statusEl = document.querySelector("#status");
 const newGameEl = document.querySelector("#new-game");
@@ -65,6 +67,7 @@ async function request(path, options = {}) {
 async function createRoom() {
   await joinFromResult(request("/chess/rooms", { method: "POST" }));
 }
+async function createBotRoom() { await joinFromResult(request(`/chess/bot/rooms?difficulty=${botDifficultyEl.value}`, { method: "POST" })); }
 
 async function findRandomRoom() {
   setMessage("Procurando sala aleatoria...");
@@ -77,6 +80,10 @@ async function joinRoomByCode() {
   if (!code) {
     setMessage("Informe o codigo da sala.");
     render();
+    if (state.botRoom && state.game.ready && !state.game.ended) {
+      const bot = await request(`/chess/bot/rooms/${encodeURIComponent(state.roomCode)}/move`, { method: "POST" });
+      state.game = bot.state; state.lastMoveId = state.game.lastMove?.id || state.lastMoveId; render();
+    }
     return;
   }
 
@@ -102,6 +109,7 @@ async function joinFromResult(promise) {
 
 function applyJoinResult(result, options = {}) {
   state.roomCode = result.roomCode;
+  state.botRoom = Boolean(result.bot);
   state.playerId = result.playerId;
   state.playerSide = result.playerSide;
   state.game = result.state;
@@ -242,6 +250,7 @@ function clearSession() {
   localStorage.removeItem(sessionKey);
   state.roomCode = null;
   state.playerId = null;
+  state.botRoom = false;
   state.playerSide = null;
   state.game = null;
   state.selected = null;
@@ -616,9 +625,11 @@ function setControlsEnabled(enabled) {
   randomRoomEl.disabled = !enabled;
   joinCodeEl.disabled = !enabled;
   roomCodeEl.disabled = !enabled;
+  botRoomEl.disabled = !enabled; botDifficultyEl.disabled = !enabled;
 }
 
 createRoomEl.addEventListener("click", createRoom);
+botRoomEl.addEventListener("click", createBotRoom);
 randomRoomEl.addEventListener("click", findRandomRoom);
 joinCodeEl.addEventListener("click", joinRoomByCode);
 roomCodeEl.addEventListener("keydown", (event) => {

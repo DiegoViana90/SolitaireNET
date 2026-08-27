@@ -20,6 +20,12 @@ sealed class ChessStore
         ChessSession room = CreateRoom();
         return room.AddPlayer();
     }
+    public ChessJoinResult CreateBotRoom(string difficulty)
+    {
+        var room = CreateRoom(difficulty); var player = room.AddPlayer(); room.AddPlayer();
+        return player;
+    }
+    public ChessJoinResult ApplyBotMove(string code) => rooms.TryGetValue(NormalizeCode(code), out var room) ? room.ApplyBotMove() : ChessJoinResult.Fail(code, "Sala nao encontrada.");
 
     public ChessJoinResult JoinRoom(string code)
     {
@@ -106,7 +112,7 @@ sealed class ChessStore
         }
     }
 
-    ChessSession CreateRoom()
+    ChessSession CreateRoom(string difficulty = "medium")
     {
         string code;
         do
@@ -114,7 +120,7 @@ sealed class ChessStore
             code = CreateCode();
         } while (rooms.ContainsKey(code));
 
-        var room = ChessSession.New(code);
+        var room = ChessSession.New(code, difficulty);
         rooms[code] = room;
         return room;
     }
@@ -137,14 +143,16 @@ sealed class ChessSession
     static readonly TimeSpan DisconnectGracePeriod = TimeSpan.FromMinutes(1);
     readonly object gate = new();
     readonly ChessBoard board = new();
+    readonly string difficulty;
     DateTimeOffset? whiteDisconnectedAt;
     DateTimeOffset? blackDisconnectedAt;
     TimeSpan whiteDisconnectRemaining = DisconnectGracePeriod;
     TimeSpan blackDisconnectRemaining = DisconnectGracePeriod;
 
-    ChessSession(string code)
+    ChessSession(string code, string difficulty = "medium")
     {
         Code = code;
+        this.difficulty = difficulty;
     }
 
     public string Code { get; }
@@ -156,7 +164,7 @@ sealed class ChessSession
     public bool IsCanceled => CanceledBy != null;
     public bool IsWaiting => !IsCanceled && WhitePlayerId != null && BlackPlayerId == null && whiteDisconnectedAt == null;
 
-    public static ChessSession New(string code) => new(code);
+    public static ChessSession New(string code, string difficulty = "medium") => new(code, difficulty);
 
     public ChessJoinResult AddPlayer()
     {
@@ -278,6 +286,13 @@ sealed class ChessSession
             return BuildJoinResult(action.PlayerId, side, now);
         }
     }
+    public ChessJoinResult ApplyBotMove()
+    {
+        var moves = board.Moves(allowAmbiguousCastle: false, generateSan: true).ToList();
+        var move = difficulty == "easy" ? moves[Random.Shared.Next(moves.Count)] : moves.OrderByDescending(m => m.CapturedPiece != null ? 10 : 0).ThenByDescending(m => m.Piece?.Type?.Value ?? 0).FirstOrDefault();
+        return move == null ? ToJoinResult(WhitePlayerId!) : ApplyMove(new ChessMoveAction(BotId, move.OriginalPosition.ToString(), move.NewPosition.ToString(), PromotionText(move)));
+    }
+    string BotId => BlackPlayerId!;
 
     public void ExpireDisconnects(DateTimeOffset now)
     {
