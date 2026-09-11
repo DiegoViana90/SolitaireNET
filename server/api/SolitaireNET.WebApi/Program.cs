@@ -89,7 +89,8 @@ app.MapGet("/api/health", (GameStore games, UsageMetrics metrics, PlayerPresence
 app.MapGet("/api/admin/visits", (HttpContext context, IConfiguration configuration) =>
 {
     string? email = context.User.Claims.FirstOrDefault(claim => claim.Type == "email")?.Value;
-    string[] admins = configuration.GetSection("Admin:Emails").Get<string[]>() ?? Array.Empty<string>();
+    string[] admins = (configuration["Admin:Emails"] ?? string.Join(',', configuration.GetSection("Admin:Emails").Get<string[]>() ?? Array.Empty<string>()))
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     if (email == null || !admins.Contains(email, StringComparer.OrdinalIgnoreCase))
         return Results.Forbid();
 
