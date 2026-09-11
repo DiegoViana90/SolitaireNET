@@ -6,8 +6,6 @@ let firebaseLoad = null;
 let authReady = null;
 
 async function loadFirebase() {
-  if (!isFirebaseConfigured()) return null;
-
   if (!firebaseLoad) {
     firebaseLoad = Promise.all([
       import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"),
