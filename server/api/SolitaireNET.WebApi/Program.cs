@@ -88,10 +88,11 @@ app.MapGet("/api/health", (GameStore games, UsageMetrics metrics, PlayerPresence
 
 app.MapGet("/api/admin/visits", (HttpContext context, IConfiguration configuration) =>
 {
-    string? email = context.User.Claims.FirstOrDefault(claim => claim.Type == "email")?.Value;
+    string? email = context.User.Claims
+        .FirstOrDefault(claim => claim.Type == "email" || claim.Type.EndsWith("/email", StringComparison.OrdinalIgnoreCase))?.Value;
     string[] admins = (configuration["Admin:Emails"] ?? string.Join(',', configuration.GetSection("Admin:Emails").Get<string[]>() ?? Array.Empty<string>()))
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-    if (email == null || !admins.Contains(email, StringComparer.OrdinalIgnoreCase))
+    if (email == null || !admins.Any(admin => string.Equals(admin.Trim(), email.Trim(), StringComparison.OrdinalIgnoreCase)))
         return Results.Forbid();
 
     string logPath = configuration["Admin:AccessLogPath"] ?? "/var/log/nginx/access.log";
