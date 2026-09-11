@@ -1,4 +1,4 @@
-import { signInWithGoogle, getCurrentUserToken, waitForAuthReady, currentUser } from "../auth.js?v=2";
+import { signInWithGoogle, getCurrentUserToken, waitForAuthReady, currentUser } from "../auth.js?v=3";
 const status = document.querySelector("#status"), login = document.querySelector("#login"), content = document.querySelector("#content");
 login.onclick = async () => { try { await signInWithGoogle(); await load(); } catch (e) { status.textContent = e.message; } };
 async function load() {
