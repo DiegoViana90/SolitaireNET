@@ -15,13 +15,31 @@ async function load() {
   login.textContent = "Carregando...";
   await waitForAuthReady(); const user = currentUser();
   if (!user) { status.textContent = "Entre com sua conta Google."; login.disabled = false; login.textContent = "Entrar com Google"; return; }
-  status.textContent = `Usuário: ${user.email}`;
+  status.textContent = "";
   const response = await fetch("/api/admin/visits", { headers: { Authorization: `Bearer ${await getCurrentUserToken()}` } });
   if (!response.ok) { status.textContent = response.status === 403 ? `Acesso negado para ${user.email || "esta conta"}.` : "Não foi possível carregar os acessos."; return; }
   const data = await response.json(); allVisits = data.visits; content.hidden = false;
   ["period", "from", "to", "ip", "path", "statusCode"].forEach(id => document.querySelector(`#${id}`).addEventListener("input", renderVisits));
   renderVisits();
   login.hidden = true;
+  enableColumnResize();
+}
+
+function enableColumnResize() {
+  const headers = [...document.querySelectorAll("#sheet th")];
+  const saved = JSON.parse(localStorage.getItem("admin-visits-column-widths") || "null");
+  headers.forEach((header, index) => {
+    if (saved?.[index]) header.style.width = `${saved[index]}px`;
+    if (header.querySelector(".resize-handle")) return;
+    const handle = document.createElement("span"); handle.className = "resize-handle"; header.append(handle);
+    handle.addEventListener("pointerdown", event => {
+      event.preventDefault(); event.stopPropagation(); handle.setPointerCapture(event.pointerId);
+      const startX = event.clientX, startWidth = header.getBoundingClientRect().width;
+      const move = moveEvent => { header.style.width = `${Math.max(45, startWidth + moveEvent.clientX - startX)}px`; };
+      const stop = () => { handle.removeEventListener("pointermove", move); localStorage.setItem("admin-visits-column-widths", JSON.stringify(headers.map(item => item.getBoundingClientRect().width))); };
+      handle.addEventListener("pointermove", move); handle.addEventListener("pointerup", stop, { once: true });
+    });
+  });
 }
 function renderVisits() {
   const period = document.querySelector("#period").value, now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
