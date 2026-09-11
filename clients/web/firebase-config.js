@@ -1,10 +1,10 @@
 export const firebaseConfig = {
-  apiKey: "COLE_AQUI_A_API_KEY",
-  authDomain: "SEU_PROJETO.firebaseapp.com",
-  projectId: "SEU_PROJETO",
-  storageBucket: "SEU_PROJETO.firebasestorage.app",
-  messagingSenderId: "COLE_AQUI_O_SENDER_ID",
-  appId: "COLE_AQUI_O_APP_ID"
+  apiKey: "AIzaSyBc-1mBaGVh2yuPb-8Las_YUgP2SuLPv5s",
+  authDomain: "paciencianet.firebaseapp.com",
+  projectId: "paciencianet",
+  storageBucket: "paciencianet.firebasestorage.app",
+  messagingSenderId: "917756305847",
+  appId: "1:917756305847:web:9b859aad9a338888b08832"
 };
 
 export function isFirebaseConfigured() {
