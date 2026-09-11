@@ -61,7 +61,19 @@ function renderVisits() {
 }
 async function loadLocations(visits) {
   const ips = [...new Set(visits.map(v => v.ip))].filter(ip => !locations.has(ip)).slice(0, 100);
-  await Promise.all(ips.map(async ip => { try { const r = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`); const d = await r.json(); locations.set(ip, d.success === false ? "Indisponível" : [d.city, d.region, d.country].filter(Boolean).join(", ") || "Indisponível"); } catch { locations.set(ip, "Indisponível"); } }));
+  await Promise.all(ips.map(async (ip, index) => {
+    const providers = index % 2 === 0
+      ? [`https://ipwho.is/${encodeURIComponent(ip)}`, `https://ipapi.co/${encodeURIComponent(ip)}/json/`]
+      : [`https://ipapi.co/${encodeURIComponent(ip)}/json/`, `https://ipwho.is/${encodeURIComponent(ip)}`];
+    for (const url of providers) {
+      try {
+        const data = await (await fetch(url)).json();
+        const location = [data.city, data.region || data.region_name, data.country || data.country_name].filter(Boolean).join(", ");
+        if (location && !data.error && data.success !== false) { locations.set(ip, location); return; }
+      } catch { }
+    }
+    locations.set(ip, "Indisponível");
+  }));
   if (ips.length) renderVisits();
 }
 load().catch(e => status.textContent = e.message);
