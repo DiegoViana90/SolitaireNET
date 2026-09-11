@@ -2,6 +2,7 @@ import { signInWithGoogle, getCurrentUserToken, waitForAuthReady, currentUser } 
 const status = document.querySelector("#status"), login = document.querySelector("#login"), content = document.querySelector("#content");
 let allVisits = [];
 const locations = new Map(Object.entries(JSON.parse(localStorage.getItem("admin-visits-locations") || "{}")));
+let locationsLoading = false;
 login.onclick = async () => {
   if (login.disabled) return;
   login.disabled = true;
@@ -60,28 +61,27 @@ function renderVisits() {
   loadLocations(visits);
 }
 async function loadLocations(visits) {
-  const isCloudflare = ip => {
-    const parts = ip.split(".").map(Number);
-    return parts.length === 4 && ((parts[0] === 172 && parts[1] >= 64 && parts[1] <= 71) || (parts[0] === 162 && parts[1] === 158) || (parts[0] === 104 && parts[1] >= 16 && parts[1] <= 31));
-  };
-  const cloudflareIps = [...new Set(visits.map(v => v.ip))].filter(isCloudflare);
-  cloudflareIps.forEach(ip => locations.set(ip, "Cloudflare / proxy"));
-  const ips = [...new Set(visits.map(v => v.ip))].filter(ip => !locations.has(ip) && !isCloudflare(ip)).slice(0, 100);
-  await Promise.all(ips.map(async (ip, index) => {
-    const providers = index % 2 === 0
-      ? [`https://ipwho.is/${encodeURIComponent(ip)}`, `https://ipapi.co/${encodeURIComponent(ip)}/json/`]
-      : [`https://ipapi.co/${encodeURIComponent(ip)}/json/`, `https://ipwho.is/${encodeURIComponent(ip)}`];
+  if (locationsLoading) return;
+  const ips = [...new Set(visits.map(v => v.ip))].filter(ip => !locations.has(ip)).slice(0, 100);
+  if (!ips.length) return;
+  locationsLoading = true;
+  for (const ip of ips) {
+    locations.set(ip, "⏳ Consultando..."); renderVisits();
+    const providers = [`https://ipwho.is/${encodeURIComponent(ip)}`, `https://ipapi.co/${encodeURIComponent(ip)}/json/`];
+    let resolved = false;
     for (const url of providers) {
       try {
-        const response = await fetch(url);
-        if (!response.ok) continue;
+        const response = await fetch(url); if (!response.ok) continue;
         const data = await response.json();
         const location = [data.city, data.region || data.region_name, data.country || data.country_name].filter(Boolean).join(", ");
-        if (location && !data.error && data.success !== false) { locations.set(ip, location); localStorage.setItem("admin-visits-locations", JSON.stringify(Object.fromEntries(locations))); return; }
+        if (location && !data.error && data.success !== false) { locations.set(ip, location); resolved = true; break; }
       } catch { }
     }
-    locations.set(ip, "Indisponível");
-  }));
-  if (ips.length) renderVisits();
+    if (!resolved) locations.set(ip, "Indisponível");
+    localStorage.setItem("admin-visits-locations", JSON.stringify(Object.fromEntries(locations)));
+    renderVisits();
+    await new Promise(resolve => setTimeout(resolve, 5000));
+  }
+  locationsLoading = false;
 }
 load().catch(e => status.textContent = e.message);
