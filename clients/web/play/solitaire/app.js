@@ -676,7 +676,14 @@ async function autoMove(card, meta) {
   select(card, meta);
 
   for (let i = 0; i < 4; i += 1) {
-    if (await moveToFoundation(i)) return true;
+    const foundationTop = topCard(state.game.foundations[i]);
+    const canMove = !foundationTop
+      ? card.rank === 1
+      : foundationTop.faceUp &&
+        foundationTop.suit === card.suit &&
+        card.rank === foundationTop.rank + 1;
+
+    if (canMove && await moveToFoundation(i)) return true;
   }
 
   clearSelection();
