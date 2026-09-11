@@ -96,6 +96,7 @@ jobs:
           set -euo pipefail
           install -d /opt/solitairenet-api /var/www/solitairenet
           install -d /etc/systemd/system/solitairenet-api.service.d
+          printf '[Service]\nEnvironment=Admin__Emails=dvkdeveloping@gmail.com\nEnvironment=Admin__AccessLogPath=/var/log/nginx/access.log\n' > /etc/systemd/system/solitairenet-api.service.d/admin.conf
           if [ -n "${FIREBASE_PROJECT_ID:-}" ]; then
             printf '[Service]\nEnvironment=Firebase__ProjectId=%s\n' "$FIREBASE_PROJECT_ID" > /etc/systemd/system/solitairenet-api.service.d/firebase.conf
           else
