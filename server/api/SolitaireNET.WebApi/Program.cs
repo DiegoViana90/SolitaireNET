@@ -89,7 +89,9 @@ app.MapGet("/api/health", (GameStore games, UsageMetrics metrics, PlayerPresence
 app.MapGet("/api/admin/visits", (HttpContext context, IConfiguration configuration) =>
 {
     string? email = context.User.Claims
-        .FirstOrDefault(claim => claim.Type == "email" || claim.Type.EndsWith("/email", StringComparison.OrdinalIgnoreCase))?.Value;
+        .FirstOrDefault(claim => claim.Type == "email" ||
+                                claim.Type.EndsWith("/email", StringComparison.OrdinalIgnoreCase) ||
+                                claim.Type.EndsWith("/emailaddress", StringComparison.OrdinalIgnoreCase))?.Value;
     string[] admins = (configuration["Admin:Emails"] ?? string.Join(',', configuration.GetSection("Admin:Emails").Get<string[]>() ?? Array.Empty<string>()))
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     if (email == null || !admins.Any(admin => string.Equals(admin.Trim(), email.Trim(), StringComparison.OrdinalIgnoreCase)))
