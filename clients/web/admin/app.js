@@ -60,7 +60,13 @@ function renderVisits() {
   loadLocations(visits);
 }
 async function loadLocations(visits) {
-  const ips = [...new Set(visits.map(v => v.ip))].filter(ip => !locations.has(ip)).slice(0, 100);
+  const isCloudflare = ip => {
+    const parts = ip.split(".").map(Number);
+    return parts.length === 4 && ((parts[0] === 172 && parts[1] >= 64 && parts[1] <= 71) || (parts[0] === 162 && parts[1] === 158) || (parts[0] === 104 && parts[1] >= 16 && parts[1] <= 31));
+  };
+  const cloudflareIps = [...new Set(visits.map(v => v.ip))].filter(isCloudflare);
+  cloudflareIps.forEach(ip => locations.set(ip, "Cloudflare / proxy"));
+  const ips = [...new Set(visits.map(v => v.ip))].filter(ip => !locations.has(ip) && !isCloudflare(ip)).slice(0, 100);
   await Promise.all(ips.map(async (ip, index) => {
     const providers = index % 2 === 0
       ? [`https://ipwho.is/${encodeURIComponent(ip)}`, `https://ipapi.co/${encodeURIComponent(ip)}/json/`]
