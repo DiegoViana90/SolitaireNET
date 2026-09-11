@@ -7,6 +7,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using Chess;
+using System.Text.RegularExpressions;
 
 var builder = WebApplication.CreateBuilder(args);
 string? firebaseProjectId = builder.Configuration["Firebase:ProjectId"];
@@ -84,6 +85,35 @@ app.MapGet("/api/health", (GameStore games, UsageMetrics metrics, PlayerPresence
         usage = metrics.Snapshot(games.Count, players.ActiveCount),
         ranking = ranking.Summary()
     }));
+
+app.MapGet("/api/admin/visits", (HttpContext context, IConfiguration configuration) =>
+{
+    string? email = context.User.Claims.FirstOrDefault(claim => claim.Type == "email")?.Value;
+    string[] admins = configuration.GetSection("Admin:Emails").Get<string[]>() ?? Array.Empty<string>();
+    if (email == null || !admins.Contains(email, StringComparer.OrdinalIgnoreCase))
+        return Results.Forbid();
+
+    string logPath = configuration["Admin:AccessLogPath"] ?? "/var/log/nginx/access.log";
+    if (!File.Exists(logPath))
+        return Results.Ok(new { total = 0, visits = Array.Empty<object>() });
+
+    Regex pattern = new("""^(?<ip>\S+) \S+ \S+ \[(?<time>[^]]+)\] "(?<method>\S+) (?<path>[^ ]+) [^"]+" (?<status>\d+) \S+ "(?<ref>[^"]*)" "(?<ua>[^"]*)""", RegexOptions.Compiled);
+    var visits = File.ReadLines(logPath).Reverse().Take(5000)
+        .Select(line => pattern.Match(line))
+        .Where(match => match.Success)
+        .Select(match => new
+        {
+            ip = match.Groups["ip"].Value,
+            time = match.Groups["time"].Value,
+            method = match.Groups["method"].Value,
+            path = match.Groups["path"].Value,
+            status = int.Parse(match.Groups["status"].Value),
+            referer = match.Groups["ref"].Value,
+            userAgent = match.Groups["ua"].Value
+        }).ToList();
+
+    return Results.Ok(new { total = visits.Count, uniqueIps = visits.Select(item => item.ip).Distinct().Count(), visits });
+}).RequireAuthorization();
 
 if (firebaseAuthEnabled)
 {
