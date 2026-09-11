@@ -69,9 +69,10 @@ async function loadLocations(visits) {
     locations.set(ip, "⏳ Consultando..."); renderVisits();
     const providers = [`https://ipwho.is/${encodeURIComponent(ip)}`, `https://ipapi.co/${encodeURIComponent(ip)}/json/`];
     let resolved = false;
-    for (const url of providers) {
+    for (let attempt = 0; attempt < providers.length; attempt += 1) {
+      if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 5000));
       try {
-        const response = await fetch(url); if (!response.ok) continue;
+        const response = await fetch(providers[attempt]); if (!response.ok) continue;
         const data = await response.json();
         const location = [data.city, data.region || data.region_name, data.country || data.country_name].filter(Boolean).join(", ");
         if (location && !data.error && data.success !== false) { locations.set(ip, location); resolved = true; break; }
@@ -80,7 +81,7 @@ async function loadLocations(visits) {
     if (!resolved) locations.set(ip, "Indisponível");
     localStorage.setItem("admin-visits-locations", JSON.stringify(Object.fromEntries(locations)));
     renderVisits();
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    if (ips.indexOf(ip) < ips.length - 1) await new Promise(resolve => setTimeout(resolve, 5000));
   }
   locationsLoading = false;
 }
