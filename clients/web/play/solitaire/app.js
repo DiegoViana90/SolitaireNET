@@ -291,7 +291,7 @@ function cardEl(card, meta) {
       return;
     }
 
-    await onCard(card, meta);
+    await onCard(card, meta, event);
   });
 
   el.addEventListener("pointerdown", (event) => {
@@ -497,7 +497,7 @@ async function onStock() {
   if (ok) render();
 }
 
-async function onCard(card, meta) {
+async function onCard(card, meta, event = null) {
   if (state.dealing) return;
 
   if (!card.faceUp) {
@@ -505,7 +505,8 @@ async function onCard(card, meta) {
     return;
   }
 
-  const isDouble = state.lastClick.id === card.id && Date.now() - state.lastClick.at < 360;
+  const isDouble = event?.detail === 2 ||
+    (state.lastClick.id === card.id && Date.now() - state.lastClick.at < 500);
   state.lastClick = { id: card.id, at: Date.now() };
 
   if (isDouble && await autoMove(card, meta)) {
