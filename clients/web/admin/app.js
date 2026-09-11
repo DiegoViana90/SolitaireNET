@@ -62,7 +62,14 @@ function renderVisits() {
 }
 async function loadLocations(visits) {
   if (locationsLoading) return;
-  const ips = [...new Set(visits.map(v => v.ip))].filter(ip => !locations.has(ip)).slice(0, 100);
+  const isCloudflare = ip => /^(104\.(1[6-9]|2[0-9]|3[01])|162\.158|172\.(6[4-9]|7[01]))\./.test(ip);
+  const cloudflareIps = [...new Set(visits.map(v => v.ip))].filter(isCloudflare);
+  cloudflareIps.forEach(ip => locations.set(ip, "Cloudflare / proxy"));
+  if (cloudflareIps.length) {
+    localStorage.setItem("admin-visits-locations", JSON.stringify(Object.fromEntries(locations)));
+    renderVisits();
+  }
+  const ips = [...new Set(visits.map(v => v.ip))].filter(ip => !locations.has(ip) && !isCloudflare(ip)).slice(0, 100);
   if (!ips.length) return;
   locationsLoading = true;
   for (const ip of ips) {
