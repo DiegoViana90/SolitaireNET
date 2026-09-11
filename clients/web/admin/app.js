@@ -1,6 +1,7 @@
 import { signInWithGoogle, getCurrentUserToken, waitForAuthReady, currentUser } from "../auth.js?v=3";
 const status = document.querySelector("#status"), login = document.querySelector("#login"), content = document.querySelector("#content");
 let allVisits = [];
+const locations = new Map();
 login.onclick = async () => {
   if (login.disabled) return;
   login.disabled = true;
@@ -35,6 +36,12 @@ function renderVisits() {
   document.querySelector("#summary").textContent = `${visits.length} requisições filtradas · ${new Set(visits.map(v => v.ip)).size} IPs únicos`;
   const escapeHtml = value => String(value ?? "-").replace(/[&<>\"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
   const cell = value => { const text = escapeHtml(value); return `<td title="${text}">${text}</td>`; };
-  document.querySelector("#rows").innerHTML = visits.map(v => `<tr>${cell(v.time)}${cell(v.ip)}${cell(v.method)}${cell(v.path)}${cell(v.status)}${cell(v.referer || "-")}${cell(v.userAgent)}</tr>`).join("");
+  document.querySelector("#rows").innerHTML = visits.map(v => `<tr>${cell(v.time)}${cell(v.ip)}${cell(locations.get(v.ip) || "Consultando...")}${cell(v.method)}${cell(v.path)}${cell(v.status)}${cell(v.referer || "-")}${cell(v.userAgent)}</tr>`).join("");
+  loadLocations(visits);
+}
+async function loadLocations(visits) {
+  const ips = [...new Set(visits.map(v => v.ip))].filter(ip => !locations.has(ip)).slice(0, 100);
+  await Promise.all(ips.map(async ip => { try { const r = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`); const d = await r.json(); locations.set(ip, d.success === false ? "Indisponível" : [d.city, d.region, d.country].filter(Boolean).join(", ") || "Indisponível"); } catch { locations.set(ip, "Indisponível"); } }));
+  if (ips.length) renderVisits();
 }
 load().catch(e => status.textContent = e.message);
