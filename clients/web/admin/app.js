@@ -16,6 +16,7 @@ async function load() {
   await waitForAuthReady(); const user = currentUser();
   if (!user) { status.textContent = "Entre com sua conta Google."; login.disabled = false; login.textContent = "Entrar com Google"; return; }
   status.textContent = "";
+  status.hidden = true;
   const response = await fetch("/api/admin/visits", { headers: { Authorization: `Bearer ${await getCurrentUserToken()}` } });
   if (!response.ok) { status.textContent = response.status === 403 ? `Acesso negado para ${user.email || "esta conta"}.` : "Não foi possível carregar os acessos."; return; }
   const data = await response.json(); allVisits = data.visits; content.hidden = false;
@@ -26,6 +27,7 @@ async function load() {
 }
 
 function enableColumnResize() {
+  if (!document.querySelector("#column-resize-style")) { const style = document.createElement("style"); style.id = "column-resize-style"; style.textContent = "#sheet th{position:relative}.resize-handle{position:absolute;right:-3px;top:0;width:8px;height:100%;cursor:col-resize;z-index:5}"; document.head.append(style); }
   const headers = [...document.querySelectorAll("#sheet th")];
   const saved = JSON.parse(localStorage.getItem("admin-visits-column-widths") || "null");
   headers.forEach((header, index) => {
