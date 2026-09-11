@@ -17,7 +17,9 @@ async function load() {
   const response = await fetch("/api/admin/visits", { headers: { Authorization: `Bearer ${await getCurrentUserToken()}` } });
   if (!response.ok) { status.textContent = response.status === 403 ? `Acesso negado para ${user.email || "esta conta"}.` : "Não foi possível carregar os acessos."; return; }
   const data = await response.json(); content.hidden = false; document.querySelector("#summary").textContent = `${data.total} requisições recentes · ${data.uniqueIps} IPs únicos`;
-  document.querySelector("#rows").innerHTML = data.visits.map(v => `<tr><td>${v.time}</td><td>${v.ip}</td><td>${v.method}</td><td>${v.path}</td><td>${v.status}</td><td>${v.referer || "-"}</td><td>${v.userAgent}</td></tr>`).join("");
+  const escapeHtml = value => String(value ?? "-").replace(/[&<>\"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+  const cell = value => { const text = escapeHtml(value); return `<td title="${text}">${text}</td>`; };
+  document.querySelector("#rows").innerHTML = data.visits.map(v => `<tr>${cell(v.time)}${cell(v.ip)}${cell(v.method)}${cell(v.path)}${cell(v.status)}${cell(v.referer || "-")}${cell(v.userAgent)}</tr>`).join("");
   login.hidden = true;
 }
 load().catch(e => status.textContent = e.message);
