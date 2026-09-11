@@ -21,6 +21,12 @@ async function load() {
   const response = await fetch("/api/admin/visits", { headers: { Authorization: `Bearer ${await getCurrentUserToken()}` } });
   if (!response.ok) { status.textContent = response.status === 403 ? `Acesso negado para ${user.email || "esta conta"}.` : "Não foi possível carregar os acessos."; return; }
   const data = await response.json(); allVisits = data.visits; content.hidden = false;
+  const token = await getCurrentUserToken();
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  await fetch("/api/admin/locations", { method: "POST", headers, body: JSON.stringify(Object.fromEntries(locations)) }).catch(() => {});
+  const remote = await fetch("/api/admin/locations", { headers }).then(r => r.ok ? r.json() : {}).catch(() => ({}));
+  Object.entries(remote).forEach(([ip, location]) => locations.set(ip, location));
+  localStorage.setItem("admin-visits-locations", JSON.stringify(Object.fromEntries(locations)));
   ["period", "from", "to", "ip", "path", "statusCode"].forEach(id => document.querySelector(`#${id}`).addEventListener("input", renderVisits));
   renderVisits();
   login.hidden = true;

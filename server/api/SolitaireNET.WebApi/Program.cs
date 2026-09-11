@@ -119,6 +119,34 @@ app.MapGet("/api/admin/visits", (HttpContext context, IConfiguration configurati
     return Results.Ok(new { total = visits.Count, uniqueIps = visits.Select(item => item.ip).Distinct().Count(), visits });
 }).RequireAuthorization();
 
+bool IsAdmin(HttpContext context, IConfiguration configuration)
+{
+    string? email = context.User.Claims.FirstOrDefault(claim => claim.Type == "email" || claim.Type.EndsWith("/email", StringComparison.OrdinalIgnoreCase) || claim.Type.EndsWith("/emailaddress", StringComparison.OrdinalIgnoreCase))?.Value;
+    string[] admins = (configuration["Admin:Emails"] ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    return email != null && admins.Any(admin => string.Equals(admin, email, StringComparison.OrdinalIgnoreCase));
+}
+
+app.MapGet("/api/admin/locations", (HttpContext context, IConfiguration configuration) =>
+{
+    if (!IsAdmin(context, configuration)) return Results.Forbid();
+    string path = configuration["Admin:LocationsPath"] ?? "/opt/solitairenet-api/data/locations.json";
+    if (!File.Exists(path)) return Results.Ok(new Dictionary<string, string>());
+    return Results.Ok(JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path)) ?? new());
+}).RequireAuthorization();
+
+app.MapPost("/api/admin/locations", (HttpContext context, IConfiguration configuration, Dictionary<string, string> locations) =>
+{
+    if (!IsAdmin(context, configuration)) return Results.Forbid();
+    string path = configuration["Admin:LocationsPath"] ?? "/opt/solitairenet-api/data/locations.json";
+    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+    Dictionary<string, string> current = File.Exists(path)
+        ? JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path)) ?? new()
+        : new();
+    foreach (var item in locations.Where(item => !string.IsNullOrWhiteSpace(item.Key) && !string.IsNullOrWhiteSpace(item.Value))) current[item.Key] = item.Value;
+    File.WriteAllText(path, JsonSerializer.Serialize(current));
+    return Results.Ok(new { saved = locations.Count });
+}).RequireAuthorization();
+
 if (firebaseAuthEnabled)
 {
     app.MapGet("/api/auth/me", (ClaimsPrincipal user) =>
