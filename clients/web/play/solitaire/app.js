@@ -1075,12 +1075,11 @@ menuButtonEl.addEventListener("click", async () => {
     goToMenu();
   }
 });
-wasteEl.addEventListener("click", () => {
+wasteEl.addEventListener("click", async () => {
   const card = state.game?.wasteTop;
   if (!card) return;
 
-  select(card, { source: "waste", index: 0 });
-  render();
+  await onCard(card, { source: "waste", index: 0 });
 });
 foundationEls.forEach((slot, index) => {
   slot.addEventListener("click", async () => {
