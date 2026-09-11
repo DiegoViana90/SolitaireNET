@@ -1,7 +1,7 @@
 import { signInWithGoogle, getCurrentUserToken, waitForAuthReady, currentUser } from "../auth.js?v=3";
 const status = document.querySelector("#status"), login = document.querySelector("#login"), content = document.querySelector("#content");
 let allVisits = [];
-const locations = new Map();
+const locations = new Map(Object.entries(JSON.parse(localStorage.getItem("admin-visits-locations") || "{}")));
 login.onclick = async () => {
   if (login.disabled) return;
   login.disabled = true;
@@ -67,9 +67,11 @@ async function loadLocations(visits) {
       : [`https://ipapi.co/${encodeURIComponent(ip)}/json/`, `https://ipwho.is/${encodeURIComponent(ip)}`];
     for (const url of providers) {
       try {
-        const data = await (await fetch(url)).json();
+        const response = await fetch(url);
+        if (!response.ok) continue;
+        const data = await response.json();
         const location = [data.city, data.region || data.region_name, data.country || data.country_name].filter(Boolean).join(", ");
-        if (location && !data.error && data.success !== false) { locations.set(ip, location); return; }
+        if (location && !data.error && data.success !== false) { locations.set(ip, location); localStorage.setItem("admin-visits-locations", JSON.stringify(Object.fromEntries(locations))); return; }
       } catch { }
     }
     locations.set(ip, "Indisponível");
