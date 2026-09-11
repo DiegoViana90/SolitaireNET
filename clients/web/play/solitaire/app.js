@@ -747,7 +747,9 @@ function isPendingFlip(meta) {
 }
 
 function topCard(pile) {
-  return pile[pile.length - 1];
+  // The API exposes tableau piles as arrays, but each foundation is exposed
+  // as its current top card (or null).
+  return Array.isArray(pile) ? pile[pile.length - 1] : pile;
 }
 
 function isRed(card) {
