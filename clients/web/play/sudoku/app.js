@@ -40,10 +40,11 @@ function startGame(chosenLevel = "Médio") {
   current = [...puzzle]; wrong = new Set(); noteState = Array.from({ length: 81 }, () => new Set()); selected = -1; errors = 0; elapsed = 0; paused = false;
   difficultyScreen.hidden = true; gameWindow.hidden = false; gameActions.hidden = false;
   document.querySelector(".sudoku-shell").classList.add("playing");
+  document.querySelector(".sudoku-shell").classList.remove("level-facil", "level-medio", "level-dificil");
+  document.querySelector(".sudoku-shell").classList.add(`level-${level.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")}`);
   difficultyEl.innerHTML = `<span class="dot"></span> ${level}`;
-  document.querySelector(".primary").textContent = "Pausar";
   render(); clearInterval(timer);
-  timer = setInterval(() => { if (!paused) { elapsed += 1; updateStats(); } }, 1000);
+  timer = setInterval(() => { elapsed += 1; updateStats(); }, 1000);
 }
 
 function render() {
@@ -114,5 +115,15 @@ document.querySelectorAll(".number-pad button").forEach((button) => button.addEv
 noteMode.addEventListener("click", () => { notes = !notes; noteMode.classList.toggle("on", notes); noteMode.setAttribute("aria-pressed", String(notes)); });
 document.querySelector(".erase").addEventListener("click", () => { if (selected >= 0 && !puzzle[selected] && !paused) { current[selected] = 0; wrong.delete(selected); render(); } });
 document.querySelector(".secondary").addEventListener("click", () => startGame(level));
-document.querySelector(".primary").addEventListener("click", (event) => { paused = !paused; event.currentTarget.textContent = paused ? "Continuar" : "Pausar"; gameWindow.classList.toggle("is-paused", paused); });
 document.addEventListener("keydown", (event) => { if (/^[1-9]$/.test(event.key)) enter(Number(event.key)); if (event.key === "Backspace" || event.key === "Delete") document.querySelector(".erase").click(); });
+
+const exitModal = document.querySelector("#exit-modal");
+const exitYes = document.querySelector("#exit-yes");
+document.querySelector("#back-button").addEventListener("click", () => {
+  exitYes.disabled = true;
+  exitYes.textContent = "Sair (1s)";
+  exitModal.hidden = false;
+  window.setTimeout(() => { exitYes.disabled = false; exitYes.textContent = "Sair"; }, 1500);
+});
+document.querySelector("#exit-no").addEventListener("click", () => { exitModal.hidden = true; });
+exitYes.addEventListener("click", () => { if (!exitYes.disabled) window.location.href = "../"; });

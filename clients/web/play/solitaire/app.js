@@ -1110,7 +1110,7 @@ function confirmDelayed({ title, message, yesText = "Sim", noText = "Nao" }) {
       window.clearInterval(timer);
       confirmYesEl.disabled = false;
       confirmYesEl.textContent = yesText;
-    }, 1000);
+    }, 1500);
   });
 }
 

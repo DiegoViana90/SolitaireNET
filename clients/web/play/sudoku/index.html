@@ -30,6 +30,7 @@
       </div>
       <div class="sudoku-layout">
         <div class="board-wrap">
+          <button class="back-button" id="back-button" type="button">← Voltar ao menu</button>
           <div class="sudoku-board" role="grid" aria-label="Grade de Sudoku">
             <button class="cell given" type="button">5</button><button class="cell" type="button"></button><button class="cell" type="button">4</button><button class="cell" type="button">6</button><button class="cell" type="button"></button><button class="cell" type="button">8</button><button class="cell" type="button">9</button><button class="cell" type="button"></button><button class="cell" type="button">7</button>
             <button class="cell" type="button">6</button><button class="cell selected" type="button">7</button><button class="cell" type="button"></button><button class="cell" type="button">1</button><button class="cell" type="button">9</button><button class="cell" type="button">5</button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button"></button>
@@ -55,7 +56,14 @@
       </div>
     </section>
 
-    <footer class="actions" id="game-actions" hidden><button class="secondary" type="button">Novo jogo</button><button class="primary" type="button">Pausar</button></footer>
+    <footer class="actions" id="game-actions" hidden><button class="secondary" type="button">Novo jogo</button></footer>
+    <div class="exit-modal" id="exit-modal" hidden>
+      <div class="exit-box" role="dialog" aria-modal="true" aria-labelledby="exit-title">
+        <h2 id="exit-title">Sair da partida?</h2>
+        <p>Sua progressão será perdida.</p>
+        <div class="exit-actions"><button id="exit-no" type="button">Continuar</button><button id="exit-yes" type="button">Sair</button></div>
+      </div>
+    </div>
   </main>
   <script src="../../build-info.js?v=__BUILD_ASSET_VERSION__"></script>
   <script src="app.js?v=__BUILD_ASSET_VERSION__"></script>
