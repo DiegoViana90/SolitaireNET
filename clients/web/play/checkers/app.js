@@ -139,8 +139,10 @@ async function requestBotTurnIfNeeded() {
       const bot = await request(`/checkers/bot/rooms/${encodeURIComponent(state.roomCode)}/move`, { method: "POST" });
       state.game = bot.state;
       state.lastMoveId = state.game.lastMove?.id || state.lastMoveId;
+      render();
+      animateLastMove(state.game.lastMove);
+      await new Promise((resolve) => window.setTimeout(resolve, 460));
     } while (state.game.ready && !state.game.ended && state.game.turn === "dark");
-    render();
   } catch (error) {
     setMessage(error.message);
     render();
