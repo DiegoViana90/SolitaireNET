@@ -114,16 +114,29 @@ document.querySelectorAll(".difficulty-option").forEach((button) => button.addEv
 document.querySelectorAll(".number-pad button").forEach((button) => button.addEventListener("click", () => enter(Number(button.textContent))));
 noteMode.addEventListener("click", () => { notes = !notes; noteMode.classList.toggle("on", notes); noteMode.setAttribute("aria-pressed", String(notes)); });
 document.querySelector(".erase").addEventListener("click", () => { if (selected >= 0 && !puzzle[selected] && !paused) { current[selected] = 0; wrong.delete(selected); render(); } });
-document.querySelector(".secondary").addEventListener("click", () => startGame(level));
 document.addEventListener("keydown", (event) => { if (/^[1-9]$/.test(event.key)) enter(Number(event.key)); if (event.key === "Backspace" || event.key === "Delete") document.querySelector(".erase").click(); });
 
 const exitModal = document.querySelector("#exit-modal");
 const exitYes = document.querySelector("#exit-yes");
-document.querySelector("#back-button").addEventListener("click", () => {
+const exitTitle = document.querySelector("#exit-title");
+const exitMessage = document.querySelector(".exit-box p");
+let exitAction = null;
+function showExitConfirmation(action) {
+  exitAction = action;
   exitYes.disabled = true;
   exitYes.textContent = "Sair (1s)";
   exitModal.hidden = false;
   window.setTimeout(() => { exitYes.disabled = false; exitYes.textContent = "Sair"; }, 1500);
+}
+document.querySelector("#back-button").addEventListener("click", () => {
+  exitTitle.textContent = "Sair da partida?";
+  exitMessage.textContent = "Sua progressão será perdida.";
+  showExitConfirmation(() => { window.location.href = "../"; });
+});
+document.querySelector(".secondary").addEventListener("click", () => {
+  exitTitle.textContent = "Começar novo jogo?";
+  exitMessage.textContent = "Sua progressão atual será perdida.";
+  showExitConfirmation(() => { exitModal.hidden = true; startGame(level); });
 });
 document.querySelector("#exit-no").addEventListener("click", () => { exitModal.hidden = true; });
-exitYes.addEventListener("click", () => { if (!exitYes.disabled) window.location.href = "../"; });
+exitYes.addEventListener("click", () => { if (!exitYes.disabled && exitAction) exitAction(); });

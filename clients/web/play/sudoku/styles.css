@@ -52,7 +52,8 @@ h1 { margin:0; font-size:clamp(32px,5vw,50px); letter-spacing:-.045em; }
 .level-facil .dot { background:#55c878; }
 .level-medio .dot { background:#e5b875; }
 .level-dificil .dot { background:#e45d6f; }
-.back-button { border:0; background:transparent; color:#aebdcd; padding:0 0 10px; font-size:13px; }
+.board-wrap { min-width:0; }
+.back-button { display:block; width:max-content; max-width:100%; border:0; background:transparent; color:#aebdcd; padding:0 0 6px; font-size:13px; line-height:1.2; }
 .back-button:hover { color:#fff; }
 .exit-modal { position:fixed; inset:0; z-index:20; display:grid; place-items:center; padding:20px; background:rgba(4,8,13,.72); }
 .exit-modal[hidden] { display:none; }
