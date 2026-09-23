@@ -43,6 +43,7 @@ const confirmTitleEl = document.querySelector("#confirm-title");
 const confirmMessageEl = document.querySelector("#confirm-message");
 const confirmNoEl = document.querySelector("#confirm-no");
 const confirmYesEl = document.querySelector("#confirm-yes");
+const confirmCloseEl = document.querySelector("#confirm-close");
 const victoryMenuEl = document.querySelector("#victory-menu");
 const victoryNewGameEl = document.querySelector("#victory-new-game");
 const victoryMenuButtonEl = document.querySelector("#victory-menu-button");
@@ -1113,6 +1114,11 @@ function confirmDelayed({ title, message, yesText = "Sim", noText = "Nao" }) {
     }, 1500);
   });
 }
+
+confirmCloseEl.addEventListener("click", () => confirmNoEl.click());
+confirmModalEl.addEventListener("click", (event) => {
+  if (event.target === confirmModalEl) confirmNoEl.click();
+});
 
 stockEl.addEventListener("click", onStock);
 menuButtonEl.addEventListener("click", async () => {

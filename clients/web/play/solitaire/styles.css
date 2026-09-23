@@ -322,6 +322,7 @@ button {
 
 .confirm-box,
 .victory-box {
+  position: relative;
   width: min(340px, 100%);
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 8px;
@@ -330,6 +331,23 @@ button {
   padding: 18px;
   box-shadow: 0 24px 50px rgba(0, 0, 0, 0.44);
 }
+
+.confirm-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(248, 241, 223, 0.82);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.confirm-close:hover { background: rgba(255, 255, 255, 0.12); }
 
 .confirm-box h2,
 .victory-box h2 {
