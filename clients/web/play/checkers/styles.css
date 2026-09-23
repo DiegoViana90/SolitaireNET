@@ -158,6 +158,8 @@ body .bot-room button { border: 0; border-radius: 10px; padding: 12px 18px; back
   cursor: pointer;
 }
 .bot-room button:hover { filter: brightness(1.08); }
+.move-ghost { filter: drop-shadow(0 8px 7px rgba(0,0,0,.45)); }
+.animating-target { opacity: .28; transition: opacity .15s ease; }
 
 .lobby > button {
   display: grid;

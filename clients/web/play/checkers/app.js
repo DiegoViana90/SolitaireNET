@@ -141,7 +141,7 @@ async function requestBotTurnIfNeeded() {
       state.lastMoveId = state.game.lastMove?.id || state.lastMoveId;
       render();
       animateLastMove(state.game.lastMove);
-      await new Promise((resolve) => window.setTimeout(resolve, 460));
+      await new Promise((resolve) => window.setTimeout(resolve, 820));
     } while (state.game.ready && !state.game.ended && state.game.turn === "dark");
   } catch (error) {
     setMessage(error.message);
