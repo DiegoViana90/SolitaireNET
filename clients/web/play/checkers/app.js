@@ -12,6 +12,8 @@ const state = {
   game: null,
   selected: null,
   busy: false,
+  moveQueue: [],
+  syncing: false,
   pollTimer: null,
   message: "",
   noticeUntil: null,
@@ -162,7 +164,7 @@ function stopPolling() {
 }
 
 async function refreshRoom() {
-  if (!state.roomCode || !state.playerId || state.busy) return;
+  if (!state.roomCode || !state.playerId || state.busy || state.syncing) return;
 
   try {
     const wasWaiting = state.game && !state.game.ready;
@@ -357,32 +359,52 @@ function onSquare(row, col, targetMove, movesByPiece) {
 }
 
 async function sendMove(move) {
-  if (!canPlay() || state.busy) return;
+  if (!canPlay()) return;
+  const previous = structuredClone(state.game);
+  applyLocalMove(move);
+  state.selected = null;
+  state.moveQueue.push({ move, previous });
+  setMessage("");
+  render();
+  void processMoveQueue();
+}
 
-  state.busy = true;
+function applyLocalMove(move) {
+  const piece = state.game.board[move.from.row][move.from.col];
+  state.game.board[move.from.row][move.from.col] = null;
+  if (move.captured) state.game.board[move.captured.row][move.captured.col] = null;
+  const moved = { ...piece };
+  if ((moved.owner === "light" && move.to.row === 0) || (moved.owner === "dark" && move.to.row === 7)) moved.king = true;
+  state.game.board[move.to.row][move.to.col] = moved;
+  state.game.turn = state.playerSide === "light" ? "dark" : "light";
+}
+
+async function processMoveQueue() {
+  if (state.syncing) return;
+  state.syncing = true;
   try {
-    const result = await request(`/checkers/rooms/${encodeURIComponent(state.roomCode)}/actions`, {
-      method: "POST",
-      body: JSON.stringify({
-        playerId: state.playerId,
-        from: move.from,
-        to: move.to
-      })
-    });
-    state.game = result.state;
-    state.lastMoveId = state.game.lastMove?.id || state.lastMoveId;
-    state.selected = null;
-    setMessage("");
-    render();
-    if (state.botRoom && state.game.ready && !state.game.ended) {
-      const bot = await request(`/checkers/bot/rooms/${encodeURIComponent(state.roomCode)}/move`, { method: "POST" });
-      state.game = bot.state; state.lastMoveId = state.game.lastMove?.id || state.lastMoveId; render();
+    while (state.moveQueue.length) {
+      const entry = state.moveQueue[0];
+      try {
+        const result = await request(`/checkers/rooms/${encodeURIComponent(state.roomCode)}/actions`, {
+          method: "POST",
+          body: JSON.stringify({ playerId: state.playerId, from: entry.move.from, to: entry.move.to })
+        });
+        state.moveQueue.shift();
+        if (!state.moveQueue.length) state.game = result.state;
+      } catch (error) {
+        state.game = entry.previous;
+        state.moveQueue = [];
+        state.selected = null;
+        setMessage(error.message);
+        render();
+        break;
+      }
     }
-  } catch (error) {
-    setMessage(error.message);
-    render();
   } finally {
+    state.syncing = false;
     state.busy = false;
+    render();
   }
 }
 

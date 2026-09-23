@@ -26,6 +26,8 @@ const state = {
   game: null,
   selected: null,
   busy: false,
+  moveQueue: [],
+  syncing: false,
   pollTimer: null,
   message: "",
   noticeUntil: null,
@@ -179,7 +181,7 @@ function stopPolling() {
 }
 
 async function refreshRoom() {
-  if (!state.roomCode || !state.playerId || state.busy) return;
+  if (!state.roomCode || !state.playerId || state.busy || state.syncing) return;
 
   try {
     const wasWaiting = state.game && !state.game.ready;
@@ -361,7 +363,7 @@ function onSquare(square, piece, targetMove, movesByFrom) {
 }
 
 async function sendMove(move) {
-  if (!canPlay() || state.busy) return;
+  if (!canPlay()) return;
 
   let promotion = move.promotionTo;
   if (move.promotion) {
@@ -369,28 +371,69 @@ async function sendMove(move) {
     if (!promotion) return;
   }
 
-  state.busy = true;
+  const action = { playerId: state.playerId, from: move.from, to: move.to, promotion };
+  const previous = structuredClone(state.game);
+  applyOptimisticChessMove(action);
+  state.selected = null;
+  state.moveQueue.push({ action, previous });
+  setMessage("");
+  render();
+  void processChessMoveQueue();
+}
+
+function applyOptimisticChessMove(action) {
+  const board = parseFenBoard(state.game.fen);
+  const piece = board.get(action.from);
+  if (!piece) return;
+  board.delete(action.from);
+  board.delete(action.to);
+  board.set(action.to, { ...piece, ...(action.promotion ? { type: action.promotion } : {}) });
+  state.game.fen = boardToFen(board, state.game.turn === "white" ? "black" : "white");
+  state.game.turn = state.game.turn === "white" ? "black" : "white";
+  state.game.legalMoves = [];
+}
+
+function boardToFen(board, turn) {
+  const rows = [];
+  for (let rank = 8; rank >= 1; rank -= 1) {
+    let row = "";
+    let empty = 0;
+    for (let file = 0; file < 8; file += 1) {
+      const piece = board.get(`${String.fromCharCode(97 + file)}${rank}`);
+      if (!piece) { empty += 1; continue; }
+      if (empty) { row += empty; empty = 0; }
+      const symbol = { king: "k", queen: "q", rook: "r", bishop: "b", knight: "n", pawn: "p" }[piece.type];
+      row += piece.side === "white" ? symbol.toUpperCase() : symbol;
+    }
+    if (empty) row += empty;
+    rows.push(row);
+  }
+  return `${rows.join("/")} ${turn === "white" ? "w" : "b"} - - 0 1`;
+}
+
+async function processChessMoveQueue() {
+  if (state.syncing) return;
+  state.syncing = true;
   try {
-    const result = await request(`/chess/rooms/${encodeURIComponent(state.roomCode)}/actions`, {
-      method: "POST",
-      body: JSON.stringify({
-        playerId: state.playerId,
-        from: move.from,
-        to: move.to,
-        promotion
-      })
-    });
-    state.game = result.state;
-    state.lastMoveId = state.game.lastMove?.id || state.lastMoveId;
-    state.lastTurn = state.game?.turn || null;
-    state.selected = null;
-    setMessage("");
-    render();
-  } catch (error) {
-    setMessage(error.message);
-    render();
+    while (state.moveQueue.length) {
+      const entry = state.moveQueue[0];
+      try {
+        const result = await request(`/chess/rooms/${encodeURIComponent(state.roomCode)}/actions`, { method: "POST", body: JSON.stringify(entry.action) });
+        state.moveQueue.shift();
+        if (!state.moveQueue.length) state.game = result.state;
+      } catch (error) {
+        state.game = entry.previous;
+        state.moveQueue = [];
+        state.selected = null;
+        setMessage(error.message);
+        render();
+        break;
+      }
+    }
   } finally {
+    state.syncing = false;
     state.busy = false;
+    render();
   }
 }
 
