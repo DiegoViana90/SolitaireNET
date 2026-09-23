@@ -134,6 +134,19 @@ button {
   background: linear-gradient(100deg, rgba(38, 66, 80, 0.9), rgba(24, 40, 49, 0.85));
 }
 
+/* Lobby visual override: keep Damas consistent with Xadrez. */
+body .game-shell { width: min(1080px, calc(100% - 32px)); padding: clamp(24px, 6vw, 72px) 0; }
+body .topbar { grid-template-columns: 48px 1fr auto; gap: 16px; margin-bottom: 8px; }
+body .topbar h1 { font-size: clamp(2.2rem, 5vw, 4rem); letter-spacing: -.06em; }
+body .lobby { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 14px; border-radius: 22px; background: rgba(10, 20, 27, .48); box-shadow: 0 24px 60px rgba(0,0,0,.2); }
+body .lobby-row { gap: 14px; }
+body .lobby-row > button, body .lobby-row .join-code, body .lobby > button { min-height: 92px; border-radius: 15px; background: linear-gradient(145deg, rgba(31,48,57,.95), rgba(17,29,35,.95)); border-color: rgba(255,255,255,.13); }
+body .join-code { padding: 9px; gap: 9px; }
+body .join-code input { min-height: 52px; padding: 0 16px; border-radius: 10px; }
+body .join-code button { min-height: 52px; padding: 0 22px; border-radius: 10px; background: #78b9f0; color: #10202b; }
+body .bot-room { min-height: 78px; padding: 16px 18px; border-radius: 15px; background: linear-gradient(100deg, rgba(38,66,80,.9), rgba(24,40,49,.85)); }
+body .bot-room button { border: 0; border-radius: 10px; padding: 12px 18px; background: #78b9f0; color: #10202b; font-weight: 800; }
+
 .bot-room strong { font-size: 15px; }
 .bot-room button {
   border: 0;
