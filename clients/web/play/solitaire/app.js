@@ -20,6 +20,8 @@ const state = {
   pointer: null,
   justDragged: false,
   busy: false,
+  actionQueue: [],
+  syncing: false,
   pendingFlip: null,
   queuedFlip: null,
   victoryAnimation: null,
@@ -158,28 +160,38 @@ function deleteSavedGame(gameId) {
 }
 
 async function sendAction(action, options = {}) {
-  if (!state.game || state.busy) return false;
+  if (!state.game || !isLocalActionAllowed(action)) return false;
 
-  state.busy = true;
-  const startedAt = performance.now();
-  try {
-    state.game = await request(`/games/${state.game.id}/actions`, {
-      method: "POST",
-      body: JSON.stringify(action)
-    });
-    state.lastTiming = {
-      action: action.type,
-      requestMs: performance.now() - startedAt
-    };
-    return true;
-  } catch (error) {
-    if (!options.silent) {
-      showStatus(error.message);
-    }
+  const previousGame = structuredClone(state.game);
+  applyLocalAction(action);
+  state.actionQueue.push({ action, previousGame, startedAt: performance.now() });
+  render();
+  void processActionQueue();
+  return true;
+}
 
-    return false;
-  } finally {
-    state.busy = false;
+function isLocalActionAllowed(action) {
+  if (action.type === "drawStock") return state.game.stockCount > 0;
+  if (action.type === "resetStock") return state.game.stockCount === 0 && state.game.wasteCount > 0;
+  if (action.type === "flipTableau") {
+    const pile = state.game.tableau[action.source?.index];
+    return Boolean(pile?.length && !pile[pile.length - 1].faceUp);
+  }
+  return false;
+}
+
+function applyLocalAction(action) {
+  if (action.type === "drawStock") {
+    state.game.stockCount -= 1;
+    state.game.wasteCount += 1;
+    state.game.wasteTop = null;
+  } else if (action.type === "resetStock") {
+    state.game.stockCount = state.game.wasteCount;
+    state.game.wasteCount = 0;
+    state.game.wasteTop = null;
+  } else if (action.type === "flipTableau") {
+    const pile = state.game.tableau[action.source.index];
+    pile[pile.length - 1].faceUp = true;
   }
 }
 
@@ -281,11 +293,6 @@ function cardEl(card, meta) {
       return;
     }
 
-    if (state.busy) {
-      queueFlipIfPossible(card, meta);
-      return;
-    }
-
     if (state.justDragged) {
       state.justDragged = false;
       return;
@@ -296,7 +303,6 @@ function cardEl(card, meta) {
 
   el.addEventListener("pointerdown", (event) => {
     if (state.dealing) return;
-    if (state.busy) return;
     if (event.button !== 0 || !card.faceUp) return;
     event.preventDefault();
     startPointer(event, card, meta);
@@ -585,7 +591,7 @@ async function moveToFoundation(index) {
 }
 
 async function moveTo(target) {
-  if (!state.selected || state.busy) return false;
+  if (!state.selected) return false;
 
   const action = {
     type: "move",
@@ -597,40 +603,80 @@ async function moveTo(target) {
     target
   };
 
-  return sendOptimisticMove(action);
+  if (!isLocalMoveAllowed(action)) {
+    showStatus("Essa jogada nao e permitida.");
+    return false;
+  }
+
+  enqueueOptimisticMove(action);
+  return true;
 }
 
-async function sendOptimisticMove(action) {
+function enqueueOptimisticMove(action) {
   const previousGame = structuredClone(state.game);
-  const startedAt = performance.now();
-
-  state.busy = true;
+  const entry = { action, previousGame, startedAt: performance.now() };
   applyLocalMove(action.source, action.target);
   clearSelection();
+  state.actionQueue.push(entry);
   render();
+  void processActionQueue();
+}
 
+async function processActionQueue() {
+  if (state.syncing) return;
+  state.syncing = true;
   try {
-    state.game = await request(`/games/${previousGame.id}/actions`, {
-      method: "POST",
-      body: JSON.stringify(action)
-    });
-    state.lastTiming = {
-      action: action.type,
-      requestMs: performance.now() - startedAt
-    };
-    render();
-    state.busy = false;
-    await flushQueuedFlip();
-    return true;
-  } catch (error) {
-    state.game = previousGame;
-    state.queuedFlip = null;
-    render();
-    showStatus(error.message);
-    return false;
+    while (state.actionQueue.length > 0) {
+      const entry = state.actionQueue[0];
+      try {
+        const serverGame = await request(`/games/${entry.previousGame.id}/actions`, {
+          method: "POST",
+          body: JSON.stringify(entry.action)
+        });
+        state.lastTiming = {
+          action: entry.action.type,
+          requestMs: performance.now() - entry.startedAt
+        };
+        state.actionQueue.shift();
+        // Keep optimistic future moves, but use the server state when no future exists.
+        if (state.actionQueue.length === 0) state.game = serverGame;
+      } catch (error) {
+        // The server is authoritative: restore the state before the rejected action
+        // and discard this action plus every optimistic action after it.
+        state.game = entry.previousGame;
+        state.actionQueue = [];
+        state.queuedFlip = null;
+        clearSelection();
+        showStatus(error.message);
+        render();
+        break;
+      }
+    }
   } finally {
+    state.syncing = false;
     state.busy = false;
+    render();
   }
+}
+
+function isLocalMoveAllowed(action) {
+  const source = action.source;
+  const target = action.target;
+  const cards = state.selected?.cards || [];
+  const card = cards[0];
+  if (!card || !card.faceUp) return false;
+
+  if (target.kind === "foundation") {
+    if (cards.length !== 1) return false;
+    const top = topCard(state.game.foundations[target.index]);
+    return !top ? card.rank === 1 : top.suit === card.suit && card.rank === top.rank + 1;
+  }
+
+  if (target.kind !== "tableau") return false;
+  const pile = state.game.tableau[target.index];
+  if (!pile.length) return card.rank === 13;
+  const top = pile[pile.length - 1];
+  return top.faceUp && top.suit !== card.suit && card.rank === top.rank - 1;
 }
 
 function applyLocalMove(source, target) {
@@ -642,6 +688,13 @@ function applyLocalMove(source, target) {
 
   if (target.kind === "foundation") {
     state.game.foundations[target.index] = moving[0];
+  }
+
+  if (source.kind === "tableau") {
+    const pile = state.game.tableau[source.index];
+    if (pile.length > 0 && !pile[pile.length - 1].faceUp) {
+      pile[pile.length - 1].faceUp = true;
+    }
   }
 }
 
