@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sudoku | paciencia . net</title>
+  <link rel="icon" href="../../appicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="sudoku-shell" aria-label="Sudoku">
+    <header class="game-header">
+      <div>
+        <p class="eyebrow">paciencia . net</p>
+        <h1>Sudoku</h1>
+        <p class="subtitle">Preencha a grade. Cada número aparece uma vez por linha, coluna e bloco.</p>
+      </div>
+      <button class="icon-button" type="button" aria-label="Abrir menu">☰</button>
+    </header>
+
+    <section class="difficulty-screen" id="difficulty-screen" aria-label="Escolha a dificuldade">
+      <p class="eyebrow">começar partida</p><h2>Escolha a dificuldade</h2><p>Todos os modos usam uma grade 9×9. A diferença é a quantidade de pistas.</p>
+      <div class="difficulty-options"><button class="difficulty-option" data-start-size="9" type="button"><strong>Fácil</strong><span>Mais pistas para começar</span></button><button class="difficulty-option" data-start-size="9" type="button"><strong>Médio</strong><span>Um desafio equilibrado</span></button><button class="difficulty-option" data-start-size="9" type="button"><strong>Difícil</strong><span>Menos pistas e mais desafio</span></button></div>
+    </section>
+    <section class="game-window" id="game-window" aria-label="Mesa de Sudoku" hidden>
+      <div class="game-toolbar">
+        <div class="stat"><span>Tempo</span><strong>04:18</strong></div>
+        <div class="difficulty"><span class="dot"></span> Médio</div>
+        <div class="stat mistakes"><span>Erros</span><strong>0 / 3</strong></div>
+      </div>
+      <div class="sudoku-layout">
+        <div class="board-wrap">
+          <div class="sudoku-board" role="grid" aria-label="Grade de Sudoku">
+            <button class="cell given" type="button">5</button><button class="cell" type="button"></button><button class="cell" type="button">4</button><button class="cell" type="button">6</button><button class="cell" type="button"></button><button class="cell" type="button">8</button><button class="cell" type="button">9</button><button class="cell" type="button"></button><button class="cell" type="button">7</button>
+            <button class="cell" type="button">6</button><button class="cell selected" type="button">7</button><button class="cell" type="button"></button><button class="cell" type="button">1</button><button class="cell" type="button">9</button><button class="cell" type="button">5</button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button"></button>
+            <button class="cell" type="button">1</button><button class="cell" type="button">9</button><button class="cell" type="button">8</button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button">6</button><button class="cell" type="button"></button>
+            <button class="cell" type="button">8</button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button">6</button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button">3</button>
+            <button class="cell" type="button">4</button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button">8</button><button class="cell" type="button"></button><button class="cell" type="button">3</button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button">1</button>
+            <button class="cell" type="button">7</button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button">2</button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button">6</button>
+            <button class="cell" type="button">9</button><button class="cell" type="button">6</button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button">2</button><button class="cell" type="button">8</button><button class="cell" type="button"></button>
+            <button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button"></button><button class="cell" type="button">4</button><button class="cell" type="button">1</button><button class="cell" type="button">9</button><button class="cell" type="button"></button><button class="cell" type="button">3</button><button class="cell" type="button">5</button>
+            <button class="cell" type="button">3</button><button class="cell" type="button"></button><button class="cell" type="button">5</button><button class="cell" type="button"></button><button class="cell" type="button">8</button><button class="cell" type="button"></button><button class="cell" type="button">1</button><button class="cell" type="button">7</button><button class="cell" type="button">9</button>
+          </div>
+        </div>
+
+        <aside class="side-panel">
+          <p class="panel-label">Número selecionado</p>
+          <div class="number-pad" aria-label="Teclado numérico">
+            <button type="button">1</button><button type="button">2</button><button type="button">3</button>
+            <button type="button">4</button><button type="button">5</button><button type="button">6</button>
+            <button type="button">7</button><button type="button">8</button><button type="button">9</button>
+          </div>
+          <div class="note-toggle"><button id="note-mode" type="button" aria-pressed="false">✎ Anotação</button><span>Marque candidatos na célula</span></div><button class="erase" type="button">⌫ Apagar</button>
+        </aside>
+      </div>
+    </section>
+
+    <footer class="actions" id="game-actions" hidden><button class="secondary" type="button">Novo jogo</button><button class="primary" type="button">Pausar</button></footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

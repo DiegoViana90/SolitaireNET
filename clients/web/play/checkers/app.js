@@ -31,12 +31,13 @@ const roomCodeEl = document.querySelector("#room-code");
 const joinCodeEl = document.querySelector("#join-code");
 const botRoomEl = document.querySelector("#bot-room");
 const botDifficultyEl = document.querySelector("#bot-difficulty");
+// Damas usa uma IA única por enquanto; não expõe níveis de dificuldade na entrada.
+botDifficultyEl?.remove();
 const boardEl = document.querySelector("#board");
 const statusEl = document.querySelector("#status");
 const scorebarEl = document.querySelector("#scorebar");
 const lightScoreEl = document.querySelector("#light-score");
 const darkScoreEl = document.querySelector("#dark-score");
-const newGameEl = document.querySelector("#new-game");
 const toastStackEl = document.querySelector("#toast-stack");
 
 async function request(path, options = {}) {
@@ -56,7 +57,7 @@ async function request(path, options = {}) {
 async function createRoom() {
   await joinFromResult(request("/checkers/rooms", { method: "POST" }));
 }
-async function createBotRoom() { await joinFromResult(request(`/checkers/bot/rooms?difficulty=${botDifficultyEl.value}`, { method: "POST" })); }
+async function createBotRoom() { await joinFromResult(request("/checkers/bot/rooms?difficulty=medium", { method: "POST" })); }
 
 async function findRandomRoom() {
   setMessage("Procurando sala aleatoria...");
@@ -252,7 +253,6 @@ function render() {
   roomInfoEl.hidden = !inRoom;
   scorebarEl.hidden = !inRoom;
   boardEl.hidden = !inRoom;
-  newGameEl.textContent = inRoom ? "Sair" : "Novo";
 
   if (!inRoom) {
     lightScoreEl.textContent = "0";
@@ -391,7 +391,13 @@ async function processMoveQueue() {
           body: JSON.stringify({ playerId: state.playerId, from: entry.move.from, to: entry.move.to })
         });
         state.moveQueue.shift();
-        if (!state.moveQueue.length) state.game = result.state;
+        if (!state.moveQueue.length) {
+          state.game = result.state;
+          if (state.botRoom && state.game.ready && !state.game.ended) {
+            const bot = await request(`/checkers/bot/rooms/${encodeURIComponent(state.roomCode)}/move`, { method: "POST" });
+            state.game = bot.state;
+          }
+        }
       } catch (error) {
         state.game = entry.previous;
         state.moveQueue = [];
@@ -727,7 +733,7 @@ function setControlsEnabled(enabled) {
   randomRoomEl.disabled = !enabled;
   joinCodeEl.disabled = !enabled;
   roomCodeEl.disabled = !enabled;
-  botRoomEl.disabled = !enabled; botDifficultyEl.disabled = !enabled;
+  botRoomEl.disabled = !enabled; if (botDifficultyEl) botDifficultyEl.disabled = !enabled;
 }
 
 createRoomEl.addEventListener("click", createRoom);
@@ -739,15 +745,6 @@ roomCodeEl.addEventListener("keydown", (event) => {
     joinRoomByCode();
   }
 });
-newGameEl.addEventListener("click", async () => {
-  if (state.game) {
-    await leaveRoom();
-    return;
-  }
-
-  createRoom();
-});
-
 window.addEventListener("pagehide", () => {
   if (!state.roomCode || !state.playerId || state.game?.canceled) return;
 
