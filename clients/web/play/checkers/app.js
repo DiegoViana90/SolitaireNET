@@ -135,9 +135,11 @@ async function requestBotTurnIfNeeded() {
   if (!state.botRoom || state.botThinking || !state.game?.ready || state.game.ended || state.game.turn !== "dark") return;
   state.botThinking = true;
   try {
-    const bot = await request(`/checkers/bot/rooms/${encodeURIComponent(state.roomCode)}/move`, { method: "POST" });
-    state.game = bot.state;
-    state.lastMoveId = state.game.lastMove?.id || state.lastMoveId;
+    do {
+      const bot = await request(`/checkers/bot/rooms/${encodeURIComponent(state.roomCode)}/move`, { method: "POST" });
+      state.game = bot.state;
+      state.lastMoveId = state.game.lastMove?.id || state.lastMoveId;
+    } while (state.game.ready && !state.game.ended && state.game.turn === "dark");
     render();
   } catch (error) {
     setMessage(error.message);
@@ -394,7 +396,9 @@ function applyLocalMove(move) {
   const moved = { ...piece };
   if ((moved.owner === "light" && move.to.row === 0) || (moved.owner === "dark" && move.to.row === 7)) moved.king = true;
   state.game.board[move.to.row][move.to.col] = moved;
-  state.game.turn = state.playerSide === "light" ? "dark" : "light";
+  const continuesCapture = Boolean(move.captured && getMovesForPiece(move.to.row, move.to.col, true).length);
+  state.game.forcedPieceId = continuesCapture ? moved.id : null;
+  if (!continuesCapture) state.game.turn = state.game.turn === "light" ? "dark" : "light";
 }
 
 async function processMoveQueue() {
@@ -412,11 +416,7 @@ async function processMoveQueue() {
         if (!state.moveQueue.length) {
           state.game = result.state;
           state.lastMoveId = state.game.lastMove?.id || state.lastMoveId;
-          if (state.botRoom && state.game.ready && !state.game.ended) {
-            const bot = await request(`/checkers/bot/rooms/${encodeURIComponent(state.roomCode)}/move`, { method: "POST" });
-            state.game = bot.state;
-            state.lastMoveId = state.game.lastMove?.id || state.lastMoveId;
-          }
+          await requestBotTurnIfNeeded();
         }
       } catch (error) {
         state.game = entry.previous;
