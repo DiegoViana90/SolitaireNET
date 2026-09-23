@@ -40,10 +40,10 @@ h1 { margin:0; font-size:clamp(32px,5vw,50px); letter-spacing:-.045em; }
   .panel-label { grid-column:1/-1; margin-bottom:0; }
   .number-pad { grid-column:1/-1; width:min(100%, 260px); margin:auto; gap:5px; }
   .number-pad button { aspect-ratio:auto; height:36px; border-radius:7px; font-size:16px; }
-  .note-toggle { margin-top:0; }
-  .note-toggle button { padding:7px 8px; font-size:12px; }
-  .note-toggle span { font-size:10px; }
-  .erase { margin:0; padding:8px; font-size:12px; }
+  .note-toggle { grid-column:1; margin-top:0; }
+  .note-toggle button { width:100%; padding:8px 6px; font-size:11px; white-space:nowrap; }
+  .note-toggle span { display:none; }
+  .erase { grid-column:2; margin:0; padding:8px 10px; font-size:12px; white-space:nowrap; }
   .actions { padding:8px; }
   .actions button { min-width:0; flex:1; padding:9px 12px; font-size:13px; }
 }
