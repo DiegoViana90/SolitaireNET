@@ -393,9 +393,11 @@ async function processMoveQueue() {
         state.moveQueue.shift();
         if (!state.moveQueue.length) {
           state.game = result.state;
+          state.lastMoveId = state.game.lastMove?.id || state.lastMoveId;
           if (state.botRoom && state.game.ready && !state.game.ended) {
             const bot = await request(`/checkers/bot/rooms/${encodeURIComponent(state.roomCode)}/move`, { method: "POST" });
             state.game = bot.state;
+            state.lastMoveId = state.game.lastMove?.id || state.lastMoveId;
           }
         }
       } catch (error) {
