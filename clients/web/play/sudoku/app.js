@@ -6,7 +6,11 @@ const noteMode = document.querySelector("#note-mode");
 const timeEl = document.querySelector(".stat strong");
 const errorsEl = document.querySelector(".mistakes strong");
 const difficultyEl = document.querySelector(".difficulty");
-const levels = { "Fácil": 42, "Médio": 34, "Difícil": 28 };
+const levels = {
+  "Fácil": { clues: 42, maxErrors: 10 },
+  "Médio": { clues: 34, maxErrors: 5 },
+  "Difícil": { clues: 28, maxErrors: 3 }
+};
 
 let solution = [], puzzle = [], current = [], wrong = new Set(), selected = -1;
 let notes = false, errors = 0, elapsed = 0, timer = null, paused = false, level = "Médio";
@@ -32,7 +36,7 @@ function startGame(chosenLevel = "Médio") {
   level = chosenLevel;
   solution = createSolution();
   puzzle = solution.flat();
-  shuffled([...Array(81).keys()]).slice(levels[level]).forEach((index) => { puzzle[index] = 0; });
+  shuffled([...Array(81).keys()]).slice(levels[level].clues).forEach((index) => { puzzle[index] = 0; });
   current = [...puzzle]; wrong = new Set(); selected = -1; errors = 0; elapsed = 0; paused = false;
   difficultyScreen.hidden = true; gameWindow.hidden = false; gameActions.hidden = false;
   document.querySelector(".sudoku-shell").classList.add("playing");
@@ -59,7 +63,7 @@ function render() {
 
 function updateStats() {
   timeEl.textContent = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
-  errorsEl.textContent = `${errors} / 3`;
+  errorsEl.textContent = `${errors} / ${levels[level].maxErrors}`;
 }
 
 function enter(value) {
@@ -67,7 +71,10 @@ function enter(value) {
   if (notes) return toggleNote(value);
   if (value !== solution.flat()[selected]) {
     current[selected] = value; wrong.add(selected); errors += 1; render();
-    if (errors >= 3) { paused = true; alert("Você atingiu o limite de 3 erros. Comece uma nova partida."); }
+    if (errors >= levels[level].maxErrors) {
+      paused = true;
+      alert(`Você atingiu o limite de ${levels[level].maxErrors} erros. Comece uma nova partida.`);
+    }
     return;
   }
   current[selected] = value; wrong.delete(selected); render();
