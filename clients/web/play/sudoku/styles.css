@@ -48,3 +48,4 @@ h1 { margin:0; font-size:clamp(32px,5vw,50px); letter-spacing:-.045em; }
   .actions button { min-width:0; flex:1; padding:9px 12px; font-size:13px; }
 }
 .cell.error { color:#e45d6f; background:#ffe1e5; }
+.notes i.blocked { color:#e45d6f; }

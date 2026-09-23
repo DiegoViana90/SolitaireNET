@@ -12,7 +12,7 @@ const levels = {
   "Difícil": { clues: 28, maxErrors: 3 }
 };
 
-let solution = [], puzzle = [], current = [], wrong = new Set(), selected = -1;
+let solution = [], puzzle = [], current = [], wrong = new Set(), noteState = [], selected = -1;
 let notes = false, errors = 0, elapsed = 0, timer = null, paused = false, level = "Médio";
 
 function shuffled(values) {
@@ -37,7 +37,7 @@ function startGame(chosenLevel = "Médio") {
   solution = createSolution();
   puzzle = solution.flat();
   shuffled([...Array(81).keys()]).slice(levels[level].clues).forEach((index) => { puzzle[index] = 0; });
-  current = [...puzzle]; wrong = new Set(); selected = -1; errors = 0; elapsed = 0; paused = false;
+  current = [...puzzle]; wrong = new Set(); noteState = Array.from({ length: 81 }, () => new Set()); selected = -1; errors = 0; elapsed = 0; paused = false;
   difficultyScreen.hidden = true; gameWindow.hidden = false; gameActions.hidden = false;
   document.querySelector(".sudoku-shell").classList.add("playing");
   difficultyEl.innerHTML = `<span class="dot"></span> ${level}`;
@@ -55,6 +55,9 @@ function render() {
     cell.dataset.index = index; cell.setAttribute("role", "gridcell");
     if (value) cell.textContent = value;
     if (!puzzle[index] && value) cell.classList.add(wrong.has(index) ? "error" : "user");
+    if (!puzzle[index] && noteState[index].size && !value) {
+      cell.innerHTML = `<span class="notes">${[...noteState[index]].sort().map((item) => `<i class="${isBlocked(index, item) ? "blocked" : ""}">${item}</i>`).join("")}</span>`;
+    }
     cell.addEventListener("click", () => { if (!paused && !puzzle[index]) { selected = index; render(); } });
     board.append(cell);
   });
@@ -85,12 +88,25 @@ function enter(value) {
 }
 
 function toggleNote(value) {
-  const cell = board.children[selected];
-  const set = new Set((cell.dataset.notes || "").split(",").filter(Boolean));
+  const set = noteState[selected];
   set.has(String(value)) ? set.delete(String(value)) : set.add(String(value));
-  cell.dataset.notes = [...set].sort().join(",");
-  cell.innerHTML = set.size ? `<span class="notes">${[...set].sort().map((item) => `<i>${item}</i>`).join("")}</span>` : "";
-  cell.classList.toggle("has-notes", set.size > 0);
+  render();
+}
+
+function isBlocked(index, value) {
+  const row = Math.floor(index / 9);
+  const col = index % 9;
+  const boxRow = Math.floor(row / 3) * 3;
+  const boxCol = Math.floor(col / 3) * 3;
+  for (let peer = 0; peer < 81; peer += 1) {
+    const peerRow = Math.floor(peer / 9);
+    const peerCol = peer % 9;
+    const sameRow = peerRow === row;
+    const sameColumn = peerCol === col;
+    const sameBox = peerRow >= boxRow && peerRow < boxRow + 3 && peerCol >= boxCol && peerCol < boxCol + 3;
+    if ((sameRow || sameColumn || sameBox) && peer !== index && current[peer] === Number(value) && !wrong.has(peer)) return true;
+  }
+  return false;
 }
 
 document.querySelectorAll(".difficulty-option").forEach((button) => button.addEventListener("click", () => startGame(button.querySelector("strong").textContent.trim())));
