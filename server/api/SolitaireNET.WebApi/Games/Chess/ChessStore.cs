@@ -22,8 +22,10 @@ sealed class ChessStore
     }
     public ChessJoinResult CreateBotRoom(string difficulty)
     {
-        var room = CreateRoom(difficulty); var player = room.AddPlayer(); room.AddPlayer();
-        return player;
+        var room = CreateRoom(difficulty);
+        var player = room.AddPlayer();
+        room.AddPlayer();
+        return room.ToJoinResult(player.PlayerId);
     }
     public ChessJoinResult ApplyBotMove(string code) => rooms.TryGetValue(NormalizeCode(code), out var room) ? room.ApplyBotMove() : ChessJoinResult.Fail(code, "Sala nao encontrada.");
 

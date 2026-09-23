@@ -22,8 +22,10 @@ sealed class CheckersStore
     }
     public CheckersJoinResult CreateBotRoom(string difficulty)
     {
-        var room = CreateRoom(difficulty); var player = room.AddPlayer(); room.AddPlayer();
-        return player;
+        var room = CreateRoom(difficulty);
+        var player = room.AddPlayer();
+        room.AddPlayer();
+        return room.ToJoinResult(player.PlayerId);
     }
     public CheckersJoinResult ApplyBotMove(string code) => rooms.TryGetValue(NormalizeCode(code), out var room) ? room.ApplyBotMove() : CheckersJoinResult.Fail(code, "Sala nao encontrada.");
 
