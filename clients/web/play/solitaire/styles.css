@@ -193,7 +193,8 @@ button {
 }
 
 .card.drag-source {
-  opacity: 0.35;
+  /* The drag ghost is the only visible copy while a card is moving. */
+  opacity: 0;
 }
 
 .card.red {

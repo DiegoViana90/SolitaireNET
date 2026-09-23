@@ -402,6 +402,8 @@ function cleanupPointerTarget(target, pointerId) {
 }
 
 function makeGhost(cards, x, y) {
+  // A cancelled pointer sequence can otherwise leave an old ghost behind.
+  document.querySelectorAll(".drag-ghost").forEach((item) => item.remove());
   const ghost = document.createElement("div");
   ghost.className = "drag-ghost";
 
@@ -450,6 +452,7 @@ function removeGhost(ghost) {
 
 function cleanupDragVisuals(ghost) {
   removeGhost(ghost);
+  document.querySelectorAll(".drag-ghost").forEach((item) => item.remove());
   document.body.classList.remove("dragging");
   document.querySelectorAll(".drag-source").forEach((el) => {
     el.classList.remove("drag-source");
