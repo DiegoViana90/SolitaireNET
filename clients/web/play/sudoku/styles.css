@@ -23,5 +23,28 @@ h1 { margin:0; font-size:clamp(32px,5vw,50px); letter-spacing:-.045em; }
 .side-panel { background:var(--panel-2); border:1px solid #3b4a5b; border-radius:16px; padding:18px; }.number-pad { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }.number-pad button { border:1px solid #435568; background:#293545; border-radius:9px; aspect-ratio:1; font-size:19px; }.number-pad button:hover,.primary:hover { background:#367dbb; }.erase { width:100%; margin-top:12px; padding:10px; border:1px solid #465667; border-radius:9px; background:transparent; color:#b8c5d2; }
 .note-toggle { margin-top:14px; display:grid; gap:5px; }.note-toggle button { border:1px solid #465667; border-radius:9px; background:transparent; padding:9px; color:#c2cfdb; }.note-toggle button.on { background:#b9dbff; border-color:#5ba8ef; color:#18334d; box-shadow:inset 0 0 0 2px #5ba8ef; }.note-toggle span { color:#8495a7; font-size:11px; line-height:1.3; }.cell.has-notes { padding:0; }.notes { position:absolute; inset:3px 4px auto; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); font-size:clamp(7px,1.25vw,12px); line-height:1; color:#438bd2; text-align:center; pointer-events:none; }.notes i { font-style:normal; }
 .actions { position:fixed; left:0; right:0; bottom:0; z-index:5; display:flex; justify-content:center; gap:10px; padding:12px; background:rgba(12,16,22,.9); border-top:1px solid #293746; }.actions button { min-width:120px; padding:11px 17px; border-radius:10px; font-weight:700; }.secondary { border:1px solid #465667;background:transparent; }.primary { border:0;background:#3e91d5; }
-@media (max-width:700px) { .sudoku-shell { width:min(100% - 20px,520px);padding-top:24px; }.sudoku-layout { grid-template-columns:1fr; }.side-panel { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:center; }.panel-label { grid-column:1/-1; }.number-pad { grid-column:1/-1; }.erase { margin:0; }.game-toolbar { margin-bottom:16px; } }
+@media (max-width:700px) {
+  .sudoku-shell { width:100%; padding:12px 8px 76px; }
+  .game-window { padding:10px; border-radius:14px; }
+  .game-toolbar { gap:8px; margin-bottom:10px; }
+  .stat span { font-size:9px; }
+  .stat strong { font-size:14px; }
+  .difficulty { padding:6px 8px; font-size:11px; }
+  .sudoku-layout { grid-template-columns:1fr; gap:10px; }
+  .board-wrap { width:100%; }
+  .sudoku-board { width:100%; border-width:2px; }
+  .cell { font-size:clamp(17px,6vw,25px); }
+  .cell:nth-child(3n) { border-right-width:2px; }
+  .cell:nth-child(n+19):nth-child(-n+27), .cell:nth-child(n+46):nth-child(-n+54) { border-bottom-width:2px; }
+  .side-panel { display:grid; grid-template-columns:1fr auto; gap:8px; padding:8px; border-radius:12px; }
+  .panel-label { grid-column:1/-1; margin-bottom:0; }
+  .number-pad { grid-column:1/-1; width:min(100%, 260px); margin:auto; gap:5px; }
+  .number-pad button { aspect-ratio:auto; height:36px; border-radius:7px; font-size:16px; }
+  .note-toggle { margin-top:0; }
+  .note-toggle button { padding:7px 8px; font-size:12px; }
+  .note-toggle span { font-size:10px; }
+  .erase { margin:0; padding:8px; font-size:12px; }
+  .actions { padding:8px; }
+  .actions button { min-width:0; flex:1; padding:9px 12px; font-size:13px; }
+}
 .cell.error { color:#e45d6f; background:#ffe1e5; }
