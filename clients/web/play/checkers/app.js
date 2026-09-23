@@ -21,6 +21,7 @@ const state = {
   lastTurn: null,
   lastReady: false,
   lastDisconnectedSide: null
+  ,botThinking: false
 };
 
 const lobbyEl = document.querySelector("#lobby");
@@ -127,6 +128,23 @@ function applyJoinResult(result, options = {}) {
   }
 
   render();
+  void requestBotTurnIfNeeded();
+}
+
+async function requestBotTurnIfNeeded() {
+  if (!state.botRoom || state.botThinking || !state.game?.ready || state.game.ended || state.game.turn !== "dark") return;
+  state.botThinking = true;
+  try {
+    const bot = await request(`/checkers/bot/rooms/${encodeURIComponent(state.roomCode)}/move`, { method: "POST" });
+    state.game = bot.state;
+    state.lastMoveId = state.game.lastMove?.id || state.lastMoveId;
+    render();
+  } catch (error) {
+    setMessage(error.message);
+    render();
+  } finally {
+    state.botThinking = false;
+  }
 }
 
 async function restoreSession() {
@@ -766,4 +784,6 @@ window.addEventListener("pagehide", () => {
   }).catch(() => {});
 });
 
-restoreSession();
+// Partidas online não são restauradas ao reabrir a página: voltar começa no lobby.
+clearSession();
+render();
