@@ -10,8 +10,11 @@ export const firebaseConfig = {
 export function isFirebaseConfigured() {
   return Boolean(
     firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId &&
     firebaseConfig.appId &&
     !firebaseConfig.apiKey.startsWith("COLE_AQUI") &&
+    !firebaseConfig.messagingSenderId.startsWith("COLE_AQUI") &&
     !firebaseConfig.appId.startsWith("COLE_AQUI") &&
     firebaseConfig.authDomain !== "SEU_PROJETO.firebaseapp.com" &&
     firebaseConfig.projectId !== "SEU_PROJETO");

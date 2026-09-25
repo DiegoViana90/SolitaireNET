@@ -1,4 +1,4 @@
-import { firebaseConfig, isFirebaseConfigured } from "./firebase-config.js?v=2";
+import { firebaseConfig, isFirebaseConfigured } from "./firebase-config.js?v=3";
 
 let auth = null;
 let firebaseModules = null;
@@ -75,7 +75,17 @@ export async function signInWithGoogle() {
   if (!auth || !modules) throw new Error("Firebase ainda nao foi configurado.");
   const provider = new modules.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
-  return modules.signInWithPopup(auth, provider);
+  try {
+    return await modules.signInWithPopup(auth, provider);
+  } catch (error) {
+    // Browsers can block the popup, especially when the click follows an async UI update.
+    // Redirect keeps the same login flow working in that case.
+    if (["auth/popup-blocked", "auth/popup-closed-by-user", "auth/cancelled-popup-request"].includes(error?.code)) {
+      await modules.signInWithRedirect(auth, provider);
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function signOutUser() {
