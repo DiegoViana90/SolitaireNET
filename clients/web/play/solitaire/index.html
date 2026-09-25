@@ -46,6 +46,7 @@
 
       <div class="top-meta" aria-label="Contadores">
         <div class="stock-waste-info" id="stock-waste-info">Monte: 0 | Lixo: 0</div>
+        <!-- Login temporariamente desativado: <a class="account-chip transient-room-info" data-auth-link data-signed-out-label="Partida nao ranqueada" href="#login">Partida nao ranqueada</a> -->
       </div>
 
       <div class="tableau" id="tableau" aria-label="Colunas"></div>
@@ -96,6 +97,7 @@
 
   <script src="../../build-info.js?v=__BUILD_ASSET_VERSION__"></script>
   <script type="module" src="app.js?v=36"></script>
+  <!-- Auth temporariamente desativado: <script type="module" src="../../auth-widget.js"></script> -->
   <script>
     document.querySelectorAll('[data-ad-slot]').forEach((slot) => {
       const updateVisibility = () => slot.classList.toggle('ad-slot-visible', slot.children.length > 0 || slot.textContent.trim().length > 0);
