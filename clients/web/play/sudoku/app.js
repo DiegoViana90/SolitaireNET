@@ -53,14 +53,16 @@ function render() {
   current.forEach((value, index) => {
     const cell = document.createElement("button");
     cell.type = "button";
-    cell.className = `cell${puzzle[index] ? " given" : ""}${selected === index ? " selected" : ""}`;
+    const correct = !puzzle[index] && value === solution.flat()[index];
+    cell.className = `cell${puzzle[index] ? " given" : ""}${correct ? " correct" : ""}${selected === index ? " selected" : ""}`;
+    cell.disabled = correct;
     cell.dataset.index = index; cell.setAttribute("role", "gridcell");
     if (value) cell.textContent = value;
     if (!puzzle[index] && value) cell.classList.add(wrong.has(index) ? "error" : "user");
     if (!puzzle[index] && noteState[index].size && !value) {
       cell.innerHTML = `<span class="notes">${[...noteState[index]].sort().map((item) => `<i class="${isBlocked(index, item) ? "blocked" : ""}">${item}</i>`).join("")}</span>`;
     }
-    cell.addEventListener("click", () => { if (!paused && !puzzle[index]) { selected = index; render(); } });
+    cell.addEventListener("click", () => { if (!paused && !puzzle[index] && !correct) { selected = index; render(); } });
     board.append(cell);
   });
   numberButtons.forEach((button) => {
@@ -77,7 +79,7 @@ function updateStats() {
 }
 
 function enter(value) {
-  if (paused || selected < 0 || puzzle[selected]) return;
+  if (paused || selected < 0 || puzzle[selected] || current[selected] === solution.flat()[selected]) return;
   if (notes) return toggleNote(value);
   if (value !== solution.flat()[selected]) {
     current[selected] = value; wrong.add(selected); errors += 1; render();
