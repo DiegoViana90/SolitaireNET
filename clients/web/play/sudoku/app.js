@@ -17,28 +17,12 @@ let solution = [], puzzle = [], current = [], wrong = new Set(), noteState = [],
 let notes = false, errors = 0, elapsed = 0, timer = null, paused = false, level = "Médio";
 
 function isForced(index) {
-  return getCandidates(index).length === 1 || getCandidates(index).some((value) => isSoleCandidate(index, value));
+  return getCandidates(index).length === 1;
 }
 
 function getCandidates(index) {
   return [1, 2, 3, 4, 5, 6, 7, 8, 9]
     .filter((item) => !isBlocked(index, String(item)));
-}
-
-function isSoleCandidate(index, value) {
-  const row = Math.floor(index / 9);
-  const col = index % 9;
-  const boxRow = Math.floor(row / 3) * 3;
-  const boxCol = Math.floor(col / 3) * 3;
-  const units = [
-    Array.from({ length: 9 }, (_, item) => row * 9 + item),
-    Array.from({ length: 9 }, (_, item) => item * 9 + col),
-    Array.from({ length: 3 }, (_, r) => Array.from({ length: 3 }, (_, c) => (boxRow + r) * 9 + boxCol + c)).flat()
-  ];
-  return units.some((unit) => unit.filter((peer) => {
-    if (peer === index || puzzle[peer] || current[peer]) return peer === index;
-    return !isBlocked(peer, String(value));
-  }).length === 1);
 }
 
 function pulseNumber(value) {
@@ -99,7 +83,7 @@ function render() {
       cell.innerHTML = `<span class="notes">${[...noteState[index]].sort().map((item) => {
         const blocked = isBlocked(index, item);
         const candidates = getCandidates(index);
-        const forced = !blocked && ((candidates.length === 1 && candidates[0] === Number(item)) || isSoleCandidate(index, Number(item)));
+        const forced = !blocked && candidates.length === 1 && candidates[0] === Number(item);
         return `<i class="${blocked ? "blocked" : forced ? "forced" : ""}">${item}</i>`;
       }).join("")}</span>`;
     }

@@ -70,6 +70,73 @@
       align-items: center;
     }
 
+    .coffee-animation {
+      width: 150px;
+      height: 150px;
+      margin: -4px 0 -4px -8px;
+      display: block;
+      border: 0;
+      background: transparent;
+    }
+
+    .coffee-support {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      cursor: pointer;
+    }
+
+    .coffee-support iframe {
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .coffee-support::after {
+      content: "Ajude o dev.";
+      position: absolute;
+      left: calc(50% - 8px);
+      bottom: -10px;
+      transform: translate(-50%, 8px);
+      padding: 5px 9px;
+      border: 1px solid rgba(217, 185, 85, 0.45);
+      border-radius: 999px;
+      background: #19241d;
+      color: var(--gold);
+      font-size: 0.75rem;
+      font-weight: 800;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .coffee-support:hover::after,
+    .coffee-support:focus-visible::after {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .pix-dialog {
+      width: min(340px, calc(100% - 32px));
+      border: 1px solid rgba(217, 185, 85, 0.45);
+      border-radius: 16px;
+      padding: 22px;
+      background: #19241d;
+      color: var(--text);
+      text-align: center;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+    }
+
+    .pix-dialog::backdrop { background: rgba(0, 0, 0, 0.65); }
+    .pix-dialog h2 { margin: 0 0 8px; font-size: 1.35rem; }
+    .pix-dialog p { margin: 0 0 14px; color: var(--muted); }
+    .pix-qr { display: block; width: 180px; height: 180px; margin: 0 auto 14px; border-radius: 8px; background: #fff; }
+    .pix-key { margin: 0 0 14px; padding: 9px; border-radius: 8px; background: rgba(0, 0, 0, 0.2); color: var(--gold); font-weight: 800; word-break: break-word; }
+    .pix-actions { display: flex; justify-content: center; gap: 8px; }
+    .pix-actions button { border: 1px solid var(--line); border-radius: 7px; padding: 9px 12px; background: transparent; color: var(--text); cursor: pointer; }
+    .pix-actions button:first-child { background: var(--gold); color: #20160b; border-color: var(--gold); font-weight: 800; }
+
     .logo {
       width: 88px;
       height: 88px;
@@ -264,7 +331,14 @@
 <body>
   <main>
     <section class="hero" aria-label="paciencia . net">
-      <img class="logo" src="appicon.svg" alt="">
+      <div class="coffee-support" role="button" tabindex="0" aria-label="Ajude o dev">
+        <iframe
+          class="coffee-animation"
+          src="imagens/cafe-animation.html"
+          title="Xícara de café com moeda e fumaça"
+          aria-label="Xícara de café com moeda e fumaça"
+        ></iframe>
+      </div>
       <div>
         <h1>paciencia . net</h1>
         <p class="tagline">Paciencia online gratis e jogos classicos para jogar direto no navegador, sem baixar nada.</p>
@@ -317,6 +391,34 @@
       <a href="contato/">Contato</a>
     </nav>
   </main>
+  <dialog class="pix-dialog" id="pix-dialog">
+    <h2>Ajude o dev ☕</h2>
+    <p>Se puder, apoie o projeto via Pix.</p>
+    <img class="pix-qr" src="imagens/pix-dvkdeveloping.png" alt="QR Code Pix para dvkdeveloping@gmail.com">
+    <div class="pix-key">dvkdeveloping@gmail.com</div>
+    <div class="pix-actions">
+      <button type="button" id="copy-pix">Copiar Pix</button>
+      <button type="button" id="close-pix">Fechar</button>
+    </div>
+  </dialog>
+  <script>
+    const PIX_PAYLOAD = '00020126450014br.gov.bcb.pix0123dvkdeveloping@gmail.com5204000053039865802BR5901N6001C62070503***63044BB4';
+    const coffeeSupport = document.querySelector('.coffee-support');
+    const pixDialog = document.querySelector('#pix-dialog');
+    coffeeSupport.addEventListener('click', () => pixDialog.showModal());
+    coffeeSupport.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        pixDialog.showModal();
+      }
+    });
+    document.querySelector('#close-pix').addEventListener('click', () => pixDialog.close());
+    document.querySelector('#copy-pix').addEventListener('click', async (event) => {
+      await navigator.clipboard.writeText(PIX_PAYLOAD);
+      event.currentTarget.textContent = 'Copiado!';
+      window.setTimeout(() => { event.currentTarget.textContent = 'Copiar Pix'; }, 1400);
+    });
+  </script>
   <script src="build-info.js?v=__BUILD_ASSET_VERSION__"></script>
   <!-- Auth temporariamente desativado: <script type="module" src="auth-widget.js"></script> -->
 </body>
