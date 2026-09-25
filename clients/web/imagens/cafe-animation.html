@@ -22,7 +22,10 @@
         place-items: center;
         background: transparent;
         font-family: system-ui, sans-serif;
+        opacity: 0;
+        transition: opacity 160ms ease;
       }
+      body.ready { opacity: 1; }
       .scene {
         position: relative;
         width: min(88vw, 620px);
@@ -181,8 +184,11 @@
       image.src = `/imagens/${number}.png`;
         return image;
       });
-      let frameIndex = 0;
-      window.setInterval(() => {
+    let frameIndex = 0;
+    window.addEventListener("load", () => {
+      window.setTimeout(() => document.body.classList.add("ready"), 450);
+    });
+    window.setInterval(() => {
         frameIndex = (frameIndex + 1) % frames.length;
         coin.src = loaded[frameIndex].src;
         coin.style.transform = frames[frameIndex].mirrored
