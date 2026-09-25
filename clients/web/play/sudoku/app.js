@@ -17,10 +17,19 @@ let solution = [], puzzle = [], current = [], wrong = new Set(), noteState = [],
 let notes = false, errors = 0, elapsed = 0, timer = null, paused = false, level = "Médio";
 
 function isForced(index) {
-  const candidates = noteState[index].size
-    ? [...noteState[index]].filter((item) => !isBlocked(index, item))
-    : [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((item) => !isBlocked(index, String(item)));
+  const candidates = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    .filter((item) => !isBlocked(index, String(item)));
   return candidates.length === 1;
+}
+
+function pulseNumber(value) {
+  numberButtons.forEach((button) => button.classList.remove("pulse"));
+  const button = numberButtons.find((item) => item.textContent.trim() === String(value));
+  if (!button) return;
+  button.classList.remove("pulse");
+  void button.offsetWidth;
+  button.classList.add("pulse");
+  window.setTimeout(() => button.classList.remove("pulse"), 260);
 }
 
 function shuffled(values) {
@@ -70,7 +79,7 @@ function render() {
       const availableNotes = [...noteState[index]].filter((item) => !isBlocked(index, item));
       cell.innerHTML = `<span class="notes">${[...noteState[index]].sort().map((item) => {
         const blocked = isBlocked(index, item);
-        const forced = !blocked && availableNotes.length === 1;
+        const forced = !blocked && availableNotes.length === 1 && isForced(index) && Number(item) === availableNotes[0];
         return `<i class="${blocked ? "blocked" : forced ? "forced" : ""}">${item}</i>`;
       }).join("")}</span>`;
     }
@@ -131,7 +140,11 @@ function isBlocked(index, value) {
 }
 
 document.querySelectorAll(".difficulty-option").forEach((button) => button.addEventListener("click", () => startGame(button.querySelector("strong").textContent.trim())));
-document.querySelectorAll(".number-pad button").forEach((button) => button.addEventListener("click", () => enter(Number(button.textContent))));
+document.querySelectorAll(".number-pad button").forEach((button) => button.addEventListener("click", () => {
+  const value = Number(button.textContent);
+  pulseNumber(value);
+  enter(value);
+}));
 noteMode.addEventListener("click", () => { notes = !notes; noteMode.classList.toggle("on", notes); noteMode.setAttribute("aria-pressed", String(notes)); render(); });
 document.addEventListener("keydown", (event) => { if (/^[1-9]$/.test(event.key)) enter(Number(event.key)); });
 
