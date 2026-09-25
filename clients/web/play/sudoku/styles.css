@@ -47,7 +47,7 @@ h1 { margin:0; font-size:clamp(32px,5vw,50px); letter-spacing:-.045em; }
   .actions button { min-width:0; flex:1; padding:9px 12px; font-size:13px; }
 }
 .cell.error { color:#e45d6f; background:#ffe1e5; }
-.notes i.blocked { color:#2e9b59; font-weight:700; }
+.notes i.blocked { color:#e45d6f; }.notes i.forced { color:#2e9b59; font-weight:700; }
 .level-facil .dot { background:#55c878; }
 .level-medio .dot { background:#e5b875; }
 .level-dificil .dot { background:#e45d6f; }

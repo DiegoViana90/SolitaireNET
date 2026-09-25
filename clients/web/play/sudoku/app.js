@@ -60,7 +60,12 @@ function render() {
     if (value) cell.textContent = value;
     if (!puzzle[index] && value) cell.classList.add(wrong.has(index) ? "error" : "user");
     if (!puzzle[index] && noteState[index].size && !value) {
-      cell.innerHTML = `<span class="notes">${[...noteState[index]].sort().map((item) => `<i class="${isBlocked(index, item) ? "blocked" : ""}">${item}</i>`).join("")}</span>`;
+      const availableNotes = [...noteState[index]].filter((item) => !isBlocked(index, item));
+      cell.innerHTML = `<span class="notes">${[...noteState[index]].sort().map((item) => {
+        const blocked = isBlocked(index, item);
+        const forced = !blocked && availableNotes.length === 1;
+        return `<i class="${blocked ? "blocked" : forced ? "forced" : ""}">${item}</i>`;
+      }).join("")}</span>`;
     }
     cell.addEventListener("click", () => { if (!paused && !puzzle[index] && !correct) { selected = index; render(); } });
     board.append(cell);
