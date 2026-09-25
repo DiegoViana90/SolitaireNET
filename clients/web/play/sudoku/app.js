@@ -6,6 +6,7 @@ const noteMode = document.querySelector("#note-mode");
 const timeEl = document.querySelector(".stat strong");
 const errorsEl = document.querySelector(".mistakes strong");
 const difficultyEl = document.querySelector(".difficulty");
+const numberButtons = [...document.querySelectorAll(".number-pad button")];
 const levels = {
   "Fácil": { clues: 42, maxErrors: 10 },
   "Médio": { clues: 34, maxErrors: 5 },
@@ -62,6 +63,11 @@ function render() {
     cell.addEventListener("click", () => { if (!paused && !puzzle[index]) { selected = index; render(); } });
     board.append(cell);
   });
+  numberButtons.forEach((button) => {
+    const value = button.textContent.trim();
+    button.classList.toggle("marked", selected >= 0 && noteState[selected]?.has(value));
+    button.setAttribute("aria-pressed", String(selected >= 0 && noteState[selected]?.has(value)));
+  });
   updateStats();
 }
 
@@ -112,16 +118,8 @@ function isBlocked(index, value) {
 
 document.querySelectorAll(".difficulty-option").forEach((button) => button.addEventListener("click", () => startGame(button.querySelector("strong").textContent.trim())));
 document.querySelectorAll(".number-pad button").forEach((button) => button.addEventListener("click", () => enter(Number(button.textContent))));
-noteMode.addEventListener("click", () => { notes = !notes; noteMode.classList.toggle("on", notes); noteMode.setAttribute("aria-pressed", String(notes)); });
-document.querySelector(".erase").addEventListener("click", () => {
-  if (selected >= 0 && !puzzle[selected] && !paused) {
-    current[selected] = 0;
-    wrong.delete(selected);
-    noteState[selected].clear();
-    render();
-  }
-});
-document.addEventListener("keydown", (event) => { if (/^[1-9]$/.test(event.key)) enter(Number(event.key)); if (event.key === "Backspace" || event.key === "Delete") document.querySelector(".erase").click(); });
+noteMode.addEventListener("click", () => { notes = !notes; noteMode.classList.toggle("on", notes); noteMode.setAttribute("aria-pressed", String(notes)); render(); });
+document.addEventListener("keydown", (event) => { if (/^[1-9]$/.test(event.key)) enter(Number(event.key)); });
 
 const exitModal = document.querySelector("#exit-modal");
 const exitYes = document.querySelector("#exit-yes");
