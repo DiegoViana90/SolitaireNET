@@ -113,7 +113,14 @@ function isBlocked(index, value) {
 document.querySelectorAll(".difficulty-option").forEach((button) => button.addEventListener("click", () => startGame(button.querySelector("strong").textContent.trim())));
 document.querySelectorAll(".number-pad button").forEach((button) => button.addEventListener("click", () => enter(Number(button.textContent))));
 noteMode.addEventListener("click", () => { notes = !notes; noteMode.classList.toggle("on", notes); noteMode.setAttribute("aria-pressed", String(notes)); });
-document.querySelector(".erase").addEventListener("click", () => { if (selected >= 0 && !puzzle[selected] && !paused) { current[selected] = 0; wrong.delete(selected); render(); } });
+document.querySelector(".erase").addEventListener("click", () => {
+  if (selected >= 0 && !puzzle[selected] && !paused) {
+    current[selected] = 0;
+    wrong.delete(selected);
+    noteState[selected].clear();
+    render();
+  }
+});
 document.addEventListener("keydown", (event) => { if (/^[1-9]$/.test(event.key)) enter(Number(event.key)); if (event.key === "Backspace" || event.key === "Delete") document.querySelector(".erase").click(); });
 
 const exitModal = document.querySelector("#exit-modal");
