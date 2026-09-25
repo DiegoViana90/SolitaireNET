@@ -8,18 +8,37 @@ const errorsEl = document.querySelector(".mistakes strong");
 const difficultyEl = document.querySelector(".difficulty");
 const numberButtons = [...document.querySelectorAll(".number-pad button")];
 const levels = {
-  "Fácil": { clues: 42, maxErrors: 10 },
-  "Médio": { clues: 34, maxErrors: 5 },
-  "Difícil": { clues: 28, maxErrors: 3 }
+  "Fácil": { clues: 42, maxErrors: 10, maxNotes: 120 },
+  "Médio": { clues: 34, maxErrors: 5, maxNotes: 90 },
+  "Difícil": { clues: 28, maxErrors: 3, maxNotes: 60 }
 };
 
 let solution = [], puzzle = [], current = [], wrong = new Set(), noteState = [], selected = -1;
 let notes = false, errors = 0, elapsed = 0, timer = null, paused = false, level = "Médio";
 
 function isForced(index) {
-  const candidates = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  return getCandidates(index).length === 1 || getCandidates(index).some((value) => isSoleCandidate(index, value));
+}
+
+function getCandidates(index) {
+  return [1, 2, 3, 4, 5, 6, 7, 8, 9]
     .filter((item) => !isBlocked(index, String(item)));
-  return candidates.length === 1;
+}
+
+function isSoleCandidate(index, value) {
+  const row = Math.floor(index / 9);
+  const col = index % 9;
+  const boxRow = Math.floor(row / 3) * 3;
+  const boxCol = Math.floor(col / 3) * 3;
+  const units = [
+    Array.from({ length: 9 }, (_, item) => row * 9 + item),
+    Array.from({ length: 9 }, (_, item) => item * 9 + col),
+    Array.from({ length: 3 }, (_, r) => Array.from({ length: 3 }, (_, c) => (boxRow + r) * 9 + boxCol + c)).flat()
+  ];
+  return units.some((unit) => unit.filter((peer) => {
+    if (peer === index || puzzle[peer] || current[peer]) return peer === index;
+    return !isBlocked(peer, String(value));
+  }).length === 1);
 }
 
 function pulseNumber(value) {
@@ -79,7 +98,8 @@ function render() {
       const availableNotes = [...noteState[index]].filter((item) => !isBlocked(index, item));
       cell.innerHTML = `<span class="notes">${[...noteState[index]].sort().map((item) => {
         const blocked = isBlocked(index, item);
-        const forced = !blocked && availableNotes.length === 1 && isForced(index) && Number(item) === availableNotes[0];
+        const candidates = getCandidates(index);
+        const forced = !blocked && ((candidates.length === 1 && candidates[0] === Number(item)) || isSoleCandidate(index, Number(item)));
         return `<i class="${blocked ? "blocked" : forced ? "forced" : ""}">${item}</i>`;
       }).join("")}</span>`;
     }
@@ -91,6 +111,8 @@ function render() {
     button.classList.toggle("marked", selected >= 0 && noteState[selected]?.has(value));
     button.setAttribute("aria-pressed", String(selected >= 0 && noteState[selected]?.has(value)));
   });
+  const usedNotes = noteState.reduce((total, set) => total + set.size, 0);
+  noteMode.textContent = `✎ Candidatos (${levels[level].maxNotes - usedNotes}x)`;
   updateStats();
 }
 
@@ -119,7 +141,14 @@ function enter(value) {
 
 function toggleNote(value) {
   const set = noteState[selected];
-  set.has(String(value)) ? set.delete(String(value)) : set.add(String(value));
+  const key = String(value);
+  if (set.has(key)) {
+    set.delete(key);
+  } else {
+    const usedNotes = noteState.reduce((total, notesForCell) => total + notesForCell.size, 0);
+    if (usedNotes >= levels[level].maxNotes) return;
+    set.add(key);
+  }
   render();
 }
 
