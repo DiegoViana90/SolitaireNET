@@ -16,6 +16,13 @@ const levels = {
 let solution = [], puzzle = [], current = [], wrong = new Set(), noteState = [], selected = -1;
 let notes = false, errors = 0, elapsed = 0, timer = null, paused = false, level = "Médio";
 
+function isForced(index) {
+  const candidates = noteState[index].size
+    ? [...noteState[index]].filter((item) => !isBlocked(index, item))
+    : [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((item) => !isBlocked(index, String(item)));
+  return candidates.length === 1;
+}
+
 function shuffled(values) {
   const result = [...values];
   for (let i = result.length - 1; i > 0; i -= 1) {
@@ -53,7 +60,7 @@ function render() {
   current.forEach((value, index) => {
     const cell = document.createElement("button");
     cell.type = "button";
-    const correct = !puzzle[index] && value === solution.flat()[index];
+    const correct = !puzzle[index] && value === solution.flat()[index] && isForced(index);
     cell.className = `cell${puzzle[index] ? " given" : ""}${correct ? " correct" : ""}${selected === index ? " selected" : ""}`;
     cell.disabled = correct;
     cell.dataset.index = index; cell.setAttribute("role", "gridcell");
@@ -84,7 +91,7 @@ function updateStats() {
 }
 
 function enter(value) {
-  if (paused || selected < 0 || puzzle[selected] || current[selected] === solution.flat()[selected]) return;
+  if (paused || selected < 0 || puzzle[selected] || (current[selected] === solution.flat()[selected] && isForced(selected))) return;
   if (notes) return toggleNote(value);
   if (value !== solution.flat()[selected]) {
     current[selected] = value; wrong.add(selected); errors += 1; render();
