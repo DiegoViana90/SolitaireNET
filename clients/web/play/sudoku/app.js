@@ -124,6 +124,13 @@ function enter(value) {
 }
 
 function toggleNote(value) {
+  // An incorrect entry must not remain visible while the user is adding
+  // candidates to the same cell.
+  if (current[selected] && wrong.has(selected)) {
+    current[selected] = 0;
+    wrong.delete(selected);
+  }
+
   const set = noteState[selected];
   const key = String(value);
   if (set.has(key)) {
@@ -158,7 +165,16 @@ document.querySelectorAll(".number-pad button").forEach((button) => button.addEv
   pulseNumber(value);
   enter(value);
 }));
-noteMode.addEventListener("click", () => { notes = !notes; noteMode.classList.toggle("on", notes); noteMode.setAttribute("aria-pressed", String(notes)); render(); });
+noteMode.addEventListener("click", () => {
+  notes = !notes;
+  if (notes && selected >= 0 && wrong.has(selected)) {
+    current[selected] = 0;
+    wrong.delete(selected);
+  }
+  noteMode.classList.toggle("on", notes);
+  noteMode.setAttribute("aria-pressed", String(notes));
+  render();
+});
 document.addEventListener("keydown", (event) => { if (/^[1-9]$/.test(event.key)) enter(Number(event.key)); });
 
 const exitModal = document.querySelector("#exit-modal");

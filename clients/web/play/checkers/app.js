@@ -18,6 +18,7 @@ const state = {
   message: "",
   noticeUntil: null,
   lastMoveId: null,
+  lastAnimatedMoveId: null,
   lastTurn: null,
   lastReady: false,
   lastDisconnectedSide: null
@@ -132,7 +133,7 @@ function applyJoinResult(result, options = {}) {
 }
 
 async function requestBotTurnIfNeeded() {
-  if (!state.botRoom || state.botThinking || !state.game?.ready || state.game.ended || state.game.turn !== "dark") return;
+  if (!state.botRoom || state.botThinking || !state.game?.ready || state.game.winner || state.game.canceled || state.game.turn !== "dark") return;
   state.botThinking = true;
   try {
     do {
@@ -142,7 +143,7 @@ async function requestBotTurnIfNeeded() {
       render();
       animateLastMove(state.game.lastMove);
       await new Promise((resolve) => window.setTimeout(resolve, 820));
-    } while (state.game.ready && !state.game.ended && state.game.turn === "dark");
+    } while (state.game.ready && !state.game.winner && !state.game.canceled && state.game.turn === "dark");
   } catch (error) {
     setMessage(error.message);
     render();
@@ -187,7 +188,7 @@ function stopPolling() {
 }
 
 async function refreshRoom() {
-  if (!state.roomCode || !state.playerId || state.busy || state.syncing) return;
+  if (!state.roomCode || !state.playerId || state.busy || state.syncing || state.moveQueue.length) return;
 
   try {
     const wasWaiting = state.game && !state.game.ready;
@@ -263,6 +264,7 @@ function clearSession() {
   state.game = null;
   state.selected = null;
   state.lastMoveId = null;
+  state.lastAnimatedMoveId = null;
   state.lastTurn = null;
   state.lastReady = false;
   state.lastDisconnectedSide = null;
@@ -680,7 +682,9 @@ function handleCanceledRoom() {
 }
 
 function animateLastMove(move) {
-  if (!move?.piece || !boardEl.isConnected) return;
+  if (!move?.piece || !move.id || !boardEl.isConnected || state.game?.winner || state.game?.canceled) return;
+  if (state.lastAnimatedMoveId === move.id) return;
+  state.lastAnimatedMoveId = move.id;
 
   const from = viewPositionFromBoard(move.from.row, move.from.col);
   const to = viewPositionFromBoard(move.to.row, move.to.col);
