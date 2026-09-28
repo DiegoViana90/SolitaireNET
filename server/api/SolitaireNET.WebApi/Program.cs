@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using Chess;
 using System.Text.RegularExpressions;
+using SolitaireNET.WebApi.Agenda;
 
 var builder = WebApplication.CreateBuilder(args);
 string? firebaseProjectId = builder.Configuration["Firebase:ProjectId"];
@@ -38,6 +39,7 @@ builder.Services.AddSingleton<ChessStore>();
 builder.Services.AddSingleton<UsageMetrics>();
 builder.Services.AddSingleton<PlayerPresenceStore>();
 builder.Services.AddSingleton<RankingStore>();
+builder.Services.AddSingleton<AgendaStore>();
 builder.Services.AddHostedService<CleanupService>();
 
 var app = builder.Build();
@@ -247,6 +249,24 @@ app.MapGet("/api/usage", (GameStore games, UsageMetrics metrics, PlayerPresenceS
 app.MapGet("/api/ranking", (RankingStore ranking) =>
     Results.Ok(ranking.Snapshot()));
 
+// Agenda MVP: endpoints publicos para reservas e endpoints protegidos por chave para o painel.
+app.MapGet("/api/agenda/services", (AgendaStore agenda) => Results.Ok(agenda.Services()));
+app.MapPost("/api/agenda/bookings", (AgendaBookingRequest request, AgendaStore agenda) =>
+{
+    if (request.ServiceId <= 0 || string.IsNullOrWhiteSpace(request.CustomerName) || string.IsNullOrWhiteSpace(request.CustomerPhone) || string.IsNullOrWhiteSpace(request.StartsAt))
+        return Results.BadRequest(new { error = "Preencha servico, nome, telefone e horario." });
+    AgendaBooking? booking = agenda.Book(request.ServiceId, request.CustomerName, request.CustomerPhone, request.StartsAt);
+    return booking == null ? Results.Conflict(new { error = "Este horario acabou de ser reservado." }) : Results.Ok(booking);
+});
+app.MapPost("/api/agenda/services", (HttpContext context, AgendaServiceRequest request, AgendaStore agenda, IConfiguration configuration) =>
+{
+    if (!HasAgendaKey(context, configuration)) return Results.Unauthorized();
+    if (string.IsNullOrWhiteSpace(request.Name) || request.DurationMinutes is < 5 or > 480 || request.Price < 0) return Results.BadRequest(new { error = "Dados do servico invalidos." });
+    return Results.Ok(agenda.AddService(request.Name, request.DurationMinutes, request.Price));
+});
+app.MapGet("/api/agenda/bookings", (HttpContext context, string? from, AgendaStore agenda, IConfiguration configuration) =>
+    HasAgendaKey(context, configuration) ? Results.Ok(agenda.Bookings(from)) : Results.Unauthorized());
+
 app.MapLoadTestEndpoints(loadTestEnabled);
 
 app.MapPost("/api/checkers/rooms", (CheckersStore store) =>
@@ -348,3 +368,10 @@ else
 }
 
 app.Run();
+
+static bool HasAgendaKey(HttpContext context, IConfiguration configuration) =>
+    !string.IsNullOrWhiteSpace(configuration["Agenda:AdminKey"]) &&
+    string.Equals(context.Request.Headers["X-Agenda-Admin-Key"].FirstOrDefault(), configuration["Agenda:AdminKey"], StringComparison.Ordinal);
+
+public sealed record AgendaServiceRequest(string Name, int DurationMinutes, decimal Price);
+public sealed record AgendaBookingRequest(int ServiceId, string CustomerName, string CustomerPhone, string StartsAt);
