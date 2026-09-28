@@ -52,6 +52,8 @@ sealed class GameSession
                 stock.Count,
                 waste.Count,
                 waste.Count > 0 ? PublicCard.FromVisible(waste[^1]) : null,
+                stock.Select(PublicCard.FromHidden).ToList(),
+                waste.Select(PublicCard.FromVisible).ToList(),
                 tableau.Select(pile => pile.Select(PublicCard.From).ToList()).ToList(),
                 foundations.Select(pile => pile.Count > 0 ? PublicCard.FromVisible(pile[^1]) : null).ToList(),
                 foundations.Sum(pile => pile.Count) == 52,
@@ -311,6 +313,8 @@ sealed record PublicGameState(
     int StockCount,
     int WasteCount,
     PublicCard? WasteTop,
+    List<PublicCard> Stock,
+    List<PublicCard> Waste,
     List<List<PublicCard>> Tableau,
     List<PublicCard?> Foundations,
     bool Won,
@@ -322,7 +326,12 @@ sealed record PublicCard(string? Id, int? Rank, string? Suit, bool FaceUp)
     {
         return card.FaceUp
             ? FromVisible(card)
-            : new PublicCard(null, null, null, false);
+            : FromHidden(card);
+    }
+
+    public static PublicCard FromHidden(Card card)
+    {
+        return new PublicCard(card.Id, card.Rank, card.Suit, false);
     }
 
     public static PublicCard FromVisible(Card card)

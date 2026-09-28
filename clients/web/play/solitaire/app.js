@@ -183,12 +183,25 @@ function isLocalActionAllowed(action) {
 
 function applyLocalAction(action) {
   if (action.type === "drawStock") {
+    const nextCard = state.game.stock?.at(-1) || null;
     state.game.stockCount -= 1;
     state.game.wasteCount += 1;
-    state.game.wasteTop = null;
+    if (nextCard) {
+      state.game.stock.pop();
+      nextCard.faceUp = true;
+      state.game.waste.push(nextCard);
+      state.game.wasteTop = nextCard;
+    } else {
+      state.game.wasteTop = null;
+    }
   } else if (action.type === "resetStock") {
     state.game.stockCount = state.game.wasteCount;
     state.game.wasteCount = 0;
+    state.game.stock = [...(state.game.waste || [])].reverse().map((card) => ({
+      ...card,
+      faceUp: false
+    }));
+    state.game.waste = [];
     state.game.wasteTop = null;
   } else if (action.type === "flipTableau") {
     const pile = state.game.tableau[action.source.index];
@@ -270,7 +283,9 @@ function cardEl(card, meta) {
   el.type = "button";
   el.className = "card";
 
-  if (!card.faceUp) {
+  // A card without complete identity must never be painted as a face-up card.
+  // This can happen for one render while the server state is being replaced.
+  if (!card?.faceUp || !card.rank || !card.suit) {
     el.classList.add("back");
     if (isPendingFlip(meta)) {
       el.classList.add("pending-flip");
@@ -428,7 +443,7 @@ function visualCard(card) {
 function paintVisualCard(el, card) {
   el.className = "card";
 
-  if (!card.faceUp) {
+  if (!card?.faceUp || !card.rank || !card.suit) {
     el.classList.add("back");
     el.innerHTML = "";
     return;
@@ -707,6 +722,8 @@ function removeLocalCards(source) {
     const card = state.game.wasteTop;
     state.game.wasteTop = null;
     state.game.wasteCount = Math.max(0, state.game.wasteCount - 1);
+    if (state.game.waste?.length) state.game.waste.pop();
+    state.game.wasteTop = state.game.waste?.at(-1) || null;
     return [card];
   }
 
