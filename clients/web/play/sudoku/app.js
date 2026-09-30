@@ -187,6 +187,39 @@ noteMode.addEventListener("click", () => {
 });
 document.addEventListener("keydown", (event) => { if (/^[1-9]$/.test(event.key)) enter(Number(event.key)); });
 
+let touchStartX = 0;
+let touchStartY = 0;
+let touchTracking = false;
+document.addEventListener("touchstart", (event) => {
+  if (event.touches.length !== 1 || gameWindow.hidden || !exitModal.hidden) return;
+  touchStartX = event.touches[0].clientX;
+  touchStartY = event.touches[0].clientY;
+  touchTracking = true;
+}, { passive: true });
+document.addEventListener("touchmove", (event) => {
+  if (!touchTracking || event.touches.length !== 1) return;
+  const deltaY = event.touches[0].clientY - touchStartY;
+  const deltaX = event.touches[0].clientX - touchStartX;
+  if (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX)) {
+    event.preventDefault();
+  }
+}, { passive: false });
+document.addEventListener("touchend", (event) => {
+  if (!touchTracking) return;
+  touchTracking = false;
+  const deltaX = event.changedTouches[0].clientX - touchStartX;
+  const deltaY = event.changedTouches[0].clientY - touchStartY;
+  if (deltaY > 70 && Math.abs(deltaY) > Math.abs(deltaX)) {
+    exitTitle.textContent = "Começar novo jogo?";
+    exitMessage.textContent = "A partida atual será perdida.";
+    showExitConfirmation(() => { exitModal.hidden = true; startGame(level); });
+  } else if (deltaX < -70 && Math.abs(deltaX) > Math.abs(deltaY)) {
+    exitTitle.textContent = "Voltar ao menu?";
+    exitMessage.textContent = "Sua progressão será perdida.";
+    showExitConfirmation(() => { window.location.href = "../"; });
+  }
+}, { passive: true });
+
 const exitModal = document.querySelector("#exit-modal");
 const exitYes = document.querySelector("#exit-yes");
 const exitNo = document.querySelector("#exit-no");
