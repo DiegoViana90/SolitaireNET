@@ -16,10 +16,6 @@ const levels = {
 let solution = [], puzzle = [], current = [], wrong = new Set(), noteState = [], selected = -1;
 let notes = false, errors = 0, elapsed = 0, timer = null, paused = false, level = "Médio";
 
-function isForced(index) {
-  return getCandidates(index).length === 1;
-}
-
 function getCandidates(index) {
   return [1, 2, 3, 4, 5, 6, 7, 8, 9]
     .filter((item) => !isBlocked(index, String(item)));
@@ -72,14 +68,16 @@ function render() {
   current.forEach((value, index) => {
     const cell = document.createElement("button");
     cell.type = "button";
-    const correct = !puzzle[index] && value === solution.flat()[index] && isForced(index);
+    // A resposta só fica correta depois que o jogador a informa.
+    // O jogo não deve deduzir e travar uma célula apenas porque restou
+    // uma possibilidade válida no tabuleiro.
+    const correct = !puzzle[index] && value === solution.flat()[index];
     cell.className = `cell${puzzle[index] ? " given" : ""}${correct ? " correct" : ""}${selected === index ? " selected" : ""}`;
     cell.disabled = correct;
     cell.dataset.index = index; cell.setAttribute("role", "gridcell");
     if (value) cell.textContent = value;
     if (!puzzle[index] && value) cell.classList.add(wrong.has(index) ? "error" : "user");
-    if (!puzzle[index] && noteState[index].size && !value) {
-      const availableNotes = [...noteState[index]].filter((item) => !isBlocked(index, item));
+    if (notes && !puzzle[index] && noteState[index].size && !value) {
       cell.innerHTML = `<span class="notes">${[...noteState[index]].sort().map((item) => {
         const blocked = isBlocked(index, item);
         const candidates = getCandidates(index);
@@ -92,8 +90,9 @@ function render() {
   });
   numberButtons.forEach((button) => {
     const value = button.textContent.trim();
-    button.classList.toggle("marked", selected >= 0 && noteState[selected]?.has(value));
-    button.setAttribute("aria-pressed", String(selected >= 0 && noteState[selected]?.has(value)));
+    const marked = notes && selected >= 0 && noteState[selected]?.has(value);
+    button.classList.toggle("marked", marked);
+    button.setAttribute("aria-pressed", String(marked));
   });
   const usedNotes = noteState.reduce((total, set) => total + set.size, 0);
   noteMode.textContent = `✎ Candidatos (${levels[level].maxNotes - usedNotes}x)`;
@@ -106,13 +105,22 @@ function updateStats() {
 }
 
 function enter(value) {
-  if (paused || selected < 0 || puzzle[selected] || (current[selected] === solution.flat()[selected] && isForced(selected))) return;
+  if (paused || selected < 0 || puzzle[selected] || current[selected] === solution.flat()[selected]) return;
   if (notes) return toggleNote(value);
   if (value !== solution.flat()[selected]) {
     current[selected] = value; wrong.add(selected); errors += 1; render();
     if (errors >= levels[level].maxErrors) {
       paused = true;
-      alert(`Você atingiu o limite de ${levels[level].maxErrors} erros. Comece uma nova partida.`);
+      clearInterval(timer);
+      exitTitle.textContent = "Limite de erros atingido";
+      exitMessage.textContent = `Você atingiu ${levels[level].maxErrors} erros. Deseja sair ou começar um novo jogo?`;
+      exitNo.textContent = "Novo jogo";
+      exitYes.disabled = false;
+      exitYes.textContent = "Sair";
+      exitNoAction = () => { exitModal.hidden = true; startGame(level); };
+      exitAction = () => { window.location.href = "../"; };
+      exitModal.hidden = false;
+      return;
     }
     return;
   }
@@ -179,11 +187,15 @@ document.addEventListener("keydown", (event) => { if (/^[1-9]$/.test(event.key))
 
 const exitModal = document.querySelector("#exit-modal");
 const exitYes = document.querySelector("#exit-yes");
+const exitNo = document.querySelector("#exit-no");
 const exitTitle = document.querySelector("#exit-title");
 const exitMessage = document.querySelector(".exit-box p");
 let exitAction = null;
+let exitNoAction = null;
 function showExitConfirmation(action) {
   exitAction = action;
+  exitNoAction = () => { exitModal.hidden = true; };
+  exitNo.textContent = "Continuar";
   exitYes.disabled = true;
   exitYes.textContent = "Sair (1s)";
   exitModal.hidden = false;
@@ -199,5 +211,5 @@ document.querySelector(".secondary").addEventListener("click", () => {
   exitMessage.textContent = "Sua progressão atual será perdida.";
   showExitConfirmation(() => { exitModal.hidden = true; startGame(level); });
 });
-document.querySelector("#exit-no").addEventListener("click", () => { exitModal.hidden = true; });
+exitNo.addEventListener("click", () => { if (exitNoAction) exitNoAction(); });
 exitYes.addEventListener("click", () => { if (!exitYes.disabled && exitAction) exitAction(); });
