@@ -200,7 +200,7 @@ document.addEventListener("touchmove", (event) => {
   if (!touchTracking || event.touches.length !== 1) return;
   const deltaY = event.touches[0].clientY - touchStartY;
   const deltaX = event.touches[0].clientX - touchStartX;
-  if (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX)) {
+  if (Math.max(Math.abs(deltaY), Math.abs(deltaX)) > 10) {
     event.preventDefault();
   }
 }, { passive: false });
@@ -213,7 +213,7 @@ document.addEventListener("touchend", (event) => {
     exitTitle.textContent = "Começar novo jogo?";
     exitMessage.textContent = "A partida atual será perdida.";
     showExitConfirmation(() => { exitModal.hidden = true; startGame(level); });
-  } else if (deltaX < -70 && Math.abs(deltaX) > Math.abs(deltaY)) {
+  } else if (Math.abs(deltaX) > 70 && Math.abs(deltaX) > Math.abs(deltaY)) {
     exitTitle.textContent = "Voltar ao menu?";
     exitMessage.textContent = "Sua progressão será perdida.";
     showExitConfirmation(() => { window.location.href = "../"; });
