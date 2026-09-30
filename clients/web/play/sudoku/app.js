@@ -77,7 +77,7 @@ function render() {
     cell.dataset.index = index; cell.setAttribute("role", "gridcell");
     if (value) cell.textContent = value;
     if (!puzzle[index] && value) cell.classList.add(wrong.has(index) ? "error" : "user");
-    if (notes && !puzzle[index] && noteState[index].size && !value) {
+    if (!puzzle[index] && noteState[index].size && !value) {
       cell.innerHTML = `<span class="notes">${[...noteState[index]].sort().map((item) => {
         const blocked = isBlocked(index, item);
         const candidates = getCandidates(index);
@@ -93,7 +93,9 @@ function render() {
     const marked = notes && selected >= 0 && noteState[selected]?.has(value);
     button.classList.toggle("marked", marked);
     button.setAttribute("aria-pressed", String(marked));
+    button.disabled = selected >= 0 && !puzzle[selected] && current[selected] === solution.flat()[selected];
   });
+  noteMode.disabled = selected >= 0 && !puzzle[selected] && current[selected] === solution.flat()[selected];
   const usedNotes = noteState.reduce((total, set) => total + set.size, 0);
   noteMode.textContent = `✎ Candidatos (${levels[level].maxNotes - usedNotes}x)`;
   updateStats();
@@ -108,7 +110,7 @@ function enter(value) {
   if (paused || selected < 0 || puzzle[selected] || current[selected] === solution.flat()[selected]) return;
   if (notes) return toggleNote(value);
   if (value !== solution.flat()[selected]) {
-    current[selected] = value; wrong.add(selected); errors += 1; render();
+    current[selected] = value; wrong.add(selected); noteState[selected].clear(); errors += 1; render();
     if (errors >= levels[level].maxErrors) {
       paused = true;
       clearInterval(timer);
@@ -124,7 +126,7 @@ function enter(value) {
     }
     return;
   }
-  current[selected] = value; wrong.delete(selected); render();
+  current[selected] = value; wrong.delete(selected); noteState[selected].clear(); render();
   if (current.every((item, index) => item === solution.flat()[index])) {
     paused = true; clearInterval(timer);
     setTimeout(() => alert("Parabéns! Sudoku concluído."), 30);
