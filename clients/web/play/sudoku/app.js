@@ -8,12 +8,12 @@ const errorsEl = document.querySelector(".mistakes strong");
 const difficultyEl = document.querySelector(".difficulty");
 const numberButtons = [...document.querySelectorAll(".number-pad button")];
 const levels = {
-  "Fácil": { clues: 42, maxErrors: 10, maxNotes: 120 },
-  "Médio": { clues: 34, maxErrors: 5, maxNotes: 90 },
-  "Difícil": { clues: 28, maxErrors: 3, maxNotes: 60 }
+  "Fácil": { clues: 42, maxErrors: 10, maxNotes: 80 },
+  "Médio": { clues: 34, maxErrors: 5, maxNotes: 60 },
+  "Difícil": { clues: 28, maxErrors: 3, maxNotes: 30 }
 };
 
-let solution = [], puzzle = [], current = [], wrong = new Set(), noteState = [], selected = -1;
+let solution = [], puzzle = [], current = [], wrong = new Set(), noteState = [], selected = -1, notesUsed = 0;
 let notes = false, errors = 0, elapsed = 0, timer = null, paused = false, level = "Médio";
 
 function getCandidates(index) {
@@ -53,7 +53,7 @@ function startGame(chosenLevel = "Médio") {
   solution = createSolution();
   puzzle = solution.flat();
   shuffled([...Array(81).keys()]).slice(levels[level].clues).forEach((index) => { puzzle[index] = 0; });
-  current = [...puzzle]; wrong = new Set(); noteState = Array.from({ length: 81 }, () => new Set()); selected = -1; errors = 0; elapsed = 0; paused = false;
+  current = [...puzzle]; wrong = new Set(); noteState = Array.from({ length: 81 }, () => new Set()); notesUsed = 0; selected = -1; errors = 0; elapsed = 0; paused = false;
   difficultyScreen.hidden = true; gameWindow.hidden = false; gameActions.hidden = false;
   document.querySelector(".sudoku-shell").classList.add("playing");
   document.querySelector(".sudoku-shell").classList.remove("level-facil", "level-medio", "level-dificil");
@@ -96,8 +96,8 @@ function render() {
     button.disabled = selected >= 0 && !puzzle[selected] && current[selected] === solution.flat()[selected];
   });
   noteMode.disabled = selected >= 0 && !puzzle[selected] && current[selected] === solution.flat()[selected];
-  const usedNotes = noteState.reduce((total, set) => total + set.size, 0);
-  noteMode.textContent = `✎ Candidatos (${levels[level].maxNotes - usedNotes}x)`;
+  const remainingNotes = Math.max(0, levels[level].maxNotes - notesUsed);
+  noteMode.textContent = `✎ Candidatos (${remainingNotes}x no tabuleiro)`;
   updateStats();
 }
 
@@ -110,7 +110,7 @@ function enter(value) {
   if (paused || selected < 0 || puzzle[selected] || current[selected] === solution.flat()[selected]) return;
   if (notes) return toggleNote(value);
   if (value !== solution.flat()[selected]) {
-    current[selected] = value; wrong.add(selected); noteState[selected].clear(); errors += 1; render();
+    current[selected] = value; wrong.add(selected); notesUsed -= noteState[selected].size; noteState[selected].clear(); errors += 1; render();
     if (errors >= levels[level].maxErrors) {
       paused = true;
       clearInterval(timer);
@@ -126,7 +126,7 @@ function enter(value) {
     }
     return;
   }
-  current[selected] = value; wrong.delete(selected); noteState[selected].clear(); render();
+  current[selected] = value; wrong.delete(selected); notesUsed -= noteState[selected].size; noteState[selected].clear(); render();
   if (current.every((item, index) => item === solution.flat()[index])) {
     paused = true; clearInterval(timer);
     setTimeout(() => alert("Parabéns! Sudoku concluído."), 30);
@@ -145,10 +145,11 @@ function toggleNote(value) {
   const key = String(value);
   if (set.has(key)) {
     set.delete(key);
+    notesUsed -= 1;
   } else {
-    const usedNotes = noteState.reduce((total, notesForCell) => total + notesForCell.size, 0);
-    if (usedNotes >= levels[level].maxNotes) return;
+    if (notesUsed >= levels[level].maxNotes) return;
     set.add(key);
+    notesUsed += 1;
   }
   render();
 }
@@ -212,7 +213,7 @@ document.addEventListener("touchend", (event) => {
   if (deltaY > 70 && Math.abs(deltaY) > Math.abs(deltaX)) {
     exitTitle.textContent = "Começar novo jogo?";
     exitMessage.textContent = "A partida atual será perdida.";
-    showExitConfirmation(() => { exitModal.hidden = true; startGame(level); });
+    showExitConfirmation(() => { exitModal.hidden = true; startGame(level); }, "Novo jogo");
   }
 }, { passive: true });
 
@@ -223,14 +224,14 @@ const exitTitle = document.querySelector("#exit-title");
 const exitMessage = document.querySelector(".exit-box p");
 let exitAction = null;
 let exitNoAction = null;
-function showExitConfirmation(action) {
+function showExitConfirmation(action, confirmLabel = "Sair") {
   exitAction = action;
   exitNoAction = () => { exitModal.hidden = true; };
   exitNo.textContent = "Continuar";
   exitYes.disabled = true;
-  exitYes.textContent = "Sair (1s)";
+  exitYes.textContent = `${confirmLabel} (1s)`;
   exitModal.hidden = false;
-  window.setTimeout(() => { exitYes.disabled = false; exitYes.textContent = "Sair"; }, 1500);
+  window.setTimeout(() => { exitYes.disabled = false; exitYes.textContent = confirmLabel; }, 1500);
 }
 document.querySelector("#back-button").addEventListener("click", () => {
   exitTitle.textContent = "Sair da partida?";
@@ -240,7 +241,7 @@ document.querySelector("#back-button").addEventListener("click", () => {
 document.querySelector(".secondary").addEventListener("click", () => {
   exitTitle.textContent = "Começar novo jogo?";
   exitMessage.textContent = "Sua progressão atual será perdida.";
-  showExitConfirmation(() => { exitModal.hidden = true; startGame(level); });
+  showExitConfirmation(() => { exitModal.hidden = true; startGame(level); }, "Novo jogo");
 });
 exitNo.addEventListener("click", () => { if (exitNoAction) exitNoAction(); });
 exitYes.addEventListener("click", () => { if (!exitYes.disabled && exitAction) exitAction(); });
